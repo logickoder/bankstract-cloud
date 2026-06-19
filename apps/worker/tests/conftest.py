@@ -10,8 +10,18 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.fixtures import MINIMAL_PDF
+
 DEMO_KEY = "bsk_test_demo_anonymous_key"
 MAX_BYTES = 2000
+
+
+def auth_header(key: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {key}"}
+
+
+def pdf_upload(data: bytes = MINIMAL_PDF) -> dict[str, tuple[str, bytes, str]]:
+    return {"pdf": ("statement.pdf", data, "application/pdf")}
 
 
 @dataclass

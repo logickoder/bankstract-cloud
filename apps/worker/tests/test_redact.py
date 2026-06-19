@@ -7,19 +7,10 @@ from typing import Literal
 
 import pytest
 
-from tests.conftest import Harness
-from tests.fixtures import MINIMAL_PDF
+from tests.conftest import Harness, auth_header, pdf_upload
 
 PDF_MEDIA = "application/pdf"
 XLSX_MEDIA = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-
-def _auth(key: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {key}"}
-
-
-def _pdf(data: bytes = MINIMAL_PDF) -> dict[str, tuple[str, bytes, str]]:
-    return {"pdf": ("statement.pdf", data, "application/pdf")}
 
 
 def _fake_redact(fmt: Literal["pdf", "xlsx"], data: bytes, *, redactions: int = 3):  # type: ignore[no-untyped-def]
@@ -53,9 +44,9 @@ def test_redact_pdf_round_trip(harness: Harness, monkeypatch: pytest.MonkeyPatch
 
     resp = harness.client.post(
         "/v1/parse",
-        files=_pdf(),
+        files=pdf_upload(),
         data={"redact": "true"},
-        headers=_auth(harness.test_key),
+        headers=auth_header(harness.test_key),
     )
     assert resp.status_code == 200
     assert resp.headers["content-type"] == PDF_MEDIA
@@ -70,9 +61,9 @@ def test_redact_xlsx_content_type(harness: Harness, monkeypatch: pytest.MonkeyPa
 
     resp = harness.client.post(
         "/v1/parse",
-        files=_pdf(),
+        files=pdf_upload(),
         data={"redact": "true"},
-        headers=_auth(harness.test_key),
+        headers=auth_header(harness.test_key),
     )
     assert resp.status_code == 200
     assert resp.headers["content-type"] == XLSX_MEDIA
@@ -83,8 +74,8 @@ def test_redact_unsupported_pdf_returns_422(harness: Harness) -> None:
     # No monkeypatch: the real engine has no redactor for a synthetic PDF.
     resp = harness.client.post(
         "/v1/parse",
-        files=_pdf(),
+        files=pdf_upload(),
         data={"redact": "true"},
-        headers=_auth(harness.test_key),
+        headers=auth_header(harness.test_key),
     )
     assert resp.status_code == 422

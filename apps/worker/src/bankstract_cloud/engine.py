@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 import bankstract
@@ -19,20 +21,37 @@ from .models import (
 ENGINE_VERSION: str = getattr(bankstract, "__version__", "unknown")
 
 
-class UnsupportedStatementError(Exception):
-    """No registered parser matched the source, or the layout drifted. Maps to HTTP 422."""
+class MappedEngineError(Exception):
+    """An engine exception translated to a known HTTP outcome. Carries error_class
+    for the audit log."""
 
     def __init__(self, message: str, *, error_class: str) -> None:
         super().__init__(message)
         self.error_class = error_class
 
 
-class EngineError(Exception):
+class UnsupportedStatementError(MappedEngineError):
+    """No registered parser/redactor matched, or the layout drifted. Maps to HTTP 422."""
+
+
+class EngineError(MappedEngineError):
     """Unexpected engine error. Maps to HTTP 500. format_version is best-effort."""
 
-    def __init__(self, message: str, *, error_class: str) -> None:
-        super().__init__(message)
-        self.error_class = error_class
+
+@contextmanager
+def _translate_engine_errors() -> Generator[None, None, None]:
+    try:
+        yield
+    except ParseError as exc:
+        raise UnsupportedStatementError(str(exc), error_class="ParseError") from exc
+    except ReconciliationError as exc:
+        # Structurally parsed but the balance check failed — the result is not
+        # trustworthy, so we refuse it rather than return suspect numbers.
+        raise UnsupportedStatementError(str(exc), error_class="ReconciliationError") from exc
+    except MappedEngineError:
+        raise
+    except Exception as exc:  # translate any other engine error to a typed failure
+        raise EngineError(str(exc), error_class=type(exc).__name__) from exc
 
 
 @dataclass(frozen=True)
@@ -82,17 +101,8 @@ def parse_pdf(data: bytes, *, bank: str | None = None) -> ParseOutcome:
     buf = io.BytesIO(data)
     detected = _detect(buf)
     buf.seek(0)
-    try:
+    with _translate_engine_errors():
         result = bankstract.parse(buf, bank=bank)
-    except ParseError as exc:
-        raise UnsupportedStatementError(str(exc), error_class="ParseError") from exc
-    except ReconciliationError as exc:
-        # Structurally parsed but the balance check failed — the result is not
-        # trustworthy, so we refuse it rather than return suspect numbers.
-        raise UnsupportedStatementError(str(exc), error_class="ReconciliationError") from exc
-    except Exception as exc:  # translate any engine error to a typed failure
-        raise EngineError(str(exc), error_class=type(exc).__name__) from exc
-
     return ParseOutcome(response=_to_response(result), parser_detected=detected)
 
 
@@ -104,14 +114,8 @@ def redact_pdf(data: bytes, *, bank: str | None = None) -> RedactOutcome:
     the HTTP response; nothing is written to disk and no payload is logged.
     """
     buf = io.BytesIO(data)
-    try:
+    with _translate_engine_errors():
         result = bankstract.redact(buf, bank=bank)
-    except ParseError as exc:
-        raise UnsupportedStatementError(str(exc), error_class="ParseError") from exc
-    except ReconciliationError as exc:
-        raise UnsupportedStatementError(str(exc), error_class="ReconciliationError") from exc
-    except Exception as exc:  # translate any engine error to a typed failure
-        raise EngineError(str(exc), error_class=type(exc).__name__) from exc
 
     return RedactOutcome(
         data=result.data,
