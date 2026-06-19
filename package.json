@@ -1,0 +1,26 @@
+{
+  "name": "bankstract-cloud",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "Hosted statement parsing API for Nigerian banks. AGPL-3.0 SaaS layer over the bankstract MIT engine.",
+  "homepage": "https://github.com/logickoder/bankstract-cloud",
+  "author": "Jeffery Orazulike (https://github.com/logickoder)",
+  "packageManager": "pnpm@11.2.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

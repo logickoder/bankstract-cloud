@@ -212,19 +212,30 @@ Subprocess-shell-out = slow (process spawn), fragile (CLI version drift), leaks 
 
 ```python
 # CORRECT
-@app.post("/parse")
-async def parse(pdf: UploadFile, ...):
+@app.post("/v1/parse")
+async def parse(pdf: UploadFile, ...) -> ParseResponse:
     buf = io.BytesIO(await pdf.read())
     result = bankstract.parse(buf)
-    return result.model_dump(mode="json")
+    # ParseResult + StatementMetadata are dataclasses; only Transaction is
+    # pydantic. Wire format goes through our own pydantic response contract
+    # in apps/worker/src/bankstract_cloud/models.py — decouples API surface
+    # from engine internals so the engine can evolve without breaking /v1/*
+    # clients. Never return result directly.
+    return ParseResponse.from_engine(result)
 
 # WRONG — writes to disk
-@app.post("/parse")
+@app.post("/v1/parse")
 async def parse(pdf: UploadFile, ...):
     with open("/tmp/in.pdf", "wb") as f:
         f.write(await pdf.read())
     result = bankstract.parse(Path("/tmp/in.pdf"))
     ...
+
+# WRONG — leaks engine internals to wire format
+@app.post("/v1/parse")
+async def parse(pdf: UploadFile, ...):
+    result = bankstract.parse(buf)
+    return result.model_dump(mode="json")  # AttributeError — ParseResult is a dataclass
 ```
 
 ### 3. B2B API consumers are first-class
@@ -235,18 +246,43 @@ POST /v1/parse
   Authorization: Bearer bsk_live_xxx
   Content-Type: multipart/form-data
   body: pdf=<file>
+  optional:
+    bank=<name>      skip auto-detect
+    redact=true      run redactor — returns redacted bytes (PDF or XLSX) directly w/ proper Content-Type
 
 Response:
-  200 → ParseResult JSON
+  200 → ParseResponse JSON (wire contract — apps/worker/src/.../models.py)
   401 → invalid / missing API key
   402 → billing failure (Stripe declined)
   413 → file too large (>50MB)
-  422 → no parser detected (unsupported bank)
+  422 → no parser detected (unsupported bank or wrong format)
   429 → rate limit exceeded
   500 → internal parse error (include format_version)
 ```
 
 Versioned URL prefix `/v1/` from day 1. Breaking changes → `/v2/`.
+
+**Redaction is live as of engine 0.11.0.** `bankstract.redact(buf, bank=bank)` returns `RedactResult(data, bank, format, format_version, report)`. Worker pattern:
+
+```python
+@app.post("/v1/parse")
+async def parse(pdf: UploadFile, redact: bool = False, bank: str | None = None) -> Response:
+    buf = io.BytesIO(await pdf.read())
+    if redact:
+        result = bankstract.redact(buf, bank=bank)
+        return Response(
+            content=result.data,
+            media_type=_media_type(result.format),  # application/pdf or vnd.openxmlformats-officedocument.spreadsheetml.sheet
+            headers={
+                "X-Bankstract-Redactions": str(result.report.redactions),
+                "X-Bankstract-Format-Version": result.format_version,
+            },
+        )
+    parse_result = bankstract.parse(buf, bank=bank)
+    return ParseResponse.from_engine(parse_result)
+```
+
+**Privacy invariant still holds:** `bankstract.redact()` returns bytes in-memory, no tempfile (verified by engine's tempfile-invariant test via TMPDIR monkeypatch). Worker streams `result.data` straight to HTTP response. Engine pin must be `bankstract>=0.11.0`.
 
 ### 4. Consumer demo calls the same endpoint internally
 

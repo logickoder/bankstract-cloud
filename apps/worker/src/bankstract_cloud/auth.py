@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2026 Jeffery Orazulike
+
+from __future__ import annotations
+
+import hmac
+import secrets
+import sqlite3
+import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
+
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+
+# API key format: bsk_<env>_<random32>  (env is "live" or "test").
+# Stored hashed with argon2; the raw key is shown once on creation and never persisted.
+# lookup_prefix narrows the candidate set without revealing the secret.
+
+_PREFIX_LEN = 16
+_RANDOM_BYTES = 24  # -> 32 url-safe chars
+
+_hasher = PasswordHasher()
+
+
+@dataclass(frozen=True)
+class AuthContext:
+    api_key_id: str
+    tier: str  # "live" | "test" | "anonymous"
+
+    @property
+    def is_billable(self) -> bool:
+        return self.tier == "live"
+
+
+@dataclass(frozen=True)
+class IssuedKey:
+    id: str
+    raw_key: str
+    lookup_prefix: str
+    tier: str
+
+
+def generate_api_key(env: str) -> tuple[str, str]:
+    if env not in ("live", "test"):
+        raise ValueError(f"env must be 'live' or 'test', got {env!r}")
+    raw = f"bsk_{env}_{secrets.token_urlsafe(_RANDOM_BYTES)}"
+    return raw, raw[:_PREFIX_LEN]
+
+
+class KeyStore:
+    """SQLite-backed API key store. The anonymous demo key is matched from config,
+    never stored in the DB."""
+
+    def __init__(self, conn: sqlite3.Connection, *, demo_api_key: str = "") -> None:
+        self._conn = conn
+        self._demo_api_key = demo_api_key
+
+    def issue(self, name: str, env: str) -> IssuedKey:
+        raw, prefix = generate_api_key(env)
+        key_id = uuid.uuid4().hex
+        tier = "live" if env == "live" else "test"
+        self._conn.execute(
+            "INSERT INTO api_keys (id, name, lookup_prefix, key_hash, env, tier, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                key_id,
+                name,
+                prefix,
+                _hasher.hash(raw),
+                env,
+                tier,
+                datetime.now(UTC).isoformat(),
+            ),
+        )
+        self._conn.commit()
+        return IssuedKey(id=key_id, raw_key=raw, lookup_prefix=prefix, tier=tier)
+
+    def revoke(self, key_id: str) -> None:
+        self._conn.execute(
+            "UPDATE api_keys SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL",
+            (datetime.now(UTC).isoformat(), key_id),
+        )
+        self._conn.commit()
+
+    def authenticate(self, raw_key: str) -> AuthContext | None:
+        if self._demo_api_key and hmac.compare_digest(raw_key, self._demo_api_key):
+            return AuthContext(api_key_id="demo", tier="anonymous")
+
+        if not raw_key.startswith("bsk_"):
+            return None
+
+        prefix = raw_key[:_PREFIX_LEN]
+        rows = self._conn.execute(
+            "SELECT id, key_hash, tier FROM api_keys "
+            "WHERE lookup_prefix = ? AND revoked_at IS NULL",
+            (prefix,),
+        ).fetchall()
+        for row in rows:
+            try:
+                _hasher.verify(row["key_hash"], raw_key)
+            except VerifyMismatchError:
+                continue
+            return AuthContext(api_key_id=row["id"], tier=row["tier"])
+        return None

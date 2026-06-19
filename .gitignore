@@ -1,0 +1,40 @@
+# secrets — NEVER commit (Directive 2). Public repo.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# local scratch / experiments
+_local/
+_scratch/
+
+# node / next / turbo
+node_modules/
+.next/
+out/
+.turbo/
+dist/
+build/
+*.tsbuildinfo
+.vercel/
+
+# python / uv (apps/worker)
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.pyright/
+.mypy_cache/
+
+# worker runtime state — audit DB is metadata-only but still local state
+*.sqlite
+*.sqlite3
+*.db
+
+# os / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/

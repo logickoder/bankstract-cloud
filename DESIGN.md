@@ -421,8 +421,11 @@ landing-sections:
     original: true
     elements:
       heading: "Reads Naija banks first"
-      grid: "bank-coverage-cell per bank (PalmPay/FBN/Zenith/GTB/Kuda/Opay/Stanbic/Wise)"
+      source-of-truth: "engine `list_parsers()` at build time + roadmap data file — NEVER a hardcoded marketing list in component source"
+      shipped-banks-render: "from engine — fbn, opay, palmpay, zenith as of engine 0.10.0; one cell each, indicator: shipped"
+      planned-banks-render: "from roadmap.yaml — gtb, kuda, sparkle, alat, stanbic, wise; indicator: in-progress or wanted with version target"
       sla-microcopy: "Format drift fixed in 48h or you don't pay"
+      directive: "CLAUDE.md Directive 6 — Zero hallucination on business logic. Coverage matrix reflects engine truth, NOT marketing wishlist. If engine ships 4 parsers, grid renders 4 shipped cells. The planned cells reveal the roadmap honestly without overclaiming current support."
 
   - id: compliance
     component: ComplianceSection

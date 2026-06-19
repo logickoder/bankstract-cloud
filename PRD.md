@@ -12,7 +12,7 @@
 Hosted SaaS layer on top of the `bankstract` open-source Python engine.
 
 Three-layer architecture:
-
+ 
 | Layer | Repo | License | Audience |
 |-------|------|---------|----------|
 | OSS engine | `bankstract` | MIT | Devs who run CLI / `pip install` |
@@ -176,9 +176,11 @@ POST /v1/parse
   body: pdf=<file>
   optional:
     bank=<name>          skip auto-detect
-    redact=true          run redactor before returning
+    redact=true          run redactor — returns redacted file bytes (PDF or XLSX) directly
 
-Response 200:
+Response 200 (default, no redact):
+  ParseResponse JSON (wire contract — apps/worker/src/bankstract_cloud/models.py,
+  decoupled from engine ParseResult dataclass internals)
   {
     "format_version": "fbn-2026-01",
     "metadata": { ... },
@@ -186,17 +188,33 @@ Response 200:
     "transactions": [ ... ]
   }
 
+Response 200 (redact=true):
+  Raw redacted file bytes (PDF or XLSX) with Content-Type matching source format.
+  Headers carry the metadata ParseResponse exposes in JSON mode:
+    Content-Type: application/pdf
+                | application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+    X-Bankstract-Bank: opay
+    X-Bankstract-Format-Version: opay-pdf-2026-01
+    X-Bankstract-Redactions: 11338
+
 Response 401  invalid / missing API key
 Response 402  billing failure (Stripe declined)
 Response 413  file too large (>50MB)
-Response 422  no parser detected (unsupported bank or wrong format)
+Response 422  no parser/redactor detected (unsupported bank or wrong format)
 Response 429  rate limit exceeded
 Response 500  internal parse error (response body includes format_version)
 ```
 
+**Wire format ≠ engine internals.** Engine `ParseResult` + `StatementMetadata` are Python dataclasses (only `Transaction` is pydantic). Worker defines its own `ParseResponse` pydantic model in `apps/worker/src/bankstract_cloud/models.py` and serializes via `ParseResponse.from_engine(result)`. Decouples API surface from engine internals — engine can rev internal types without breaking `/v1/*` clients.
+
+**Redaction live as of engine 0.11.0.** `bankstract.redact(source, *, bank=None) -> RedactResult` returns in-memory bytes (no tempfile, no disk write — verified by engine tempfile-invariant test via TMPDIR monkeypatch). Worker streams `result.data` straight to HTTP response w/ Content-Type dispatch via `result.format`. Engine pin: `bankstract>=0.11.0` in `apps/worker/pyproject.toml`.
+
 ```
 GET /v1/banks
-  list of supported banks + format versions
+  list of supported banks + format versions — derived live from engine's
+  list_parsers() + list_redactors() at request time, NEVER a hardcoded
+  marketing list. As of engine 0.11.0: fbn, opay, palmpay, zenith (4 parsers,
+  4 redactors). Opay supports both PDF + XLSX formats; others PDF only.
 ```
 
 ```
@@ -219,6 +237,34 @@ GET /healthz                      worker liveness
 GET /readyz                       worker + engine + DB readiness
 GET /v1/status                    public uptime + version info
 ```
+
+## Canonical CSV schema (public contract)
+
+Cloud emits ONE canonical CSV shape from `/v1/parse?format=csv`. Downstream tools (`budgetbakers-wallet-importer`, hypothetical YNAB importer, etc.) target this shape, not the other way around.
+
+```
+date,narration,debit,credit,balance,reference,currency
+2026-05-01T00:00:00,FBN ALERT,50.00,0,531085.04,X00000000,NGN
+2026-05-06T00:00:00,SALARY,0,300000.00,831085.04,X00000000,NGN
+```
+
+Schema rules:
+
+| Column | Type | Format | Notes |
+|--------|------|--------|-------|
+| `date` | ISO-8601 | `YYYY-MM-DDTHH:MM:SS` | Always full timestamp; banks without time pad `00:00:00`. UTC offset omitted (statements are bank-local time). |
+| `narration` | string | UTF-8 | Empty string for FBN-style narration-less rows |
+| `debit` | decimal | string-encoded decimal | `"0"` (literal) for credit rows, never empty |
+| `credit` | decimal | string-encoded decimal | `"0"` (literal) for debit rows, never empty |
+| `balance` | decimal | string-encoded decimal | Empty string when statement omits running balance column (PalmPay) |
+| `reference` | string | bank transaction ID | Empty string when bank omits it |
+| `currency` | ISO-4217 | `NGN`, `USD`, etc. | Defaults to `NGN` |
+
+Header row is required (column-name dispatch in consumer parsers, not positional).
+
+**Semver promise:** column names + types + order are part of the public API. Adding a column = minor bump. Renaming or removing = major bump. Schema is locked at v1 launch.
+
+`format=json` emits the `ParseResponse` shape documented in § API surface (with engine metadata wrapped). `format=csv` is data-only — metadata is exposed via response headers (`X-Bankstract-Bank`, `X-Bankstract-Format-Version`, `X-Bankstract-Period-Start`, `X-Bankstract-Period-End`).
 
 ## CLI surface
 
@@ -293,7 +339,7 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 | C | Result expiry | HTTP response only, no re-download | Lock pre-build |
 | D | B2B onboarding flow | Self-serve API key + Stripe usage billing | Lock pre-build |
 | E | Logging stack | stdout + Sentry + UptimeRobot | Lock pre-build |
-| F | Export format coverage at v1 | BB CSV + plain CSV + JSON | Lock pre-launch |
+| F | Export format coverage at v1 | **Generic CSV + JSON only.** Cloud emits one canonical CSV shape (owner-controlled, documented in PRD § Canonical CSV schema). BB-Wallet's proprietary import format dropped (third-party drift risk). Sibling tool `budgetbakers-wallet-importer` adds a `bankstract-csv` reader in its own repo — impedance match lives in the consumer tool, not in Cloud. Future tool integrations (YNAB, Money Manager, etc.) follow the same pattern: ship as standalone importers reading the canonical CSV, never as Cloud writers. | Lock pre-launch |
 | G | Email transactional | Resend | Lock pre-launch |
 | H | Marketing channels for soft launch | Show HN + Twitter, PH 2 weeks later | Lock at launch |
 | I | Privacy policy + ToS | Hand-rolled minimal v1, lawyer review pre-first-B2B | Lock pre-launch |
