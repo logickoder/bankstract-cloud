@@ -734,7 +734,7 @@ dropped:
 
 ```yaml
 tools:
-  framework: "Next.js 15 (App Router)"
+  framework: "Next.js 16 (App Router)"
   styling: "Tailwind v4"
   components: "shadcn/ui (base) + Magic UI (animated)"
   icons: "Lucide React (tree-shaken individual imports)"

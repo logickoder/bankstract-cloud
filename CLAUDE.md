@@ -95,10 +95,10 @@ bankstract-cloud/
 ├── .env.example                  documented env vars
 ├── .gitignore                    .env.production, .env.local, _local/, etc
 ├── apps/
-│   ├── marketing/                Next.js 15 — landing, pricing, OSS callout
-│   ├── app/                      Next.js 15 — developer dashboard (Clerk auth, API keys, usage, billing)
+│   ├── marketing/                Next.js 16 — landing, pricing, OSS callout
+│   ├── app/                      Next.js 16 — developer dashboard (Clerk auth, API keys, usage, billing)
 │   ├── docs/                     Mintlify or Fumadocs — OpenAPI spec + integration guides
-│   ├── demo/                     Next.js 15 — consumer drag-drop showcase (anonymous + Turnstile)
+│   ├── demo/                     Next.js 16 — consumer drag-drop showcase (anonymous + Turnstile)
 │   └── worker/                   FastAPI (Python) — wraps bankstract engine, parse endpoint, B2B auth
 ├── packages/
 │   ├── ui/                       shadcn components shared across Next.js apps
@@ -122,7 +122,7 @@ App separation logic:
 ## STACK + CONVENTIONS
 
 ### Frontend (apps/marketing, apps/app, apps/docs, apps/demo)
-- Next.js 15 (App Router)
+- Next.js 16 (App Router)
 - React 19
 - TypeScript strict
 - Tailwind v4

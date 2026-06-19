@@ -16,10 +16,10 @@ Owner: Jeffery Orazulike (github.com/logickoder).
 
 ```
 apps/
-  marketing/    Next.js 15 — landing page
-  app/          Next.js 15 — auth'd dev dashboard (Clerk + Stripe)
+  marketing/    Next.js 16 — landing page
+  app/          Next.js 16 — auth'd dev dashboard (Clerk + Stripe)
   docs/         Mintlify or Fumadocs — API docs
-  demo/         Next.js 15 — anonymous drag-drop showcase (Turnstile)
+  demo/         Next.js 16 — anonymous drag-drop showcase (Turnstile)
   worker/       FastAPI — imports `bankstract` engine, exposes /v1/parse
 packages/
   ui/           shadcn components shared across Next.js apps

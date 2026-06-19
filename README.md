@@ -32,10 +32,10 @@ API consumers interact over HTTP and do **not** inherit AGPL. A SaaS-hosted fork
 
 ```
 apps/
-  marketing/   Next.js 15 — landing
-  app/         Next.js 15 — dev dashboard (Clerk + Stripe)
+  marketing/   Next.js 16 — landing
+  app/         Next.js 16 — dev dashboard (Clerk + Stripe)
   docs/        Fumadocs — API docs
-  demo/        Next.js 15 — anonymous drag-drop (Turnstile)
+  demo/        Next.js 16 — anonymous drag-drop (Turnstile)
   worker/      FastAPI — wraps the bankstract engine, exposes /v1/parse
 packages/
   ui/          shared shadcn components

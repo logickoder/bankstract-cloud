@@ -2,7 +2,7 @@
 
 **Status:** concept · v1 target Q3 2026
 **License:** AGPL-3.0
-**Stack:** TypeScript (Next.js 15) + Python (FastAPI)
+**Stack:** TypeScript (Next.js 16) + Python (FastAPI)
 **Engine dependency:** [github.com/logickoder/bankstract](https://github.com/logickoder/bankstract) (MIT)
 
 ---
@@ -75,7 +75,7 @@ Honest copy:
 
 | Layer | Choice |
 |-------|--------|
-| Frontend (marketing, app, docs, demo) | Next.js 15 + Tailwind v4 + shadcn/ui + Magic UI |
+| Frontend (marketing, app, docs, demo) | Next.js 16 + Tailwind v4 + shadcn/ui + Magic UI |
 | Auth (B2B/app) | Clerk |
 | Auth (consumer demo) | Anonymous + Cloudflare Turnstile + per-IP rate limit |
 | Worker | FastAPI + uvicorn, imports `bankstract` directly |
@@ -94,7 +94,7 @@ Total fixed cost: **~₦5–6k/mo (~$4–5/mo)**. Domain: ₦0 (subdomain on own
 
 ```
                                     ┌──────────────────┐
-                                    │  Next.js 15 apps │
+                                    │  Next.js 16 apps │
    Browser ──── HTTPS ──── CF ──────┤  (Hetzner+Coolify│
                                     │   marketing /    │
                                     │   app /          │
@@ -149,10 +149,10 @@ bankstract-cloud/
 ├── turbo.json
 ├── .env.example                  documented env vars
 ├── apps/
-│   ├── marketing/                Next.js 15 — landing, pricing, OSS callout
-│   ├── app/                      Next.js 15 — developer dashboard (Clerk auth, API keys, usage, billing)
+│   ├── marketing/                Next.js 16 — landing, pricing, OSS callout
+│   ├── app/                      Next.js 16 — developer dashboard (Clerk auth, API keys, usage, billing)
 │   ├── docs/                     Mintlify or Fumadocs — OpenAPI spec + integration guides
-│   ├── demo/                     Next.js 15 — consumer drag-drop showcase
+│   ├── demo/                     Next.js 16 — consumer drag-drop showcase
 │   └── worker/                   FastAPI — wraps bankstract engine
 ├── packages/
 │   ├── ui/                       shadcn components shared across Next.js apps
