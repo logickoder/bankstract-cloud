@@ -25,7 +25,7 @@ jobs:
         working-directory: apps/worker
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@vmain
+      - uses: astral-sh/setup-uv@main
         with:
           enable-cache: true
           cache-dependency-glob: apps/worker/uv.lock
