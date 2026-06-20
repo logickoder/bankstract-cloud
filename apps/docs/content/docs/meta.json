@@ -1,0 +1,14 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "quickstart",
+    "authentication",
+    "formats",
+    "errors",
+    "limits-billing",
+    "banks",
+    "api-reference",
+    "self-host"
+  ]
+}

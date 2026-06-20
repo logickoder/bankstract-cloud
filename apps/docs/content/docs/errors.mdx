@@ -1,0 +1,40 @@
+---
+title: Errors
+description: One error envelope, typed by error_class.
+---
+
+Every non-2xx response uses the same JSON envelope:
+
+```json
+{
+  "error": "no registered parser detected this source",
+  "error_class": "ParseError",
+  "format_version": null,
+  "marker_coverage": null
+}
+```
+
+Branch on `error_class`, not the human `error` string. `marker_coverage` is populated only for `EmptyStatementError`.
+
+## Status codes
+
+| Status | Meaning |
+|--------|---------|
+| `200` | Success — `ParseResponse` JSON, or redacted/CSV bytes |
+| `401` | Missing, invalid, or revoked key (`AuthError`) |
+| `413` | File over 50 MB (`PayloadTooLarge`) |
+| `422` | Parse failure — see `error_class` below |
+| `429` | Rate limit exceeded (`RateLimitError`) |
+| `500` | Internal engine error |
+
+## `error_class` (the 422 cases)
+
+| `error_class` | What happened | What to do |
+|---------------|---------------|------------|
+| `EncryptedSourceError` | The PDF is password-protected | Remove the password, re-upload |
+| `EmptyStatementError` | Parsed clean, zero rows. High `marker_coverage` ≈ truly empty; low ≈ silent layout drift | Check the statement; if wrong, file an issue |
+| `LayoutDriftError` | Bank detected, but the layout changed | File an issue with a redacted sample |
+| `ReconciliationError` | Totals don't reconcile against the statement header | Likely format drift — file an issue |
+| `ParseError` | No supported bank detected, or a non-statement PDF | Confirm the bank is supported |
+
+Format drift on a supported bank is fixed within 48h (see [Banks](/docs/banks)).

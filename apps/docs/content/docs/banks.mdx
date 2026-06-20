@@ -1,0 +1,26 @@
+---
+title: Supported banks
+description: Coverage and the format-drift SLA.
+---
+
+The engine auto-detects the bank from the document. Today it reads:
+
+| Bank | Formats |
+|------|---------|
+| `palmpay` | PDF |
+| `fbn` (First Bank) | PDF |
+| `opay` | PDF, XLSX |
+| `zenith` | PDF |
+
+Pass `bank=<name>` to skip auto-detection. Query the live list any time:
+
+```bash
+curl https://bankstract.logickoder.dev/v1/banks \
+  -H "Authorization: Bearer bsk_live_xxx"
+```
+
+## Format-drift SLA
+
+Banks revise their PDF layouts without notice. When that breaks a *supported* bank, the engine returns a typed `LayoutDriftError` or `ReconciliationError` (never a silent wrong number), and the format version is surfaced in the error. We ship a fix within **48 hours**, or that parse isn't billed.
+
+New bank parsers live in the open-source [engine](https://github.com/logickoder/bankstract) — contributions welcome there.

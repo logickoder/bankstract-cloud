@@ -5,6 +5,11 @@ allowBuilds:
   esbuild: true
   sharp: true
 
+minimumReleaseAgeExclude:
+  - fumadocs-core@16.10.5
+  - fumadocs-openapi@11.0.3
+  - fumadocs-ui@16.10.5
+
 # Pin transitive deps to patched versions (pnpm audit advisories).
 overrides:
   postcss@<8.5.10: ">=8.5.10"

@@ -1,0 +1,60 @@
+---
+title: Quickstart
+description: Make your first parse in under a minute.
+---
+
+## 1. Get an API key
+
+Keys look like `bsk_live_…` (production, billed) or `bsk_test_…` (free, for integration). During the alpha, keys are issued by the team — a self-serve dashboard is on the way. Reach out, or self-host and issue your own.
+
+## 2. Send a statement
+
+Post a PDF as `multipart/form-data` with your key as a Bearer token:
+
+```bash
+curl -X POST https://bankstract.logickoder.dev/v1/parse \
+  -H "Authorization: Bearer bsk_live_xxx" \
+  -F "pdf=@statement.pdf"
+```
+
+```python
+import requests
+
+resp = requests.post(
+    "https://bankstract.logickoder.dev/v1/parse",
+    headers={"Authorization": "Bearer bsk_live_xxx"},
+    files={"pdf": open("statement.pdf", "rb")},
+)
+data = resp.json()
+print(data["totals"], len(data["transactions"]), "rows")
+```
+
+```typescript
+const form = new FormData()
+form.append('pdf', file) // a File or Blob
+
+const resp = await fetch('https://bankstract.logickoder.dev/v1/parse', {
+  method: 'POST',
+  headers: { Authorization: 'Bearer bsk_live_xxx' },
+  body: form,
+})
+const data = await resp.json()
+```
+
+## 3. Read the response
+
+```json
+{
+  "format_version": "fbn-2026-01",
+  "metadata": { "bank": "fbn", "account_number_masked": "****1111", "...": "..." },
+  "totals": { "credit": "500.00", "debit": "120.00" },
+  "row_wise_reconcilable": true,
+  "transactions": [
+    { "date": "2026-01-05T09:30:00", "narration": "FOO TRANSFER", "debit": "0", "credit": "500.00", "balance": "600.00", "reference": "REF1", "currency": "NGN" }
+  ]
+}
+```
+
+Money is always a **decimal string** (`"500.00"`), never a JSON number — parse it with a decimal type, not a float, so you don't lose precision.
+
+Next: [Authentication](/docs/authentication), [response formats](/docs/formats), and the [error envelope](/docs/errors).

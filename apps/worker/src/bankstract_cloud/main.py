@@ -92,7 +92,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         conn.close()
 
 
-app = FastAPI(title="bankstract-cloud worker", version=__version__, lifespan=lifespan)
+app = FastAPI(
+    title="bankstract-cloud API",
+    version=__version__,
+    description=(
+        "Statement parsing API for Nigerian banks. Parse a PDF/XLSX statement into "
+        "structured transactions over a single HTTP call. API consumers interact over "
+        "HTTP and do not inherit the AGPL-3.0 license of the hosted service."
+    ),
+    license_info={"name": "AGPL-3.0-only", "url": "https://www.gnu.org/licenses/agpl-3.0.html"},
+    openapi_tags=[
+        {"name": "Parse", "description": "Turn a statement into structured data."},
+        {"name": "Keys", "description": "Issue, list, and revoke API keys (admin-only)."},
+        {"name": "Account", "description": "Usage, supported banks, and version."},
+        {"name": "Health", "description": "Liveness and readiness probes."},
+    ],
+    lifespan=lifespan,
+)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -150,12 +166,12 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-@app.get("/healthz", response_model=HealthResponse)
+@app.get("/healthz", response_model=HealthResponse, tags=["Health"], summary="Liveness probe")
 async def healthz() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
-@app.get("/readyz", response_model=ReadyResponse)
+@app.get("/readyz", response_model=ReadyResponse, tags=["Health"], summary="Readiness probe")
 async def readyz(request: Request) -> ReadyResponse:
     state = _state(request)
     db_ok = True
@@ -168,12 +184,22 @@ async def readyz(request: Request) -> ReadyResponse:
     return ReadyResponse(status="ok" if healthy else "degraded", engine=engine_ok, database=db_ok)
 
 
-@app.get("/v1/status", response_model=StatusResponse)
+@app.get(
+    "/v1/status",
+    response_model=StatusResponse,
+    tags=["Account"],
+    summary="Worker and engine version",
+)
 async def status() -> StatusResponse:
     return StatusResponse(status="ok", worker_version=__version__, engine_version=ENGINE_VERSION)
 
 
-@app.get("/v1/banks", response_model=BanksResponse)
+@app.get(
+    "/v1/banks",
+    response_model=BanksResponse,
+    tags=["Account"],
+    summary="List supported banks",
+)
 async def banks(_: AuthContext = Depends(require_auth)) -> BanksResponse:
     return BanksResponse(
         banks=[BankInfo(id=b) for b in list_supported_banks()],
@@ -181,7 +207,12 @@ async def banks(_: AuthContext = Depends(require_auth)) -> BanksResponse:
     )
 
 
-@app.get("/v1/usage", response_model=UsageResponse)
+@app.get(
+    "/v1/usage",
+    response_model=UsageResponse,
+    tags=["Account"],
+    summary="Current billing-period usage",
+)
 async def usage(request: Request, ctx: AuthContext = Depends(require_auth)) -> UsageResponse:
     state = _state(request)
     now = datetime.now(UTC)
@@ -203,7 +234,15 @@ _ADMIN_ERRORS: dict[int | str, dict[str, Any]] = {
 }
 
 
-@app.post("/v1/keys", response_model=KeyCreatedResponse, status_code=201, responses=_ADMIN_ERRORS)
+@app.post(
+    "/v1/keys",
+    response_model=KeyCreatedResponse,
+    status_code=201,
+    responses=_ADMIN_ERRORS,
+    tags=["Keys"],
+    summary="Issue an API key",
+    description="Admin-only. Returns the raw key exactly once; only its argon2 hash is stored.",
+)
 async def create_key(
     request: Request, body: KeyCreateRequest, _: None = Depends(require_admin)
 ) -> KeyCreatedResponse:
@@ -219,7 +258,13 @@ async def create_key(
     )
 
 
-@app.get("/v1/keys", response_model=KeyListResponse, responses=_ADMIN_ERRORS)
+@app.get(
+    "/v1/keys",
+    response_model=KeyListResponse,
+    responses=_ADMIN_ERRORS,
+    tags=["Keys"],
+    summary="List API keys",
+)
 async def list_keys(
     request: Request,
     owner: str | None = Query(default=None),
@@ -243,7 +288,13 @@ async def list_keys(
     )
 
 
-@app.delete("/v1/keys/{key_id}", status_code=204, responses=_ADMIN_ERRORS)
+@app.delete(
+    "/v1/keys/{key_id}",
+    status_code=204,
+    responses=_ADMIN_ERRORS,
+    tags=["Keys"],
+    summary="Revoke an API key",
+)
 async def revoke_key(request: Request, key_id: str, _: None = Depends(require_admin)) -> Response:
     if not _state(request).keystore.revoke(key_id):
         raise HTTPException(status_code=404, detail="key not found or already revoked")
@@ -260,6 +311,14 @@ async def revoke_key(request: Request, key_id: str, _: None = Depends(require_ad
         429: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
+    tags=["Parse"],
+    summary="Parse a bank statement",
+    description=(
+        "Upload a PDF (or XLSX) statement and get structured transactions back. "
+        "`?format=json` (default) returns ParseResponse; `?format=csv` returns the "
+        "engine-serialized CSV. `redact=true` returns the redacted document bytes. "
+        "The file is parsed in memory and never written to disk."
+    ),
 )
 async def parse(
     request: Request,

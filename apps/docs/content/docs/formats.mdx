@@ -1,0 +1,41 @@
+---
+title: Response formats
+description: JSON, CSV, and redacted output.
+---
+
+`POST /v1/parse` shapes its output with the `format` query param and the `redact` form field.
+
+## JSON (default)
+
+`?format=json` (or omit it) returns the `ParseResponse` object — metadata, totals, and the transaction array. Money fields are decimal strings; dates are ISO 8601.
+
+## CSV
+
+`?format=csv` returns `text/csv` with a `Content-Disposition` attachment header, serialized by the engine's own writer:
+
+```bash
+curl -X POST "https://bankstract.logickoder.dev/v1/parse?format=csv" \
+  -H "Authorization: Bearer bsk_live_xxx" \
+  -F "pdf=@statement.pdf" -o statement.csv
+```
+
+Columns: `date, narration, debit, credit, balance, reference, currency`.
+
+## Redaction
+
+`redact=true` runs the NDPR-aware redactor and returns the **redacted document bytes** (PDF or XLSX) — not JSON — with the matching `Content-Type` and two headers:
+
+- `X-Bankstract-Redactions` — count of redactions applied
+- `X-Bankstract-Format-Version` — engine format version
+
+```bash
+curl -X POST https://bankstract.logickoder.dev/v1/parse \
+  -H "Authorization: Bearer bsk_live_xxx" \
+  -F "pdf=@statement.pdf" -F "redact=true" -o redacted.pdf
+```
+
+## Optional inputs
+
+- `bank=<name>` — skip auto-detection and force a parser (`fbn`, `opay`, `palmpay`, `zenith`).
+
+The PDF is parsed in memory and never written to disk — for any format.

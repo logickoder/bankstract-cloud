@@ -1,0 +1,18 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* Copyright (C) 2026 Jeffery Orazulike */
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* Brand: single burnt-orange accent (DESIGN.md). Docs otherwise keep the Fumadocs
+   default theme — accent + font only. */
+:root,
+.dark {
+  --color-fd-primary: #d2691e;
+  --color-fd-ring: #d2691e;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', Menlo, monospace;
+}

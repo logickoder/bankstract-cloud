@@ -1,0 +1,17 @@
+---
+title: Self-host
+description: Run the whole stack yourself.
+---
+
+The service is AGPL-3.0 and runs anywhere Docker does — the same code that powers the hosted API.
+
+```bash
+git clone https://github.com/logickoder/bankstract-cloud
+cd bankstract-cloud/infra
+cp .env.example .env
+docker compose up --build
+```
+
+That brings up the worker, the consumer demo, and a Caddy reverse proxy. The B2B API is on the same host under `/v1`. See [`infra/README.md`](https://github.com/logickoder/bankstract-cloud/blob/main/infra/README.md) for production notes (domain/TLS, Turnstile, Stripe, backups).
+
+Self-hosting means you run your own keys, your own audit log, and pay nothing per parse. The privacy posture is identical: PDFs are parsed in memory, only metadata is stored.

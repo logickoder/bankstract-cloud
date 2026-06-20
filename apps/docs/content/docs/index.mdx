@@ -1,0 +1,14 @@
+---
+title: Introduction
+description: Statement parsing API for Nigerian banks.
+---
+
+Parse a Nigerian bank-statement PDF into structured transactions over a single HTTP call.
+
+```bash
+curl -X POST https://bankstract.logickoder.dev/v1/parse \
+  -H "Authorization: Bearer bsk_live_xxx" \
+  -F "pdf=@statement.pdf"
+```
+
+The PDF is parsed in memory and never written to disk. See the [Quickstart](/docs/quickstart) to make your first call.

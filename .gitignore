@@ -24,6 +24,10 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# fumadocs generated (regenerated on build from the committed openapi.json)
+**/.source/
+apps/docs/content/docs/api/
+
 # python / uv (apps/worker)
 .venv/
 __pycache__/
