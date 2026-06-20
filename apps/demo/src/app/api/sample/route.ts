@@ -8,7 +8,7 @@ import { SUPPORTED_BANKS } from '../../../lib/banks'
 export const runtime = 'nodejs'
 
 // Sample statements are the engine's own committed REDACTED fixtures, fetched at
-// runtime — never vendored into this repo (no bank PDFs here, ever). The client
+// runtime, never vendored into this repo (no bank PDFs here, ever). The client
 // then runs them through the normal parse flow.
 const FIXTURE_BASE = 'https://raw.githubusercontent.com/logickoder/bankstract/main/tests'
 const BANKS = new Set<string>(SUPPORTED_BANKS)

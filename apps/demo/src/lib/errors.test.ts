@@ -3,7 +3,13 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { codeForResponse, codeForStatus, type DemoErrorCode, ERROR_COPY } from './errors'
+import {
+  codeForResponse,
+  codeForStatus,
+  type DemoErrorCode,
+  ERROR_COPY,
+  tooLargeCopy,
+} from './errors'
 
 describe('codeForStatus', () => {
   it.each([
@@ -58,5 +64,13 @@ describe('ERROR_COPY', () => {
     for (const code of codes) {
       expect(ERROR_COPY[code].length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('tooLargeCopy', () => {
+  it('reports the actual MB sent, rounded', () => {
+    expect(tooLargeCopy(67 * 1024 * 1024)).toBe(
+      'File too big. 67 MB sent, 50 MB cap. Trim or split it, then try again.',
+    )
   })
 })

@@ -36,7 +36,7 @@ export function DemoClient() {
     }
 
     dispatch({ type: 'PARSE_STARTED', file, sample })
-    // Token obtained at submit time — freshest relative to the immediately-following POST.
+    // Token obtained at submit time, freshest relative to the immediately-following POST.
     const token = (await turnstile.current?.getToken()) ?? ''
     const result = await parseStatement(file, token)
     turnstile.current?.reset()
@@ -73,7 +73,11 @@ export function DemoClient() {
           onReset={() => dispatch({ type: 'RESET' })}
         />
       ) : state.status === 'error' ? (
-        <ErrorPanel code={state.code} onRetry={() => dispatch({ type: 'RESET' })} />
+        <ErrorPanel
+          code={state.code}
+          bytes={state.file?.size ?? null}
+          onRetry={() => dispatch({ type: 'RESET' })}
+        />
       ) : (
         <IdleView
           status={state.status}

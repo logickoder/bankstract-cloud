@@ -1,4 +1,4 @@
-# AGENTS.md — bankstract-cloud
+# AGENTS.md: bankstract-cloud
 
 Quick-reference for AI coding agents (Cursor, Claude Code, GPT, Codex, Cline, etc).
 Authoritative deep-dive: `CLAUDE.md` (charter) and `PRD.md` (product spec).
@@ -16,11 +16,11 @@ Owner: Jeffery Orazulike (github.com/logickoder).
 
 ```
 apps/
-  marketing/    Next.js 16 — landing page
-  app/          Next.js 16 — auth'd dev dashboard (Clerk + Stripe)
-  docs/         Mintlify or Fumadocs — API docs
-  demo/         Next.js 16 — anonymous drag-drop showcase (Turnstile)
-  worker/       FastAPI — imports `bankstract` engine, exposes /v1/parse
+  marketing/    Next.js 16: landing page
+  app/          Next.js 16: auth'd dev dashboard (Clerk + Stripe)
+  docs/         Mintlify or Fumadocs: API docs
+  demo/         Next.js 16: anonymous drag-drop showcase (Turnstile)
+  worker/       FastAPI: imports `bankstract` engine, exposes /v1/parse
 packages/
   ui/           shadcn components shared across Next.js apps
   types/        shared TS types mirroring engine ParseResult
@@ -37,10 +37,10 @@ infra/
 PDF flow: client → FastAPI worker → `BytesIO` → `bankstract.parse(stream)` → JSON response. No `Path.write_bytes`, no `NamedTemporaryFile(delete=False)`, no caching layers. PDF content never logged.
 
 ### 2. No secrets in source
-Public repo. `.env.production` gitignored. `.env.example` documents env vars. Pre-commit scans for `sk_live_`, `whsec_`, `STRIPE_SECRET_KEY=` and similar — halt commit on match. Use `bsk_test_` for dev keys, never `bsk_live_`.
+Public repo. `.env.production` gitignored. `.env.example` documents env vars. Pre-commit scans for `sk_live_`, `whsec_`, `STRIPE_SECRET_KEY=` and similar. Halt commit on match. Use `bsk_test_` for dev keys, never `bsk_live_`.
 
 ### 3. AGPL-3.0 headers on source files
-All `.ts`, `.tsx`, `.py` files in `apps/` and `packages/` start with the short notice from `LICENSE_HEADER.txt`. Engine import (`bankstract`, MIT) is a runtime dependency — no header inheritance.
+All `.ts`, `.tsx`, `.py` files in `apps/` and `packages/` start with the short notice from `LICENSE_HEADER.txt`. Engine import (`bankstract`, MIT) is a runtime dependency, no header inheritance.
 
 ### 4. Worker imports the engine, never subprocess
 ```python
@@ -84,7 +84,7 @@ No `git commit`, `git push`, `git tag`, `gh pr create`, `gh release`, `pnpm publ
 
 ```ts
 // Cloudflare Turnstile sends the token via formData NOT JSON body.
-// Don't fetch req.json() — the multipart parser eats the PDF.
+// Don't fetch req.json(). The multipart parser eats the PDF.
 const formData = await req.formData()
 ```
 
@@ -159,6 +159,6 @@ If a request matches any of the above, state which item, refer to PRD.md § Out 
 | How is billing wired? | `apps/worker/src/bankstract_cloud/billing.py` (Stripe usage records) |
 | What's the privacy posture? | `CLAUDE.md` § Directive 1 + `PRD.md` § Privacy posture |
 | Why AGPL not MIT? | `CLAUDE.md` § Directive 3 + `PRD.md` § License |
-| How do I add a new bank? | NOT here — engine repo: `github.com/logickoder/bankstract` § CONTRIBUTING |
-| Why aren't there bank-parser files? | Same answer — engine repo owns the parsers; Cloud consumes via PyPI |
+| How do I add a new bank? | NOT here. Engine repo: `github.com/logickoder/bankstract` § CONTRIBUTING |
+| Why aren't there bank-parser files? | Same answer. Engine repo owns the parsers; Cloud consumes via PyPI |
 | Visual brand reference | `DESIGN.md` (tokens, components, page structure, references, anti-patterns) |

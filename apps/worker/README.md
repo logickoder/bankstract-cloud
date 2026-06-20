@@ -28,9 +28,9 @@ uv run pytest
 | POST | `/v1/parse` | Bearer | multipart `pdf`; optional `bank`. `?format=json` (default) returns ParseResponse JSON; `?format=csv` returns engine-serialized CSV (`text/csv` + `Content-Disposition`). `redact=true` returns the redacted document bytes (PDF or XLSX) with the matching `Content-Type`. |
 | GET | `/v1/banks` | Bearer | engine-reported supported parsers |
 | GET | `/v1/usage` | Bearer | current-month parses + projected invoice |
-| GET | `/v1/status` | — | worker + engine version |
-| GET | `/healthz` | — | liveness |
-| GET | `/readyz` | — | engine + DB readiness |
+| GET | `/v1/status` | none | worker + engine version |
+| GET | `/healthz` | none | liveness |
+| GET | `/readyz` | none | engine + DB readiness |
 
 ### `redact=true`
 
@@ -67,5 +67,5 @@ src/bankstract_cloud/
   turnstile.py   Cloudflare Turnstile verification (anonymous tier)
   db.py          SQLite connection + schema
   config.py      env-driven settings
-tests/           pytest — synthetic PDFs only, no real statements
+tests/           pytest: synthetic PDFs only, no real statements
 ```

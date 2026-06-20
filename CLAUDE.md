@@ -1,4 +1,4 @@
-# bankstract-cloud — Claude Operating Charter
+# bankstract-cloud: Claude Operating Charter
 
 You are working inside `bankstract-cloud`, a public AGPL-3.0 SaaS layer on top of the `bankstract` OSS engine. Primary product: B2B statement parsing API for Nigerian fintechs / bookkeeping SaaS / tax-prep startups. Secondary surface: free browser drag-drop demo.
 
@@ -10,7 +10,7 @@ Sibling repo: github.com/logickoder/bankstract (the OSS Python engine, MIT). Thi
 
 ## CORE DIRECTIVES
 
-### 1. PRIVACY IS THE PRODUCT — NEVER STORE PDF CONTENT
+### 1. PRIVACY IS THE PRODUCT: NEVER STORE PDF CONTENT
 
 The single load-bearing trust claim is "we process in memory, we never write your PDF to disk, we never log file contents." If you violate this, the product brand dies.
 
@@ -18,8 +18,8 @@ Concrete rules:
 
 - PDF bytes flow: client → FastAPI worker → `BytesIO` → `bankstract.parse(stream)` → `ParseResult` → JSON response → garbage collected
 - NEVER write PDF bytes to disk (`open(..., 'wb')`, `Path.write_bytes`, `tempfile.NamedTemporaryFile` with delete=False, etc)
-- NEVER log PDF contents, transaction details, account holders, or balances — only filename, byte count, parser detected, success/fail timestamp
-- NEVER persist `ParseResult.transactions` or `metadata` to a database — return them in the HTTP response and let them die
+- NEVER log PDF contents, transaction details, account holders, or balances: only filename, byte count, parser detected, success/fail timestamp
+- NEVER persist `ParseResult.transactions` or `metadata` to a database. Return them in the HTTP response and let them die
 - Audit log schema is metadata-only: `(id, timestamp, api_key_id_or_anonymous, filename, byte_count, parser_detected, success: bool, error_class: str | None)`. No payload fields.
 - If a feature request asks for "transaction history" or "saved parses", push back. That's a v1.5+ opt-in feature, NOT a default.
 
@@ -33,11 +33,11 @@ This repo is public. Secrets in source = breach.
 - Pre-commit hook scans for `sk_live_`, `whsec_`, `pk_live_`, `STRIPE_SECRET_KEY=` patterns; halt commit if matched
 - If you generate a secret as part of dev work (test API key, etc), use the `test_` / `bsk_test_` prefix; never `live_`
 
-### 3. LICENSE IS AGPL-3.0 — RESPECT THE COPYLEFT
+### 3. LICENSE IS AGPL-3.0: RESPECT THE COPYLEFT
 
 - All source files in `apps/` and `packages/` carry the AGPL-3.0 header (see `LICENSE_HEADER.txt`)
-- The engine (`bankstract`, MIT) is a runtime dependency — does NOT inherit AGPL
-- B2B API consumers call us via HTTP — they do NOT inherit AGPL (clarify this in docs whenever it surfaces)
+- The engine (`bankstract`, MIT) is a runtime dependency. Does NOT inherit AGPL
+- B2B API consumers call us via HTTP. They do NOT inherit AGPL (clarify this in docs whenever it surfaces)
 - A SaaS-hosted fork must open-source modifications. This is the moat. Do not weaken it.
 
 ### 4. HUMAN IN THE LOOP
@@ -46,20 +46,20 @@ Do not run `git commit`, `git push`, `git tag`, `gh pr create`, `gh release crea
 
 ### 5. SURGICAL EDITS
 
-Touch the specific app / package under request. Don't refactor across `apps/marketing`, `apps/app`, `apps/worker` in one pass unless explicitly tasked. Each app is independently deployable — touching one to "fix" another is forbidden.
+Touch the specific app / package under request. Don't refactor across `apps/marketing`, `apps/app`, `apps/worker` in one pass unless explicitly tasked. Each app is independently deployable. Touching one to "fix" another is forbidden.
 
 ### 6. ZERO HALLUCINATION ON BUSINESS LOGIC
 
-Billing logic, rate limit math, API key issuance, parser orchestration — read the actual code, confirm the actual schema, run the actual endpoint. Never write "I think the rate limit is 10/hour" — grep for it, point at the constant.
+Billing logic, rate limit math, API key issuance, parser orchestration: read the actual code, confirm the actual schema, run the actual endpoint. Never write "I think the rate limit is 10/hour". Grep for it, point at the constant.
 
 ### 7. NO BOILERPLATE COMMENTS
 
-Same as bankstract — comments earn their place when removing them would confuse a future reader. No "// validate input" above `validate()`, no JSDoc on obvious functions.
+Same as bankstract. Comments earn their place when removing them would confuse a future reader. No "// validate input" above `validate()`, no JSDoc on obvious functions.
 
 Earned comment example:
 ```ts
 // Cloudflare Turnstile sends the token via formData NOT JSON body.
-// Don't fetch req.json() — the multipart parser eats the PDF.
+// Don't fetch req.json(). The multipart parser eats the PDF.
 const formData = await req.formData()
 ```
 
@@ -95,18 +95,18 @@ bankstract-cloud/
 ├── .env.example                  documented env vars
 ├── .gitignore                    .env.production, .env.local, _local/, etc
 ├── apps/
-│   ├── marketing/                Next.js 16 — landing, pricing, OSS callout
-│   ├── app/                      Next.js 16 — developer dashboard (Clerk auth, API keys, usage, billing)
-│   ├── docs/                     Mintlify or Fumadocs — OpenAPI spec + integration guides
-│   ├── demo/                     Next.js 16 — consumer drag-drop showcase (anonymous + Turnstile)
-│   └── worker/                   FastAPI (Python) — wraps bankstract engine, parse endpoint, B2B auth
+│   ├── marketing/                Next.js 16: landing, pricing, OSS callout
+│   ├── app/                      Next.js 16: developer dashboard (Clerk auth, API keys, usage, billing)
+│   ├── docs/                     Mintlify or Fumadocs: OpenAPI spec + integration guides
+│   ├── demo/                     Next.js 16: consumer drag-drop showcase (anonymous + Turnstile)
+│   └── worker/                   FastAPI (Python): wraps bankstract engine, parse endpoint, B2B auth
 ├── packages/
 │   ├── ui/                       shadcn components shared across Next.js apps
 │   ├── types/                    TS types (ParseResult, StatementMetadata mirror of engine schema)
 │   ├── tsconfig/                 shared tsconfig presets
 │   └── eslint-config/            shared ESLint config
 └── infra/
-    ├── docker-compose.yml        self-host bundle — verifiable AGPL self-host claim
+    ├── docker-compose.yml        self-host bundle: verifiable AGPL self-host claim
     ├── Caddyfile                 reverse proxy (Hetzner + Coolify default)
     └── README.md                 self-host setup walkthrough
 ```
@@ -134,7 +134,7 @@ App separation logic:
 ### Worker (apps/worker)
 - Python 3.11+
 - FastAPI + uvicorn
-- `bankstract` PyPI library (engine, MIT) — install via `uv add bankstract`
+- `bankstract` PyPI library (engine, MIT): install via `uv add bankstract`
 - `pyright` strict
 - `ruff` lint + format
 - `pytest` for tests
@@ -145,13 +145,13 @@ App separation logic:
 - `turbo` for task orchestration (build, lint, test, dev across apps)
 
 ### Brand language
-See [`DESIGN.md`](./DESIGN.md) — single source of truth for tokens, components, page structure, references, anti-patterns. Do not duplicate design rules here.
+See [`DESIGN.md`](./DESIGN.md): single source of truth for tokens, components, page structure, references, anti-patterns. Do not duplicate design rules here.
 
 ### Hosting
 - All Next.js apps + FastAPI worker run on single Hetzner CAX11 (ARM, 2 vCPU, 4GB RAM) via Coolify
 - Cloudflare in front (CDN, DDoS, SSL termination, Turnstile)
 - SQLite on worker box for audit log + Clerk-backed dashboard for keys
-- Backups: nightly to Cloudflare R2 (free tier — 10GB egress + storage)
+- Backups: nightly to Cloudflare R2 (free tier: 10GB egress + storage)
 - Domain: `bankstract.logickoder.dev` (subdomain on owner-controlled `logickoder.dev`, ₦0). Pivot to standalone TLD post-revenue.
 - **Fixed cost: ~₦5–6k/mo (~$4–5/mo). Locked indie-cheap.**
 
@@ -164,10 +164,10 @@ See [`DESIGN.md`](./DESIGN.md) — single source of truth for tokens, components
 pnpm install
 cd apps/worker && uv sync --all-extras && cd ../..
 
-# dev — runs all apps concurrently via Turbo
+# dev: runs all apps concurrently via Turbo
 pnpm dev
 
-# dev — single app
+# dev: single app
 pnpm --filter marketing dev
 pnpm --filter app dev
 pnpm --filter docs dev
@@ -218,12 +218,12 @@ async def parse(pdf: UploadFile, ...) -> ParseResponse:
     result = bankstract.parse(buf)
     # ParseResult + StatementMetadata are dataclasses; only Transaction is
     # pydantic. Wire format goes through our own pydantic response contract
-    # in apps/worker/src/bankstract_cloud/models.py — decouples API surface
+    # in apps/worker/src/bankstract_cloud/models.py. Decouples API surface
     # from engine internals so the engine can evolve without breaking /v1/*
     # clients. Never return result directly.
     return ParseResponse.from_engine(result)
 
-# WRONG — writes to disk
+# WRONG: writes to disk
 @app.post("/v1/parse")
 async def parse(pdf: UploadFile, ...):
     with open("/tmp/in.pdf", "wb") as f:
@@ -231,11 +231,11 @@ async def parse(pdf: UploadFile, ...):
     result = bankstract.parse(Path("/tmp/in.pdf"))
     ...
 
-# WRONG — leaks engine internals to wire format
+# WRONG: leaks engine internals to wire format
 @app.post("/v1/parse")
 async def parse(pdf: UploadFile, ...):
     result = bankstract.parse(buf)
-    return result.model_dump(mode="json")  # AttributeError — ParseResult is a dataclass
+    return result.model_dump(mode="json")  # AttributeError: ParseResult is a dataclass
 ```
 
 ### 3. B2B API consumers are first-class
@@ -248,10 +248,10 @@ POST /v1/parse
   body: pdf=<file>
   optional:
     bank=<name>      skip auto-detect
-    redact=true      run redactor — returns redacted bytes (PDF or XLSX) directly w/ proper Content-Type
+    redact=true      run redactor, returns redacted bytes (PDF or XLSX) directly w/ proper Content-Type
 
 Response:
-  200 → ParseResponse JSON (wire contract — apps/worker/src/.../models.py)
+  200 → ParseResponse JSON (wire contract: apps/worker/src/.../models.py)
   401 → invalid / missing API key
   402 → billing failure (Stripe declined)
   413 → file too large (>50MB)
@@ -298,7 +298,7 @@ Each successful parse from a paid API key → Stripe metered billing record `met
 
 - Each app has unit tests in `apps/<app>/__tests__/` or `apps/<app>/src/**/*.test.ts`
 - Worker has pytest tests under `apps/worker/tests/`
-- Integration tests for the `/v1/parse` endpoint use synthetic PDFs (NOT real bank statements) — see `apps/worker/tests/fixtures/`
+- Integration tests for the `/v1/parse` endpoint use synthetic PDFs (NOT real bank statements). See `apps/worker/tests/fixtures/`
 - E2E (Playwright) for marketing + demo critical flows: hero render, demo upload, signup
 - CI runs lint + typecheck + test on every PR; deploy only from `main` after manual review
 
@@ -327,21 +327,21 @@ Fixture privacy rule (mirrors bankstract engine):
 - "We" only when referring to the team; never "us / our customers" upsell-speak.
 - Naira amounts ALWAYS in JetBrains Mono. Visual rule.
 - Bank names in plain text, no logos in body copy (logos go in coverage grid only).
-- Owner brand identifier is `logickoder` — always link to `github.com/logickoder` in public-facing copy.
+- Owner brand identifier is `logickoder`. Always link to `github.com/logickoder` in public-facing copy.
 
 ---
 
-## OUT OF SCOPE — DO NOT ADD
+## OUT OF SCOPE: DO NOT ADD
 
-- Category inference (rule-based or ML) — downstream concern
-- Mobile native client — not v1
-- Multi-tenant org accounts — not v1
-- Whitelabel for accounting firms — not v1
-- Direct bank API integrations (Mono / Okra wrappers) — different product
-- Pyodide / WASM in-browser parsing — v2 if usage justifies
-- Categorization, budgeting, dashboards on top of parsed data — downstream concern
-- Direct push to BudgetBakers / YNAB / Notion / Google Sheets — Cloud returns JSON; integrations belong in customer code
-- Statement-download automation (logging into bank portals) — separate tool, never ship here
+- Category inference (rule-based or ML): downstream concern
+- Mobile native client: not v1
+- Multi-tenant org accounts: not v1
+- Whitelabel for accounting firms: not v1
+- Direct bank API integrations (Mono / Okra wrappers): different product
+- Pyodide / WASM in-browser parsing: v2 if usage justifies
+- Categorization, budgeting, dashboards on top of parsed data: downstream concern
+- Direct push to BudgetBakers / YNAB / Notion / Google Sheets: Cloud returns JSON; integrations belong in customer code
+- Statement-download automation (logging into bank portals): separate tool, never ship here
 
 If asked to add any of the above, push back. State the directive. Refer to PRD.md § Out of scope.
 
@@ -351,5 +351,5 @@ If asked to add any of the above, push back. State the directive. Refer to PRD.m
 
 - State change → terse confirmation with file + function name
 - Diagnosis → root cause in one to two sentences, then the fix
-- Refusal → cite the directive being upheld (e.g. "Directive 1 — PDF bytes in memory only. Cannot use `tempfile.NamedTemporaryFile`. Use `BytesIO`.")
+- Refusal → cite the directive being upheld (e.g. "Directive 1. PDF bytes in memory only. Cannot use `tempfile.NamedTemporaryFile`. Use `BytesIO`.")
 - Never apologize. Acknowledge errors technically and move on.

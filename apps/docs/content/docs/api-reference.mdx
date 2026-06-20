@@ -31,7 +31,7 @@ Worker and engine version. No auth.
 
 ## Keys (admin)
 
-Gated by an admin token, not a `bsk_` key — a key can never mint more keys.
+Gated by an admin token, not a `bsk_` key. A key can never mint more keys.
 
 ### `POST /v1/keys`
 Issue a key. Body: `{ name, env: "live"|"test", owner? }`. Returns the raw key **once**.
@@ -40,7 +40,7 @@ Issue a key. Body: `{ name, env: "live"|"test", owner? }`. Returns the raw key *
 List key metadata (never the raw key or hash). Optional `owner` filter.
 
 ### `DELETE /v1/keys/{id}`
-Revoke a key (soft delete — `204`, or `404` if already revoked).
+Revoke a key (soft delete: `204`, or `404` if already revoked).
 
 ## Health
 
@@ -48,4 +48,4 @@ Revoke a key (soft delete — `204`, or `404` if already revoked).
 Liveness. No auth.
 
 ### `GET /readyz`
-Readiness — engine loaded + DB reachable. No auth.
+Readiness: engine loaded + DB reachable. No auth.

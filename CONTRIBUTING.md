@@ -10,16 +10,16 @@ Public AGPL-3.0 repo. PRs welcome.
 
 ## Not accepted
 
-- **New bank parsers** — those belong in the engine repo, [`bankstract`](https://github.com/logickoder/bankstract). This repo consumes the engine via PyPI; it does not contain parsers.
-- **Export-format writers** (CSV/XLSX/QIF/BudgetBakers, etc.) — the API returns ParseResponse JSON or engine-redacted bytes. Converting to a downstream wallet format is the consumer's job (e.g. the BudgetBakers Wallet importer owns its own import). The worker does not host writers.
-- Category inference / ML transaction tagging — out of scope (see [`PRD.md`](./PRD.md) § Out of scope).
-- Direct bank-portal or open-banking integrations — different product.
+- **New bank parsers.** Those belong in the engine repo, [`bankstract`](https://github.com/logickoder/bankstract). This repo consumes the engine via PyPI; it does not contain parsers.
+- **Export-format writers** (CSV/XLSX/QIF/BudgetBakers, etc.). The API returns ParseResponse JSON or engine-redacted bytes. Converting to a downstream wallet format is the consumer's job (e.g. the BudgetBakers Wallet importer owns its own import). The worker does not host writers.
+- Category inference / ML transaction tagging: out of scope (see [`PRD.md`](./PRD.md) § Out of scope).
+- Direct bank-portal or open-banking integrations: different product.
 
 If a change matches the "not accepted" list, it will be closed with a pointer to the right home.
 
 ## Ground rules
 
-1. **No real bank data, ever.** No real names, account numbers, BVN, or addresses — in code, fixtures, tests, or issues. Use `FOO`, `ACME`, `1111 2222`. Worker tests use synthetic PDFs only.
+1. **No real bank data, ever.** No real names, account numbers, BVN, or addresses anywhere: code, fixtures, tests, or issues. Use `FOO`, `ACME`, `1111 2222`. Worker tests use synthetic PDFs only.
 2. **No secrets in commits.** Dev keys use `test_` / `bsk_test_` prefixes. The pre-commit scan halts on `sk_live_`, `whsec_`, `pk_live_`, `STRIPE_SECRET_KEY=`.
 3. **PDF bytes stay in memory.** No code path may write a PDF to disk or log its contents. PRs that do are rejected on sight.
 4. **AGPL header on new source files.** Every `.ts`/`.tsx`/`.py` in `apps/` and `packages/` starts with the SPDX short form:
@@ -46,7 +46,7 @@ feat(worker): add /v1/banks endpoint
 fix(demo): validate Turnstile token before forwarding to worker
 ```
 
-Subject in the imperative, ≤ 72 chars. Body explains *why* when it is not obvious. Direct and technical — no "I've gone ahead and...".
+Subject in the imperative, ≤ 72 chars. Body explains *why* when it is not obvious. Direct and technical, no "I've gone ahead and...".
 
 ## PRs
 

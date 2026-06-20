@@ -39,7 +39,7 @@ export async function parseStatement(file: File, turnstileToken: string): Promis
 }
 
 // The worker's error envelope carries error_class + (for EmptyStatementError)
-// marker_coverage. Best-effort — a missing or malformed body falls back to status-only.
+// marker_coverage. Best-effort: a missing or malformed body falls back to status-only.
 async function readErrorEnvelope(
   resp: Response,
 ): Promise<{ errorClass?: string; markerCoverage?: number | null }> {

@@ -3,7 +3,7 @@
 
 import type { ParseResponse } from '@bankstract/types'
 
-// Synthetic — never real bank data. Placeholders only (FOO/ACME/1111), string money.
+// Synthetic, never real bank data. Placeholders only (FOO/ACME/1111), string money.
 export const SYNTHETIC_PDF = '%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'
 
 export const FIXTURE_RESPONSE: ParseResponse = {

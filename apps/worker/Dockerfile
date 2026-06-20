@@ -12,7 +12,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-# Install deps first (cached layer) — only re-runs when the lock changes.
+# Install deps first (cached layer), only re-runs when the lock changes.
 COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project

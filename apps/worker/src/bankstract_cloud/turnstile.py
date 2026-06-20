@@ -10,7 +10,7 @@ _VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 async def verify_turnstile(token: str, *, secret: str, remote_ip: str | None = None) -> bool:
     if not secret:
-        # No secret configured (dev) — treat as disabled, not as a silent pass in prod.
+        # No secret configured (dev). Treat as disabled, not as a silent pass in prod.
         return True
     if not token:
         return False

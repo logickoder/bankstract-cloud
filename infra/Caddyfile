@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 #
-# Default: HTTP on :80 (correct behind Cloudflare, which terminates TLS — the PRD
+# Default: HTTP on :80 (correct behind Cloudflare, which terminates TLS, the PRD
 # topology). For a standalone box with its own TLS, replace ":80" with your hostname
 # (e.g. "bankstract.example.com") and Caddy auto-provisions a Let's Encrypt cert.
 

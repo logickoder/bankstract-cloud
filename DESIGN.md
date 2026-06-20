@@ -1,10 +1,10 @@
-# DESIGN.md — bankstract-cloud
+# DESIGN.md: bankstract-cloud
 
 Single source of truth for visual design system: tokens, components, layout structure, references, anti-patterns.
 
 Authoritative for any UI work in this repo. PRD.md + CLAUDE.md + AGENTS.md REFERENCE this file, do not duplicate.
 
-Inspired by [google-labs-code/design.md](https://github.com/google-labs-code/design.md) — structured spec, not prose marketing.
+Inspired by [google-labs-code/design.md](https://github.com/google-labs-code/design.md): structured spec, not prose marketing.
 
 ---
 
@@ -35,7 +35,7 @@ colors:
     primary: "#0a0a0a"      # canonical dark. Use this for hero + 90% of surface
     secondary: "#111418"    # subtle elevation (cards, code blocks)
     tertiary: "#1a1d23"     # deepest elevation (nested cards, hover states on secondary)
-    inverse: "#fafaf9"      # warm-white. Use sparingly — only when section explicitly inverts
+    inverse: "#fafaf9"      # warm-white. Use sparingly, only when section explicitly inverts
 
   fg:
     primary: "#fafaf9"      # body text on dark bg
@@ -44,10 +44,10 @@ colors:
     inverse: "#0a0a0a"      # text on inverse bg
 
   accent:
-    primary: "#D2691E"      # burnt orange — single load-bearing accent. Inherits portfolio Phase 2.
+    primary: "#D2691E"      # burnt orange. Single load-bearing accent. Inherits portfolio Phase 2.
     primary-hover: "#b85718"
-    primary-muted: "#D2691E40"  # 25% alpha — backgrounds, badges
-    primary-glow: "#D2691E20"   # 12% alpha — hero radial gradient, glow effects
+    primary-muted: "#D2691E40"  # 25% alpha, backgrounds, badges
+    primary-glow: "#D2691E20"   # 12% alpha, hero radial gradient, glow effects
 
   status:
     success: "#34d399"
@@ -158,7 +158,7 @@ grain:
   baseFrequency: "0.85"
   numOctaves: 4
   stitchTiles: "stitch"
-  opacity: "0.06"        # subtle — viewer should NOT consciously notice
+  opacity: "0.06"        # subtle, viewer should NOT consciously notice
   applied-to: ["hero-section-bg", "feature-section-bg"]
   applied-via: "svg <filter> + css filter: url(#bs-grain)"
 ```
@@ -250,7 +250,7 @@ code-block:
     typography: code-sm
 ```
 
-Syntax highlighting via Shiki (server-side, zero JS). Theme: `vesper` or `vitesse-dark` (test against burnt-orange accent — pick the one where keywords don't fight `#D2691E`).
+Syntax highlighting via Shiki (server-side, zero JS). Theme: `vesper` or `vitesse-dark` (test against burnt-orange accent. Pick the one where keywords don't fight `#D2691E`).
 
 ### input
 
@@ -421,11 +421,11 @@ landing-sections:
     original: true
     elements:
       heading: "Reads Naija banks first"
-      source-of-truth: "engine `list_parsers()` at build time + roadmap data file — NEVER a hardcoded marketing list in component source"
-      shipped-banks-render: "from engine — fbn, opay, palmpay, zenith as of engine 0.10.0; one cell each, indicator: shipped"
-      planned-banks-render: "from roadmap.yaml — gtb, kuda, sparkle, alat, stanbic, wise; indicator: in-progress or wanted with version target"
+      source-of-truth: "engine `list_parsers()` at build time + roadmap data file. NEVER a hardcoded marketing list in component source"
+      shipped-banks-render: "from engine: fbn, opay, palmpay, zenith as of engine 0.10.0; one cell each, indicator: shipped"
+      planned-banks-render: "from roadmap.yaml: gtb, kuda, sparkle, alat, stanbic, wise; indicator: in-progress or wanted with version target"
       sla-microcopy: "Format drift fixed in 48h or you don't pay"
-      directive: "CLAUDE.md Directive 6 — Zero hallucination on business logic. Coverage matrix reflects engine truth, NOT marketing wishlist. If engine ships 4 parsers, grid renders 4 shipped cells. The planned cells reveal the roadmap honestly without overclaiming current support."
+      directive: "CLAUDE.md Directive 6. Zero hallucination on business logic. Coverage matrix reflects engine truth, NOT marketing wishlist. If engine ships 4 parsers, grid renders 4 shipped cells. The planned cells reveal the roadmap honestly without overclaiming current support."
 
   - id: compliance
     component: ComplianceSection
@@ -434,7 +434,7 @@ landing-sections:
       heading: "Built for compliance"
       bullets:
         - "NDPR-aware redaction in one API call"
-        - "Ephemeral processing — no PDF storage, ever"
+        - "Ephemeral processing, no PDF storage, ever"
         - "Audit log = metadata only"
         - "Source on GitHub. Verify the claims."
 
@@ -555,23 +555,23 @@ Most 2026 dev SaaS reads identical because the same template stack ships everywh
 ```yaml
 ai-slop-detection:
   color-defaults:
-    - "shadcn zinc-950 / zinc-800 / zinc-400 baseline — INSTANT detection. Override every token, do not use shadcn's `--background` / `--foreground` defaults as-is."
+    - "shadcn zinc-950 / zinc-800 / zinc-400 baseline. INSTANT detection. Override every token, do not use shadcn's `--background` / `--foreground` defaults as-is."
     - "Purple-to-blue gradient text in hero H1 (Vercel template tell)"
     - "Cyan-pink gradient on CTA (Stripe-derivative tell)"
     - "Slate-* anywhere in production tokens"
   typography-defaults:
     - "Geist Sans + Inter combo (Vercel-default look, every Next.js app uses it). Fraunces locked precisely to avoid this."
     - "GT America / Söhne without license (you don't have the budget, and they're now the new generic)"
-    - "Hero H1 that's auto-sized 'as big as possible' via Tailwind text-[clamp(...)] — every AI-generated landing does this"
+    - "Hero H1 that's auto-sized 'as big as possible' via Tailwind text-[clamp(...)]. Every AI-generated landing does this"
   icon-defaults:
     - "Lucide React as the ONLY icon source. Used by ~90% of 2025+ Next.js SaaS. Smell-test: if your site looks like Cal.com's nav, you've drifted."
-    - "Carbon / Heroicons — same issue, generic"
+    - "Carbon / Heroicons. Same issue, generic"
   layout-defaults:
-    - "Magic UI bento-grid feature section — already saturated. Build custom asymmetric grid instead."
-    - "Aceternity floating-sparkle hero w/ animated particles in <canvas> — overused by mid-2025"
-    - "Floating-dashboard-screenshot-mockup below the hero copy — the most copied template move of 2024-25"
-    - "Three-feature-cards-with-icon row — generic SaaS template fingerprint"
-    - "Customer logo wall with 8+ generic SaaS startup logos — meaningless trust signal, ships nothing real"
+    - "Magic UI bento-grid feature section. Already saturated. Build custom asymmetric grid instead."
+    - "Aceternity floating-sparkle hero w/ animated particles in <canvas>. Overused by mid-2025"
+    - "Floating-dashboard-screenshot-mockup below the hero copy. The most copied template move of 2024-25"
+    - "Three-feature-cards-with-icon row. Generic SaaS template fingerprint"
+    - "Customer logo wall with 8+ generic SaaS startup logos. Meaningless trust signal, ships nothing real"
   motion-defaults:
     - "Framer-motion fade-up cascade on every section scroll"
     - "Pulsing CTA button"
@@ -599,7 +599,7 @@ anti-ai-required:
   color:
     - "Burnt orange `#D2691E` is the SINGLE accent. No secondary accent. Do not introduce blue / purple / cyan even for `info` states."
     - "Status colors (`success / warning / error`) used ONLY in dashboard states. Never in marketing copy."
-    - "Background uses true `#0a0a0a` or `#111418` — NOT shadcn `zinc-950` (`#09090b`). Slightly different shade matters for detection."
+    - "Background uses true `#0a0a0a` or `#111418`, NOT shadcn `zinc-950` (`#09090b`). Slightly different shade matters for detection."
 
   layout:
     - "At least ONE asymmetric section per page. Right-heavy or left-heavy, NOT centered-symmetric."
@@ -626,7 +626,7 @@ anti-ai-required:
   voice-and-personality:
     - "Reference Nigerian banks by their colloquial names where appropriate ('first bank' lowercase, 'GTB' not 'Guaranty Trust Bank Plc')."
     - "Footer microcopy includes a concrete human note, not generic legal boilerplate. Example: 'Built in Lagos because every Nigerian dev has parsed a bank PDF by hand once.'"
-    - "404 page has personality. Not 'Page not found.' — something specific."
+    - "404 page has personality. Not 'Page not found.' Something specific."
     - "About page (if it exists) names the owner. Real person, real GitHub link. No 'Our team' anonymity."
 ```
 
@@ -638,7 +638,7 @@ smell-test:
     - "Could a model trained on dev-tool landings have generated this? If yes, distinctness fails."
     - "Does the hero look like Resend / Trigger / Convex / Knock side-by-side? If three or more visual elements match, drift detected."
     - "Is every section the same height / same internal layout? Add asymmetry."
-    - "Does the page work without the burnt-orange accent? If yes, accent is decorative — make it functional (CTAs, code highlights, badge backgrounds)."
+    - "Does the page work without the burnt-orange accent? If yes, accent is decorative. Make it functional (CTAs, code highlights, badge backgrounds)."
     - "Would removing the brand name leave a generic dev-tool landing? If yes, the brand isn't doing work."
 
   green-flags:
@@ -655,28 +655,28 @@ smell-test:
 ```yaml
 anti-patterns:
   visual:
-    - "Gradient buttons (purple→pink, blue→cyan, etc) — 2024 SaaS template tell"
-    - "Glassmorphism / frosted-glass cards — overused, dates the design instantly"
-    - "Centered-hero-symmetric-features layout — generic"
-    - "Carousel sliders (testimonials, features) — 2014 dribbble cliché, kills accessibility"
-    - "Lottie animations larger than icon size — kills FCP, almost always overkill"
-    - "Auto-playing video heroes — bandwidth + autoplay-block fragility"
-    - "3D rendered objects floating in hero (a la Resend spheres) — brand-equity-led, non-portable pre-launch"
-    - "Pixel art / 8-bit decorative elements (a la Convex) — design budget too high for v1"
-    - "Light-theme primary (a la Knock) — wrong category for OSS dev tool brand"
+    - "Gradient buttons (purple→pink, blue→cyan, etc). 2024 SaaS template tell"
+    - "Glassmorphism / frosted-glass cards. Overused, dates the design instantly"
+    - "Centered-hero-symmetric-features layout. Generic"
+    - "Carousel sliders (testimonials, features). 2014 dribbble cliché, kills accessibility"
+    - "Lottie animations larger than icon size. Kills FCP, almost always overkill"
+    - "Auto-playing video heroes. Bandwidth + autoplay-block fragility"
+    - "3D rendered objects floating in hero (a la Resend spheres). Brand-equity-led, non-portable pre-launch"
+    - "Pixel art / 8-bit decorative elements (a la Convex). Design budget too high for v1"
+    - "Light-theme primary (a la Knock). Wrong category for OSS dev tool brand"
 
   copy:
     - "Marketing words: seamless, powerful, robust, blazingly fast, AI-powered, enterprise-grade"
     - "Pronouns: 'we', 'our' in upsell tone. Allowed only when referring to the team."
     - "Emojis in body copy, headers, button labels (only exception: bank-coverage-cell indicators)"
-    - "We never see your data (LIE — we briefly do, ephemerally; use truthful framing)"
-    - "Limited time offer, only X spots left — manipulative, never ships"
+    - "We never see your data (LIE: we briefly do, ephemerally; use truthful framing)"
+    - "Limited time offer, only X spots left. Manipulative, never ships"
 
   interaction:
-    - "Scroll-triggered fade-up cascade on every section — overused, hurts perceived perf"
-    - "Pulse / breathing animation on CTAs — dark-pattern attention grabbing"
-    - "Multi-step modal onboarding for the demo — single-route landing, no friction"
-    - "Mandatory signup before demo parse — kills funnel; demo MUST be anonymous"
+    - "Scroll-triggered fade-up cascade on every section. Overused, hurts perceived perf"
+    - "Pulse / breathing animation on CTAs. Dark-pattern attention grabbing"
+    - "Multi-step modal onboarding for the demo. Single-route landing, no friction"
+    - "Mandatory signup before demo parse. Kills funnel; demo MUST be anonymous"
 
   performance:
     - "Client-side Markdown parsing (use Shiki SSR or markdown-it server)"
@@ -757,10 +757,10 @@ status:
   defers-to: ["apps/docs (Mintlify default theme, accent + font only)"]
   reviewer: "Jeffery Orazulike"
   open-issues:
-    - "Lock Shiki theme — vesper vs vitesse-dark. Decide once accent appears against keyword colors."
-    - "Monogram favicon — sketch 3 variants before picking"
-    - "OG image — static PNG v1 vs Vercel OG runtime v1.5"
-    - "Inter alternative — consider Geist Sans (Vercel) or default to Inter"
+    - "Lock Shiki theme: vesper vs vitesse-dark. Decide once accent appears against keyword colors."
+    - "Monogram favicon: sketch 3 variants before picking"
+    - "OG image: static PNG v1 vs Vercel OG runtime v1.5"
+    - "Inter alternative: consider Geist Sans (Vercel) or default to Inter"
 ```
 
 ---

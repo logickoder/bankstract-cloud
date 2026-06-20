@@ -48,7 +48,7 @@ export function ResultView({
       ) : null}
 
       <p className="text-xs text-fg-tertiary">
-        Your file leaves the worker the moment this page reloads. We log that it parsed — not what
+        Your file leaves the worker the moment this page reloads. We log that it parsed. Not what
         was in it.
       </p>
 

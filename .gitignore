@@ -1,4 +1,4 @@
-# secrets — NEVER commit (Directive 2). Public repo.
+# secrets. NEVER commit (Directive 2). Public repo.
 .env
 .env.*
 !.env.example
@@ -37,7 +37,7 @@ __pycache__/
 .pyright/
 .mypy_cache/
 
-# worker runtime state — audit DB is metadata-only but still local state.
+# worker runtime state. audit DB is metadata-only but still local state.
 # Globs cover the WAL-mode sidecars (-wal, -shm, -journal) too.
 *.sqlite*
 *.sqlite3*

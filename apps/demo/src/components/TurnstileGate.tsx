@@ -15,7 +15,7 @@ export interface TurnstileHandle {
 // Wraps the Cloudflare Turnstile widget in invisible/managed mode and exposes an
 // imperative token getter. Tokens are single-use server-side, so callers reset()
 // after each parse. With the always-pass test site key the widget may render a
-// visible checkbox in dev — that is cosmetic; prod uses a real invisible key.
+// visible checkbox in dev. That is cosmetic; prod uses a real invisible key.
 const TOKEN_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_TURNSTILE_TIMEOUT_MS ?? '8000')
 
 export const TurnstileGate = forwardRef<TurnstileHandle>(function TurnstileGate(_props, ref) {

@@ -22,13 +22,13 @@ export function ResultActions({ data, file, turnstile, onReset }: ResultActionsP
   const [busy, setBusy] = useState(false)
   const [csvFailed, setCsvFailed] = useState(false)
 
-  // JSON is the exact payload already in memory — serialize client-side, no re-parse.
+  // JSON is the exact payload already in memory. Serialize client-side, no re-parse.
   function handleJson() {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     triggerBlobDownload(blob, 'statement.json')
   }
 
-  // CSV comes from the engine writer (?format=csv) — re-post to get it authoritative.
+  // CSV comes from the engine writer (?format=csv). Re-post to get it authoritative.
   async function handleCsv() {
     setBusy(true)
     setCsvFailed(false)
@@ -53,7 +53,7 @@ export function ResultActions({ data, file, turnstile, onReset }: ResultActionsP
         </Button>
       </div>
       {csvFailed ? (
-        <p className="text-xs text-error">CSV export failed — try again, or download JSON.</p>
+        <p className="text-xs text-error">CSV export failed. Try again, or download JSON.</p>
       ) : null}
     </div>
   )

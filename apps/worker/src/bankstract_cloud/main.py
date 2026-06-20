@@ -143,7 +143,7 @@ def require_auth(
 
 
 def require_admin(request: Request, authorization: str | None = Header(default=None)) -> None:
-    # Gates key management. An empty configured token means the feature is OFF — we must
+    # Gates key management. An empty configured token means the feature is OFF, so we must
     # never let "" match "" (that would let anyone mint keys). Constant-time compare
     # avoids leaking the token via response timing.
     token = _state(request).settings.admin_api_token
@@ -226,7 +226,7 @@ async def usage(request: Request, ctx: AuthContext = Depends(require_auth)) -> U
     )
 
 
-# Key management — admin-only. The `bsk_` keys these mint can't reach here (require_admin,
+# Key management, admin-only. The `bsk_` keys these mint can't reach here (require_admin,
 # not require_auth): a key can never mint more keys. Errors use the shared envelope.
 _ADMIN_ERRORS: dict[int | str, dict[str, Any]] = {
     401: {"model": ErrorResponse},
@@ -247,7 +247,7 @@ async def create_key(
     request: Request, body: KeyCreateRequest, _: None = Depends(require_admin)
 ) -> KeyCreatedResponse:
     issued = _state(request).keystore.issue(body.name, body.env, owner=body.owner)
-    # The raw key is returned here and NOWHERE else — the DB only has its argon2 hash.
+    # The raw key is returned here and NOWHERE else. The DB only has its argon2 hash.
     return KeyCreatedResponse(
         id=issued.id,
         key=issued.raw_key,
@@ -359,7 +359,7 @@ async def parse(
         if redact:
             redacted = redact_pdf(data, bank=bank)
             _record_success(state, ctx, pdf.filename, byte_count, redacted.bank)
-            # Stream redacted bytes straight to the response — no disk, no payload log.
+            # Stream redacted bytes straight to the response: no disk, no payload log.
             return Response(
                 content=redacted.data,
                 media_type=redacted.media_type,

@@ -58,7 +58,7 @@ typeCheckingMode = "strict"
 reportMissingTypeStubs = false
 
 # src stays fully strict. Tests exercise the TestClient/httpx surface, whose
-# responses are typed `Any` upstream — suppress only that unknown-type noise here,
+# responses are typed `Any` upstream. Suppress only that unknown-type noise here,
 # not real type errors.
 [[tool.pyright.executionEnvironments]]
 root = "tests"

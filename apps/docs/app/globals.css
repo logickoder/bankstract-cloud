@@ -5,7 +5,7 @@
 @import 'fumadocs-ui/css/preset.css';
 
 /* Brand: single burnt-orange accent (DESIGN.md). Docs otherwise keep the Fumadocs
-   default theme — accent + font only. */
+   default theme. Accent + font only. */
 :root,
 .dark {
   --color-fd-primary: #d2691e;

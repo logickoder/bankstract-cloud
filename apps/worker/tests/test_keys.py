@@ -17,7 +17,7 @@ def test_issue_returns_raw_key_once(harness: Harness) -> None:
     assert body["key"].startswith("bsk_live_")
     assert body["tier"] == "live"
     assert body["prefix"] == body["key"][:16]
-    # The raw key never appears again — list returns only the prefix.
+    # The raw key never appears again. List returns only the prefix.
     listed = harness.client.get("/v1/keys", headers=auth_header(harness.admin_token)).json()
     issued = next(k for k in listed["keys"] if k["id"] == body["id"])
     assert "key" not in issued

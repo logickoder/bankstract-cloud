@@ -24,7 +24,7 @@ This repo **consumes** the engine via `pip install bankstract`. It never vendors
 
 ## Privacy posture
 
-PDF bytes flow: client → worker → `BytesIO` → `bankstract.parse(stream)` → JSON response → garbage collected. No disk writes. No logging of file contents. The audit log is metadata only (filename, byte count, parser detected, success/fail timestamp). All source is public — verify the claim, or self-host with `docker compose up`.
+PDF bytes flow: client → worker → `BytesIO` → `bankstract.parse(stream)` → JSON response → garbage collected. No disk writes. No logging of file contents. The audit log is metadata only (filename, byte count, parser detected, success/fail timestamp). All source is public. Verify the claim, or self-host with `docker compose up`.
 
 API consumers interact over HTTP and do **not** inherit AGPL. A SaaS-hosted fork must open-source its modifications.
 
@@ -32,11 +32,11 @@ API consumers interact over HTTP and do **not** inherit AGPL. A SaaS-hosted fork
 
 ```
 apps/
-  marketing/   Next.js 16 — landing
-  app/         Next.js 16 — dev dashboard (Clerk + Stripe)
-  docs/        Fumadocs — API docs
-  demo/        Next.js 16 — anonymous drag-drop (Turnstile)
-  worker/      FastAPI — wraps the bankstract engine, exposes /v1/parse
+  marketing/   Next.js 16: landing
+  app/         Next.js 16: dev dashboard (Clerk + Stripe)
+  docs/        Fumadocs: API docs
+  demo/        Next.js 16: anonymous drag-drop (Turnstile)
+  worker/      FastAPI: wraps the bankstract engine, exposes /v1/parse
 packages/
   ui/          shared shadcn components
   types/       TS types mirroring the engine ParseResult
@@ -64,11 +64,11 @@ cd apps/worker && uv run ruff check . && uv run pyright . && uv run pytest
 
 ## Documentation
 
-- [`PRD.md`](./PRD.md) — product spec
-- [`DESIGN.md`](./DESIGN.md) — visual design system
-- [`CLAUDE.md`](./CLAUDE.md) / [`AGENTS.md`](./AGENTS.md) — agent operating charter
-- [`SECURITY.md`](./SECURITY.md) — vulnerability disclosure
-- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — PR + commit conventions
+- [`PRD.md`](./PRD.md): product spec
+- [`DESIGN.md`](./DESIGN.md): visual design system
+- [`CLAUDE.md`](./CLAUDE.md) / [`AGENTS.md`](./AGENTS.md): agent operating charter
+- [`SECURITY.md`](./SECURITY.md): vulnerability disclosure
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md): PR + commit conventions
 
 ## License
 

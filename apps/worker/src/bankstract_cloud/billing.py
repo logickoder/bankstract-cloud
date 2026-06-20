@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger("bankstract_cloud.billing")
 
 # Bill on success only (PRD risk table). One successful parse from a live key =
-# one metered usage event. Parse errors are never billed — the caller only invokes
+# one metered usage event. Parse errors are never billed. The caller only invokes
 # record_parse() after a 200. Customer<->api_key mapping is owned by apps/app; the
 # worker emits the usage signal keyed by api_key_id.
 

@@ -2,8 +2,8 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 // Wire contract for the worker's /v1 API. This MIRRORS apps/worker/src/bankstract_cloud/models.py
-// exactly — keep the two in lockstep. Money crosses the wire as a decimal string (never a
-// JS number — float would corrupt naira precision); datetimes as ISO 8601 strings.
+// exactly. Keep the two in lockstep. Money crosses the wire as a decimal string (never a
+// JS number, since float would corrupt naira precision); datetimes as ISO 8601 strings.
 
 /** A decimal serialized as a string, e.g. "250.50" or "0". Never parse with `Number()`. */
 export type DecimalString = string

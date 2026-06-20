@@ -1,7 +1,7 @@
 {
   "extends": "@bankstract/tsconfig/nextjs.json",
   "compilerOptions": {
-    // A Next app emits no .d.ts — turn off declaration so TS doesn't run the
+    // A Next app emits no .d.ts. turn off declaration so TS doesn't run the
     // "inferred type isn't portable" check on fumadocs' zod-derived types.
     "declaration": false,
     "declarationMap": false,

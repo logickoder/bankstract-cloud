@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 #
-# Self-host bundle — verifies the AGPL self-host claim. One command runs the whole
+# Self-host bundle. Verifies the AGPL self-host claim. One command runs the whole
 # stack: FastAPI worker + Next.js demo behind a Caddy reverse proxy.
 #   cp .env.example .env && docker compose up --build
 
@@ -27,7 +27,7 @@ services:
       context: ..
       dockerfile: apps/demo/Dockerfile
       args:
-        # Public Turnstile site key — inlined at build (client widget).
+        # Public Turnstile site key, inlined at build (client widget).
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-1x00000000000000000000AA}
     environment:
       # Server-only, runtime: where the demo's /api/parse proxy forwards to.

@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     demo_api_key: str = ""
 
     # Bearer token that gates the key-management endpoints (/v1/keys). Empty = the
-    # endpoints are DISABLED — never treat "" as a valid token (it would let anyone
+    # endpoints are DISABLED. Never treat "" as a valid token (it would let anyone
     # mint keys). Set this only where you run the dashboard / admin tooling.
     admin_api_token: str = ""
 

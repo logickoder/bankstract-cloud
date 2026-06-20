@@ -2,7 +2,7 @@
 /* Copyright (C) 2026 Jeffery Orazulike */
 @import "tailwindcss";
 
-/* DESIGN.md tokens — only what the demo uses. True #0a0a0a, not shadcn zinc. */
+/* DESIGN.md tokens. only what the demo uses. True #0a0a0a, not shadcn zinc. */
 @theme {
   --color-bg: #0a0a0a;
   --color-bg-secondary: #111418;

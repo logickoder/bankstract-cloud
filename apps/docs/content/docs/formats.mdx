@@ -7,7 +7,7 @@ description: JSON, CSV, and redacted output.
 
 ## JSON (default)
 
-`?format=json` (or omit it) returns the `ParseResponse` object — metadata, totals, and the transaction array. Money fields are decimal strings; dates are ISO 8601.
+`?format=json` (or omit it) returns the `ParseResponse` object: metadata, totals, and the transaction array. Money fields are decimal strings; dates are ISO 8601.
 
 ## CSV
 
@@ -23,10 +23,10 @@ Columns: `date, narration, debit, credit, balance, reference, currency`.
 
 ## Redaction
 
-`redact=true` runs the NDPR-aware redactor and returns the **redacted document bytes** (PDF or XLSX) — not JSON — with the matching `Content-Type` and two headers:
+`redact=true` runs the NDPR-aware redactor and returns the **redacted document bytes** (PDF or XLSX), not JSON, with the matching `Content-Type` and two headers:
 
-- `X-Bankstract-Redactions` — count of redactions applied
-- `X-Bankstract-Format-Version` — engine format version
+- `X-Bankstract-Redactions`: count of redactions applied
+- `X-Bankstract-Format-Version`: engine format version
 
 ```bash
 curl -X POST https://bankstract.logickoder.dev/v1/parse \
@@ -36,6 +36,6 @@ curl -X POST https://bankstract.logickoder.dev/v1/parse \
 
 ## Optional inputs
 
-- `bank=<name>` — skip auto-detection and force a parser (`fbn`, `opay`, `palmpay`, `zenith`).
+- `bank=<name>`: skip auto-detection and force a parser (`fbn`, `opay`, `palmpay`, `zenith`).
 
-The PDF is parsed in memory and never written to disk — for any format.
+The PDF is parsed in memory and never written to disk, for any format.

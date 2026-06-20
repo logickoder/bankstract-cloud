@@ -17,7 +17,7 @@ export type DemoErrorCode =
 // The worker collapses Turnstile-failure and bad-key both to 401. The demo key is
 // always valid server-side, so the realistic 401 cause is the human-verification check.
 export const ERROR_COPY: Record<DemoErrorCode, string> = {
-  too_large: 'File too big — 50 MB cap. Trim or split it, then try again.',
+  too_large: 'File too big. 50 MB cap. Trim or split it, then try again.',
   wrong_type: 'PDF or XLSX only. Re-export from your bank app as PDF.',
   unauthorized: "Couldn't verify you're human. Refresh and try again.",
   rate_limited: "You've hit the demo limit (10 parses/hour). For higher volume, use the API.",
@@ -26,12 +26,13 @@ export const ERROR_COPY: Record<DemoErrorCode, string> = {
   empty:
     "Parsed clean, but found zero transactions in this period. If that's wrong, the format probably drifted. File an issue with a redacted sample.",
   drift:
-    "We detected the bank but the layout broke — likely a format change. File an issue with a redacted sample.",
+    'We detected the bank but the layout broke. Likely a format change. File an issue with a redacted sample.',
   reconcile:
-    "The math doesn't match. Parsed totals don't line up with the statement header — usually the bank revised the PDF format. File an issue with a redacted sample.",
+    "The math doesn't match. Parsed totals don't line up with the statement header. Usually the bank revised the PDF format. File an issue with a redacted sample.",
   unsupported:
-    "Couldn't read this statement — bank not recognised, or the format drifted. We read palmpay, fbn, opay, zenith today. File an issue with a redacted sample.",
-  server_error: 'Parsing failed on our side. Usually transient — try again. If it persists, file an issue.',
+    "Couldn't read this statement. Bank not recognised, or the format drifted. We read palmpay, fbn, opay, zenith today. File an issue with a redacted sample.",
+  server_error:
+    'Parsing failed on our side. Usually transient. Try again, or file an issue if it persists.',
   network: 'Network error. Check your connection and retry.',
 }
 
@@ -55,6 +56,12 @@ export const ERROR_ACTION: Partial<Record<DemoErrorCode, ErrorAction>> = {
 // EmptyStatementError carries marker_coverage: high coverage + zero rows ≈ legitimately
 // empty; lower ≈ silent layout drift. 0.95 is the engine's heuristic boundary.
 const EMPTY_COVERAGE_THRESHOLD = 0.95
+
+// Size-aware variant of the too_large copy, with the actual MB the user sent.
+export function tooLargeCopy(bytes: number): string {
+  const mb = Math.round(bytes / (1024 * 1024))
+  return `File too big. ${mb} MB sent, 50 MB cap. Trim or split it, then try again.`
+}
 
 export function codeForStatus(status: number): DemoErrorCode {
   switch (status) {

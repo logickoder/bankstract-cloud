@@ -1,4 +1,4 @@
-# Demo image builds from the repo root — keep the context lean.
+# Demo image builds from the repo root. keep the context lean.
 **/node_modules
 **/.next
 **/.turbo

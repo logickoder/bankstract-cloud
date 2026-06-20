@@ -17,9 +17,9 @@ describe('displayMoney', () => {
     expect(displayMoney('9007199254740993.01')).toBe('9,007,199,254,740,993.01')
   })
 
-  it('renders null/empty as an em dash', () => {
-    expect(displayMoney(null)).toBe('—')
-    expect(displayMoney('')).toBe('—')
+  it('renders null/empty as a dash', () => {
+    expect(displayMoney(null)).toBe('-')
+    expect(displayMoney('')).toBe('-')
   })
 })
 
@@ -28,8 +28,8 @@ describe('displayNaira', () => {
     expect(displayNaira('14000.00')).toBe('₦14,000.00')
   })
 
-  it('passes the em dash through without a sign', () => {
-    expect(displayNaira(null)).toBe('—')
+  it('passes the dash through without a sign', () => {
+    expect(displayNaira(null)).toBe('-')
   })
 })
 
@@ -57,7 +57,7 @@ describe('displayDate', () => {
     expect(displayDate('2026-12-31T00:00:00')).toBe('31 Dec 2026')
   })
 
-  it('renders null as an em dash', () => {
-    expect(displayDate(null)).toBe('—')
+  it('renders null as a dash', () => {
+    expect(displayDate(null)).toBe('-')
   })
 })

@@ -10,7 +10,7 @@ on:
     branches: [main]
   pull_request:
 
-# A new push to the same branch cancels the in-progress run — don't waste minutes on
+# A new push to the same branch cancels the in-progress run. Don't waste minutes on
 # stale commits.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,7 +34,7 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run pyright .
       - run: uv run pytest -q
-      # The committed OpenAPI spec must match the live app — fail if the API changed
+      # The committed OpenAPI spec must match the live app. Fail if the API changed
       # without re-exporting (uv run python scripts/export_openapi.py).
       - run: uv run python scripts/export_openapi.py /tmp/openapi.json
       - run: diff /tmp/openapi.json ../docs/openapi.json
@@ -70,6 +70,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Browser binaries + their system deps. Cached by the action via the pnpm store
-      # is not enough — Playwright browsers live elsewhere, so install them explicitly.
+      # is not enough. Playwright browsers live elsewhere, so install them explicitly.
       - run: pnpm --filter demo exec playwright install --with-deps chromium
       - run: pnpm --filter demo test:e2e

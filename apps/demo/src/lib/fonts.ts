@@ -3,7 +3,7 @@
 
 import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google'
 
-// next/font subsets — no CSS @import (DESIGN perf rule). Exposed as CSS variables
+// next/font subsets, no CSS @import (DESIGN perf rule). Exposed as CSS variables
 // consumed by the @theme font tokens in globals.css.
 export const fraunces = Fraunces({
   subsets: ['latin'],

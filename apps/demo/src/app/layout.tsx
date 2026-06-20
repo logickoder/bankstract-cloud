@@ -8,7 +8,7 @@ import { fraunces, inter, jetbrains } from '../lib/fonts'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'bankstract — drop your bank statement',
+  title: 'bankstract: drop your bank statement',
   description: 'PDF in, clean transactions out. Personal use. No signup. No storage.',
 }
 

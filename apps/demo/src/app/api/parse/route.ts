@@ -40,7 +40,7 @@ function pickClientIp(request: NextRequest): string {
 export async function POST(request: NextRequest): Promise<Response> {
   const apiKey = process.env.DEMO_API_KEY
   // WORKER_URL is server-only + runtime-settable (preferred for self-host). Falls back
-  // to NEXT_PUBLIC_API_URL for local dev. The browser never uses either — it posts here.
+  // to NEXT_PUBLIC_API_URL for local dev. The browser never uses either. It posts here.
   const base = process.env.WORKER_URL ?? process.env.NEXT_PUBLIC_API_URL
   if (!apiKey || !base) {
     // Fail fast + loud: an empty key would otherwise surface as a misleading 401.
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     headers.set('cf-connecting-ip', clientIp)
   }
 
-  // Stream the multipart body straight through. Do NOT call request.formData() —
-  // it drains the single-consumption body and would lose the 50MB stream and the
+  // Stream the multipart body straight through. Do NOT call request.formData().
+  // It drains the single-consumption body and would lose the 50MB stream and the
   // multipart boundary (carried verbatim in the copied content-type header).
   const init: RequestInit & { duplex: 'half' } = {
     method: 'POST',

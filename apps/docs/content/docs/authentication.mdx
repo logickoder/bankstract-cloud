@@ -18,12 +18,12 @@ Authorization: Bearer bsk_live_xxx
 | `bsk_live_` | Yes ($0.10 / successful parse) | Production |
 | `bsk_test_` | No | Integration + onboarding |
 
-Keys are shown **once** at creation and stored only as an argon2 hash — we can't recover a lost key, so store it securely. Revoke and re-issue if it leaks.
+Keys are shown **once** at creation and stored only as an argon2 hash. We can't recover a lost key, so store it securely. Revoke and re-issue if it leaks.
 
 ## Errors
 
-- `401` — missing, malformed, or revoked key. The body is the standard [error envelope](/docs/errors) with `error_class: "AuthError"`.
+- `401`: missing, malformed, or revoked key. The body is the standard [error envelope](/docs/errors) with `error_class: "AuthError"`.
 
 ## AGPL note
 
-The hosted service is AGPL-3.0, but **API consumers do not inherit AGPL** — you interact over an HTTP boundary, not a source-level dependency. Build closed-source products on top of the API freely. (A SaaS-hosted *fork* of the service itself must open-source its changes.)
+The hosted service is AGPL-3.0, but **API consumers do not inherit AGPL**. You interact over an HTTP boundary, not a source-level dependency. Build closed-source products on top of the API freely. (A SaaS-hosted *fork* of the service itself must open-source its changes.)

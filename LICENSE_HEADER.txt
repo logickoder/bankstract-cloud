@@ -1,4 +1,4 @@
-bankstract-cloud — hosted statement parsing API for Nigerian banks
+bankstract-cloud: hosted statement parsing API for Nigerian banks
 Copyright (C) 2026 Jeffery Orazulike
 
 This program is free software: you can redistribute it and/or modify

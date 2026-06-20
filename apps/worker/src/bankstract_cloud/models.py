@@ -12,7 +12,7 @@ from pydantic import BaseModel, PlainSerializer
 # The engine (bankstract) returns dataclasses (ParseResult, StatementMetadata) holding a
 # pydantic Transaction. It exposes no model_dump. We define our own response contract here
 # so the wire format is decoupled from engine internals across versions.
-# Money is serialized as strings — Decimal precision must survive JSON (no float drift).
+# Money is serialized as strings. Decimal precision must survive JSON (no float drift).
 
 
 def _money_str(value: Decimal) -> str:
@@ -63,13 +63,13 @@ class ParseResponse(BaseModel):
 class ErrorResponse(BaseModel):
     """Error envelope for all non-2xx responses. `error_class` is one of:
 
-    - `EncryptedSourceError` — source is password-protected
-    - `EmptyStatementError` — parsed clean, zero rows (see `marker_coverage`)
-    - `LayoutDriftError` — bank detected, structure broke
-    - `ReconciliationError` — totals don't match the statement
-    - `ParseError` — last-resort parse failure
+    - `EncryptedSourceError`: source is password-protected
+    - `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)
+    - `LayoutDriftError`: bank detected, structure broke
+    - `ReconciliationError`: totals don't match the statement
+    - `ParseError`: last-resort parse failure
     - `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /
-      `WorkerError` — framework concerns
+      `WorkerError`: framework concerns
 
     `marker_coverage` is populated only for `EmptyStatementError`: high coverage with
     zero rows ≈ legitimately empty; lower coverage ≈ silent layout drift.
@@ -109,7 +109,7 @@ class KeyCreateRequest(BaseModel):
 
 
 class KeyCreatedResponse(BaseModel):
-    """Returned once, on creation — the only time the raw key is ever exposed."""
+    """Returned once, on creation. The only time the raw key is ever exposed."""
 
     id: str
     key: str

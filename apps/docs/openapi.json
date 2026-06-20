@@ -636,7 +636,7 @@
           "error_class"
         ],
         "title": "ErrorResponse",
-        "description": "Error envelope for all non-2xx responses. `error_class` is one of:\n\n- `EncryptedSourceError` \u2014 source is password-protected\n- `EmptyStatementError` \u2014 parsed clean, zero rows (see `marker_coverage`)\n- `LayoutDriftError` \u2014 bank detected, structure broke\n- `ReconciliationError` \u2014 totals don't match the statement\n- `ParseError` \u2014 last-resort parse failure\n- `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /\n  `WorkerError` \u2014 framework concerns\n\n`marker_coverage` is populated only for `EmptyStatementError`: high coverage with\nzero rows \u2248 legitimately empty; lower coverage \u2248 silent layout drift."
+        "description": "Error envelope for all non-2xx responses. `error_class` is one of:\n\n- `EncryptedSourceError`: source is password-protected\n- `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)\n- `LayoutDriftError`: bank detected, structure broke\n- `ReconciliationError`: totals don't match the statement\n- `ParseError`: last-resort parse failure\n- `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /\n  `WorkerError`: framework concerns\n\n`marker_coverage` is populated only for `EmptyStatementError`: high coverage with\nzero rows \u2248 legitimately empty; lower coverage \u2248 silent layout drift."
       },
       "HTTPValidationError": {
         "properties": {
@@ -735,7 +735,7 @@
           "tier"
         ],
         "title": "KeyCreatedResponse",
-        "description": "Returned once, on creation \u2014 the only time the raw key is ever exposed."
+        "description": "Returned once, on creation. The only time the raw key is ever exposed."
       },
       "KeyInfo": {
         "properties": {

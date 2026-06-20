@@ -32,7 +32,7 @@ export function ResultTable({ data }: { data: ParseResponse }) {
           <span className="font-mono text-fg-secondary">{data.metadata.account_number_masked}</span>
         ) : null}
         <span className="text-fg-tertiary">
-          {displayDate(data.metadata?.statement_period_start ?? null)} —{' '}
+          {displayDate(data.metadata?.statement_period_start ?? null)} to{' '}
           {displayDate(data.metadata?.statement_period_end ?? null)}
         </span>
         <span className="ml-auto" title={data.row_wise_reconcilable ? RECONCILED_TIP : FALLBACK_TIP}>

@@ -20,10 +20,10 @@ Branch on `error_class`, not the human `error` string. `marker_coverage` is popu
 
 | Status | Meaning |
 |--------|---------|
-| `200` | Success — `ParseResponse` JSON, or redacted/CSV bytes |
+| `200` | Success: `ParseResponse` JSON, or redacted/CSV bytes |
 | `401` | Missing, invalid, or revoked key (`AuthError`) |
 | `413` | File over 50 MB (`PayloadTooLarge`) |
-| `422` | Parse failure — see `error_class` below |
+| `422` | Parse failure: see `error_class` below |
 | `429` | Rate limit exceeded (`RateLimitError`) |
 | `500` | Internal engine error |
 
@@ -34,7 +34,7 @@ Branch on `error_class`, not the human `error` string. `marker_coverage` is popu
 | `EncryptedSourceError` | The PDF is password-protected | Remove the password, re-upload |
 | `EmptyStatementError` | Parsed clean, zero rows. High `marker_coverage` ≈ truly empty; low ≈ silent layout drift | Check the statement; if wrong, file an issue |
 | `LayoutDriftError` | Bank detected, but the layout changed | File an issue with a redacted sample |
-| `ReconciliationError` | Totals don't reconcile against the statement header | Likely format drift — file an issue |
+| `ReconciliationError` | Totals don't reconcile against the statement header | Likely format drift. File an issue |
 | `ParseError` | No supported bank detected, or a non-statement PDF | Confirm the bank is supported |
 
 Format drift on a supported bank is fixed within 48h (see [Banks](/docs/banks)).

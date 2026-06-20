@@ -1,6 +1,6 @@
 # Self-host
 
-Run the whole stack — FastAPI worker + Next.js demo behind a Caddy reverse proxy — with one command. This is the verifiable AGPL self-host claim: the same code that runs the hosted service runs here.
+Run the whole stack (FastAPI worker + Next.js demo behind a Caddy reverse proxy) with one command. This is the verifiable AGPL self-host claim: the same code that runs the hosted service runs here.
 
 ## Quick start
 
@@ -10,7 +10,7 @@ cp .env.example .env        # adjust if you like; defaults work locally
 docker compose up --build
 ```
 
-Then open <http://localhost> — the consumer demo. The B2B API is on the same host under `/v1`:
+Then open <http://localhost> for the consumer demo. The B2B API is on the same host under `/v1`:
 
 ```bash
 curl -X POST http://localhost/v1/parse \
@@ -18,22 +18,22 @@ curl -X POST http://localhost/v1/parse \
   -F "pdf=@statement.pdf"
 ```
 
-(`DEMO_API_KEY` defaults to `bsk_test_demo_selfhost`. Issue your own keys with the worker's `KeyStore` — a self-serve dashboard ships in `apps/app`.)
+(`DEMO_API_KEY` defaults to `bsk_test_demo_selfhost`. Issue your own keys with the worker's `KeyStore`. A self-serve dashboard ships in `apps/app`.)
 
 ## What runs
 
 | Service | Image | Role |
 |---------|-------|------|
-| `worker` | built from `apps/worker` | FastAPI — `/v1/parse`, redact, `?format=csv`, auth, metadata-only audit |
+| `worker` | built from `apps/worker` | FastAPI: `/v1/parse`, redact, `?format=csv`, auth, metadata-only audit |
 | `demo` | built from `apps/demo` | Next.js consumer demo + its server-side `/api/parse` proxy |
 | `caddy` | `caddy:2-alpine` | reverse proxy: `/v1/*` + health → worker, everything else → demo |
 
-Routing lives in [`Caddyfile`](./Caddyfile). The 52 MB `request_body` cap matches the worker's 50 MB limit (with multipart headroom) — without it the proxy would clip large uploads before the worker sees them.
+Routing lives in [`Caddyfile`](./Caddyfile). The 52 MB `request_body` cap matches the worker's 50 MB limit (with multipart headroom). Without it the proxy would clip large uploads before the worker sees them.
 
 ## Privacy + state
 
 - The worker parses in memory and writes **nothing** to disk except the metadata-only audit log (`/data/audit.sqlite` on the `audit` volume). No PDF bytes, no transaction data.
-- The browser never sees `DEMO_API_KEY` — the demo's server route attaches it. `DEMO_API_KEY` must be identical for the `worker` and `demo` services (the compose file wires both from the same variable).
+- The browser never sees `DEMO_API_KEY`. The demo's server route attaches it. `DEMO_API_KEY` must be identical for the `worker` and `demo` services (the compose file wires both from the same variable).
 
 ## Production
 

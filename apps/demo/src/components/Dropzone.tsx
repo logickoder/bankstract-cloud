@@ -51,12 +51,13 @@ export function Dropzone({ status, activeFile, onFile, onDragEnter, onDragLeave 
     >
       {isParsing ? (
         <>
-          <span className="text-fg-secondary">Parsing statement…</span>
+          <span className="text-fg-secondary">Parsing your statement.</span>
           {activeFile ? (
             <span className="font-mono text-xs text-fg-tertiary">
               {activeFile.name} · {displayBytes(activeFile.size)}
             </span>
           ) : null}
+          <span className="text-xs text-fg-tertiary">Usually under 3 seconds.</span>
         </>
       ) : (
         <>

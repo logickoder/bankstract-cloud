@@ -1,4 +1,4 @@
-# bankstract-cloud — PRD
+# bankstract-cloud: PRD
 
 **Status:** concept · v1 target Q3 2026
 **License:** AGPL-3.0
@@ -62,7 +62,7 @@ The single load-bearing trust claim is: **we process in memory, we never write y
 - No logging of PDF contents, transaction details, account holders, balances
 - Audit log = metadata only: filename, byte count, parser detected, success/fail timestamp, API key ID (or anonymous)
 - No persistence of `ParseResult.transactions` or `metadata`
-- Worker source open under AGPL-3.0 — anyone can audit the claim
+- Worker source open under AGPL-3.0. Anyone can audit the claim
 
 Honest copy:
 - "Processed in memory. Never written to disk. Worker re-uses a buffer that's released after every parse."
@@ -80,7 +80,7 @@ Honest copy:
 | Auth (consumer demo) | Anonymous + Cloudflare Turnstile + per-IP rate limit |
 | Worker | FastAPI + uvicorn, imports `bankstract` directly |
 | Hosting | Hetzner CAX11 (ARM, 2 vCPU, 4GB) + Coolify + Cloudflare in front |
-| Domain | `bankstract.logickoder.dev` (subdomain — free, inherits SSL from owned `logickoder.dev`). Pivot to standalone TLD when first B2B contract revenue justifies. |
+| Domain | `bankstract.logickoder.dev` (subdomain, free, inherits SSL from owned `logickoder.dev`). Pivot to standalone TLD when first B2B contract revenue justifies. |
 | Payments | Stripe (USD B2B, $0.10/parse usage billing) |
 | Audit log | SQLite on worker box, backed up nightly to Hetzner Storage Box |
 | Email transactional | Resend |
@@ -149,18 +149,18 @@ bankstract-cloud/
 ├── turbo.json
 ├── .env.example                  documented env vars
 ├── apps/
-│   ├── marketing/                Next.js 16 — landing, pricing, OSS callout
-│   ├── app/                      Next.js 16 — developer dashboard (Clerk auth, API keys, usage, billing)
-│   ├── docs/                     Mintlify or Fumadocs — OpenAPI spec + integration guides
-│   ├── demo/                     Next.js 16 — consumer drag-drop showcase
-│   └── worker/                   FastAPI — wraps bankstract engine
+│   ├── marketing/                Next.js 16: landing, pricing, OSS callout
+│   ├── app/                      Next.js 16: developer dashboard (Clerk auth, API keys, usage, billing)
+│   ├── docs/                     Mintlify or Fumadocs: OpenAPI spec + integration guides
+│   ├── demo/                     Next.js 16: consumer drag-drop showcase
+│   └── worker/                   FastAPI: wraps bankstract engine
 ├── packages/
 │   ├── ui/                       shadcn components shared across Next.js apps
 │   ├── types/                    TS types mirroring engine ParseResult
 │   ├── tsconfig/                 shared tsconfig presets
 │   └── eslint-config/            shared ESLint config
 └── infra/
-    ├── docker-compose.yml        self-host bundle — verifiable AGPL self-host claim
+    ├── docker-compose.yml        self-host bundle: verifiable AGPL self-host claim
     ├── Caddyfile                 reverse proxy
     └── README.md                 self-host walkthrough
 ```
@@ -176,10 +176,10 @@ POST /v1/parse
   body: pdf=<file>
   optional:
     bank=<name>          skip auto-detect
-    redact=true          run redactor — returns redacted file bytes (PDF or XLSX) directly
+    redact=true          run redactor, returns redacted file bytes (PDF or XLSX) directly
 
 Response 200 (default, no redact):
-  ParseResponse JSON (wire contract — apps/worker/src/bankstract_cloud/models.py,
+  ParseResponse JSON (wire contract: apps/worker/src/bankstract_cloud/models.py,
   decoupled from engine ParseResult dataclass internals)
   {
     "format_version": "fbn-2026-01",
@@ -205,13 +205,13 @@ Response 429  rate limit exceeded
 Response 500  internal parse error (response body includes format_version)
 ```
 
-**Wire format ≠ engine internals.** Engine `ParseResult` + `StatementMetadata` are Python dataclasses (only `Transaction` is pydantic). Worker defines its own `ParseResponse` pydantic model in `apps/worker/src/bankstract_cloud/models.py` and serializes via `ParseResponse.from_engine(result)`. Decouples API surface from engine internals — engine can rev internal types without breaking `/v1/*` clients.
+**Wire format ≠ engine internals.** Engine `ParseResult` + `StatementMetadata` are Python dataclasses (only `Transaction` is pydantic). Worker defines its own `ParseResponse` pydantic model in `apps/worker/src/bankstract_cloud/models.py` and serializes via `ParseResponse.from_engine(result)`. Decouples API surface from engine internals. Engine can rev internal types without breaking `/v1/*` clients.
 
-**Redaction live as of engine 0.11.0.** `bankstract.redact(source, *, bank=None) -> RedactResult` returns in-memory bytes (no tempfile, no disk write — verified by engine tempfile-invariant test via TMPDIR monkeypatch). Worker streams `result.data` straight to HTTP response w/ Content-Type dispatch via `result.format`. Engine pin: `bankstract>=0.11.0` in `apps/worker/pyproject.toml`.
+**Redaction live as of engine 0.11.0.** `bankstract.redact(source, *, bank=None) -> RedactResult` returns in-memory bytes (no tempfile, no disk write, verified by engine tempfile-invariant test via TMPDIR monkeypatch). Worker streams `result.data` straight to HTTP response w/ Content-Type dispatch via `result.format`. Engine pin: `bankstract>=0.11.0` in `apps/worker/pyproject.toml`.
 
 ```
 GET /v1/banks
-  list of supported banks + format versions — derived live from engine's
+  list of supported banks + format versions, derived live from engine's
   list_parsers() + list_redactors() at request time, NEVER a hardcoded
   marketing list. As of engine 0.11.0: fbn, opay, palmpay, zenith (4 parsers,
   4 redactors). Opay supports both PDF + XLSX formats; others PDF only.
@@ -264,7 +264,7 @@ Header row is required (column-name dispatch in consumer parsers, not positional
 
 **Semver promise:** column names + types + order are part of the public API. Adding a column = minor bump. Renaming or removing = major bump. Schema is locked at v1 launch.
 
-`format=json` emits the `ParseResponse` shape documented in § API surface (with engine metadata wrapped). `format=csv` is data-only — metadata is exposed via response headers (`X-Bankstract-Bank`, `X-Bankstract-Format-Version`, `X-Bankstract-Period-Start`, `X-Bankstract-Period-End`).
+`format=json` emits the `ParseResponse` shape documented in § API surface (with engine metadata wrapped). `format=csv` is data-only. Metadata is exposed via response headers (`X-Bankstract-Bank`, `X-Bankstract-Format-Version`, `X-Bankstract-Period-Start`, `X-Bankstract-Period-End`).
 
 ## CLI surface
 
@@ -275,7 +275,7 @@ pip install bankstract
 bankstract auto statement.pdf -o out.csv
 ```
 
-If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approach is preferred (`pnpm add @bankstract/sdk` or `pip install bankstract-cloud-sdk`) — keeps CLI ergonomics in the engine repo.
+If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approach is preferred (`pnpm add @bankstract/sdk` or `pip install bankstract-cloud-sdk`). This keeps CLI ergonomics in the engine repo.
 
 ## Risks
 
@@ -325,9 +325,9 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 - Mobile native client at v1
 - Multi-tenant orgs at v1
 - Whitelabel for accounting firms
-- Direct bank API integrations (Mono / Okra wrappers) — different product
+- Direct bank API integrations (Mono / Okra wrappers): different product
 - Categorization, budgeting, dashboards on top of parsed data
-- Direct push to BudgetBakers / YNAB / Notion / Google Sheets — customer code handles integrations
+- Direct push to BudgetBakers / YNAB / Notion / Google Sheets: customer code handles integrations
 - Statement-download automation (logging into bank portals)
 
 ## Open questions
@@ -339,7 +339,7 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 | C | Result expiry | HTTP response only, no re-download | Lock pre-build |
 | D | B2B onboarding flow | Self-serve API key + Stripe usage billing | Lock pre-build |
 | E | Logging stack | stdout + Sentry + UptimeRobot | Lock pre-build |
-| F | Export format coverage at v1 | **Generic CSV + JSON only.** Cloud emits one canonical CSV shape (owner-controlled, documented in PRD § Canonical CSV schema). BB-Wallet's proprietary import format dropped (third-party drift risk). Sibling tool `budgetbakers-wallet-importer` adds a `bankstract-csv` reader in its own repo — impedance match lives in the consumer tool, not in Cloud. Future tool integrations (YNAB, Money Manager, etc.) follow the same pattern: ship as standalone importers reading the canonical CSV, never as Cloud writers. | Lock pre-launch |
+| F | Export format coverage at v1 | **Generic CSV + JSON only.** Cloud emits one canonical CSV shape (owner-controlled, documented in PRD § Canonical CSV schema). BB-Wallet's proprietary import format dropped (third-party drift risk). Sibling tool `budgetbakers-wallet-importer` adds a `bankstract-csv` reader in its own repo. The impedance match lives in the consumer tool, not in Cloud. Future tool integrations (YNAB, Money Manager, etc.) follow the same pattern: ship as standalone importers reading the canonical CSV, never as Cloud writers. | Lock pre-launch |
 | G | Email transactional | Resend | Lock pre-launch |
 | H | Marketing channels for soft launch | Show HN + Twitter, PH 2 weeks later | Lock at launch |
 | I | Privacy policy + ToS | Hand-rolled minimal v1, lawyer review pre-first-B2B | Lock pre-launch |
@@ -347,7 +347,7 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 
 ## Design
 
-See [`DESIGN.md`](./DESIGN.md) — single source of truth for visual tokens, components, page structure, references, and anti-patterns. Do not duplicate design rules in this file.
+See [`DESIGN.md`](./DESIGN.md): single source of truth for visual tokens, components, page structure, references, and anti-patterns. Do not duplicate design rules in this file.
 
 ## Contributing
 
@@ -359,9 +359,9 @@ Public AGPL-3.0 repo. PRs welcome on:
 - Bug fixes + security disclosures (see SECURITY.md)
 
 NOT accepted:
-- New bank parsers — those belong in `github.com/logickoder/bankstract` (engine repo)
-- Category inference / ML features — out of scope (see § Out of scope)
-- Direct bank-portal integrations — different product
+- New bank parsers: those belong in `github.com/logickoder/bankstract` (engine repo)
+- Category inference / ML features: out of scope (see § Out of scope)
+- Direct bank-portal integrations: different product
 
 See `CONTRIBUTING.md` for the PR + commit conventions.
 
@@ -369,4 +369,4 @@ See `CONTRIBUTING.md` for the PR + commit conventions.
 
 AGPL-3.0. See `LICENSE`. Engine (`bankstract`) is MIT; this repo CONSUMES the engine via `pip install bankstract`.
 
-API consumers do NOT inherit AGPL — they interact via HTTP boundary, not source-level dependency. SaaS-hosted forks must open-source modifications.
+API consumers do NOT inherit AGPL. They interact via HTTP boundary, not source-level dependency. SaaS-hosted forks must open-source modifications.

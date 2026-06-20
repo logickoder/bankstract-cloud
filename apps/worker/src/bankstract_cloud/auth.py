@@ -43,7 +43,7 @@ class IssuedKey:
 
 @dataclass(frozen=True)
 class KeyRecord:
-    """Key metadata for listing — never carries the raw key or its hash."""
+    """Key metadata for listing. Never carries the raw key or its hash."""
 
     id: str
     name: str
@@ -117,7 +117,7 @@ class KeyStore:
         ]
 
     def revoke(self, key_id: str) -> bool:
-        # Soft delete — set revoked_at, never DELETE (keeps the audit trail). Returns
+        # Soft delete: set revoked_at, never DELETE (keeps the audit trail). Returns
         # False if no active key matched, so the caller can 404.
         cur = self._conn.execute(
             "UPDATE api_keys SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL",

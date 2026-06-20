@@ -41,7 +41,7 @@ export const base = tseslint.config(
     },
   },
   {
-    // JS config files (eslint.config.js, etc) aren't part of any tsconfig — turn off
+    // JS config files (eslint.config.js, etc) aren't part of any tsconfig, so turn off
     // type-aware rules so the project service doesn't demand them in a tsconfig.
     files: ['**/*.{js,cjs,mjs}'],
     ...tseslint.configs.disableTypeChecked,

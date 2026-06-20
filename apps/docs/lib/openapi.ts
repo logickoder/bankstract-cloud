@@ -4,7 +4,7 @@
 import { createOpenAPI } from 'fumadocs-openapi/server'
 
 // The spec is exported from the worker (apps/worker/scripts/export_openapi.py) and
-// committed as openapi.json — the docs build never needs a running worker.
+// committed as openapi.json, so the docs build never needs a running worker.
 export const openapi = createOpenAPI({
   input: ['./openapi.json'],
 })

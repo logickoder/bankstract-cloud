@@ -13,14 +13,14 @@ from fastapi.testclient import TestClient
 
 from tests.fixtures import MINIMAL_PDF
 
-# The engine's own committed encrypted fixture — fetched at test time (never vendored,
+# The engine's own committed encrypted fixture, fetched at test time (never vendored,
 # no bank PDFs in this repo). Mirrors how the demo consumes engine sample fixtures.
 _ENCRYPTED_PDF_URL = "https://raw.githubusercontent.com/logickoder/bankstract/main/tests/fixtures/encrypted_sample.pdf"
 
 
 @pytest.fixture(scope="session")
 def encrypted_pdf(request: pytest.FixtureRequest) -> bytes:
-    # Cache to the gitignored .pytest_cache dir — download once, reuse across runs.
+    # Cache to the gitignored .pytest_cache dir: download once, reuse across runs.
     cache_path = request.config.cache.mkdir("bankstract_fixtures") / "encrypted_sample.pdf"
     if cache_path.exists():
         return cache_path.read_bytes()

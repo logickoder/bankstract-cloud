@@ -66,21 +66,21 @@ def _translate_engine_errors(source: bytes | None = None) -> Generator[None, Non
     try:
         yield
     except ReconciliationError as exc:
-        # Parsed but the balance check failed — refuse rather than return suspect numbers.
+        # Parsed but the balance check failed. Refuse rather than return suspect numbers.
         raise UnsupportedStatementError(
             str(exc),
             error_class="ReconciliationError",
             format_version=getattr(exc, "format_version", None),
         ) from exc
     except ParseError as exc:
-        # ParseError is the base — type(exc).__name__ surfaces the specific subclass
+        # ParseError is the base. type(exc).__name__ surfaces the specific subclass
         # the engine raised (EncryptedSourceError, EmptyStatementError, LayoutDriftError
         # in 0.13+) without a hard import. marker_coverage rides along when present.
         error_class = type(exc).__name__
         # Upgrade a bare "no parser detected" to EncryptedSourceError when the bytes are
-        # encrypted — on 0.13 the engine can't detect a bank from locked text so it gives
+        # encrypted. On 0.13 the engine can't detect a bank from locked text so it gives
         # up generically. Engine 0.14 raises EncryptedSourceError during auto-detect, after
-        # which this branch no-ops (error_class is already specific) — kept as a fallback.
+        # which this branch no-ops (error_class is already specific). Kept as a fallback.
         if error_class == "ParseError" and source is not None and _looks_encrypted(source):
             error_class = "EncryptedSourceError"
         raise UnsupportedStatementError(
@@ -145,7 +145,7 @@ def _buffer_and_detect(data: bytes) -> tuple[io.BytesIO, str | None]:
 
 
 def parse_pdf(data: bytes, *, bank: str | None = None) -> ParseOutcome:
-    """Parse PDF bytes entirely in memory. Directive 2 — bytes never touch disk."""
+    """Parse PDF bytes entirely in memory. Directive 2: bytes never touch disk."""
     buf, detected = _buffer_and_detect(data)
     with _translate_engine_errors(source=data):
         result = bankstract.parse(buf, bank=bank)
@@ -156,7 +156,7 @@ def parse_csv(data: bytes, *, bank: str | None = None) -> CsvOutcome:
     """Parse and serialize to CSV in one engine call.
 
     bankstract.parse_to() parses and writes the chosen format in-memory and returns
-    bytes — no tempfile (Directive 2). The CSV holds transaction data, so it leaves
+    bytes (no tempfile, Directive 2). The CSV holds transaction data, so it leaves
     only in the HTTP response; it is never logged or persisted.
     """
     buf, detected = _buffer_and_detect(data)
@@ -168,11 +168,11 @@ def parse_csv(data: bytes, *, bank: str | None = None) -> CsvOutcome:
 def redact_pdf(data: bytes, *, bank: str | None = None) -> RedactOutcome:
     """Redact a statement in memory and return the redacted document bytes.
 
-    Directive 1/2 — bankstract.redact() operates on the BytesIO and returns bytes
+    Directive 1/2: bankstract.redact() operates on the BytesIO and returns bytes
     in-memory (engine guarantees no tempfile). The worker streams them straight to
     the HTTP response; nothing is written to disk and no payload is logged.
     """
-    # No _detect() here — RedactResult already carries the matched bank.
+    # No _detect() here. RedactResult already carries the matched bank.
     buf = io.BytesIO(data)
     with _translate_engine_errors(source=data):
         result = bankstract.redact(buf, bank=bank)
