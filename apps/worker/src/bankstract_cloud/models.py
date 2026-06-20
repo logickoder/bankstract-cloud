@@ -102,6 +102,38 @@ class StatusResponse(BaseModel):
     engine_version: str
 
 
+class KeyCreateRequest(BaseModel):
+    name: str
+    env: Literal["live", "test"] = "test"
+    owner: str | None = None
+
+
+class KeyCreatedResponse(BaseModel):
+    """Returned once, on creation — the only time the raw key is ever exposed."""
+
+    id: str
+    key: str
+    prefix: str
+    name: str
+    env: str
+    tier: str
+
+
+class KeyInfo(BaseModel):
+    id: str
+    name: str
+    prefix: str
+    env: str
+    tier: str
+    owner: str | None
+    created_at: str
+    revoked_at: str | None
+
+
+class KeyListResponse(BaseModel):
+    keys: list[KeyInfo]
+
+
 class HealthResponse(BaseModel):
     status: Literal["ok"]
 

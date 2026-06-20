@@ -34,6 +34,7 @@ def encrypted_pdf(request: pytest.FixtureRequest) -> bytes:
 
 
 DEMO_KEY = "bsk_test_demo_anonymous_key"
+ADMIN_TOKEN = "admin-secret-token"
 MAX_BYTES = 2000
 
 
@@ -50,12 +51,15 @@ class Harness:
     client: TestClient
     test_key: str  # tier="test", not billable
     demo_key: str  # tier="anonymous"
+    admin_token: str  # gates /v1/keys
 
 
-@pytest.fixture
-def harness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Harness]:
+def _make_harness(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, admin_token: str
+) -> Iterator[Harness]:
     monkeypatch.setenv("AUDIT_DB_PATH", str(tmp_path / "audit.sqlite"))
     monkeypatch.setenv("DEMO_API_KEY", DEMO_KEY)
+    monkeypatch.setenv("ADMIN_API_TOKEN", admin_token)
     monkeypatch.setenv("MAX_UPLOAD_BYTES", str(MAX_BYTES))
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "")  # disabled in tests
     monkeypatch.setenv("STRIPE_SECRET_KEY", "")  # billing no-op in tests
@@ -68,6 +72,19 @@ def harness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Harness
 
     with TestClient(app) as client:
         issued = app.state.app_state.keystore.issue("test-suite", "test")
-        yield Harness(client=client, test_key=issued.raw_key, demo_key=DEMO_KEY)
+        yield Harness(
+            client=client, test_key=issued.raw_key, demo_key=DEMO_KEY, admin_token=admin_token
+        )
 
     get_settings.cache_clear()
+
+
+@pytest.fixture
+def harness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Harness]:
+    yield from _make_harness(tmp_path, monkeypatch, admin_token=ADMIN_TOKEN)
+
+
+@pytest.fixture
+def harness_no_admin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Harness]:
+    # Admin token unset → key management is disabled (the empty-token footgun guard).
+    yield from _make_harness(tmp_path, monkeypatch, admin_token="")

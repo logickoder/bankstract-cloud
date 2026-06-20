@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import hmac
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import (
     Depends,
@@ -45,6 +46,10 @@ from .models import (
     BanksResponse,
     ErrorResponse,
     HealthResponse,
+    KeyCreatedResponse,
+    KeyCreateRequest,
+    KeyInfo,
+    KeyListResponse,
     ParseResponse,
     ReadyResponse,
     StatusResponse,
@@ -102,17 +107,37 @@ def _state(request: Request) -> AppState:
     return state
 
 
+def _bearer_token(authorization: str | None) -> str | None:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    return authorization.removeprefix("Bearer ").strip()
+
+
 def require_auth(
     request: Request,
     authorization: str | None = Header(default=None),
 ) -> AuthContext:
-    if not authorization or not authorization.startswith("Bearer "):
+    raw_key = _bearer_token(authorization)
+    if raw_key is None:
         raise HTTPException(status_code=401, detail="missing or malformed API key")
-    raw_key = authorization.removeprefix("Bearer ").strip()
     ctx = _state(request).keystore.authenticate(raw_key)
     if ctx is None:
         raise HTTPException(status_code=401, detail="invalid API key")
     return ctx
+
+
+def require_admin(request: Request, authorization: str | None = Header(default=None)) -> None:
+    # Gates key management. An empty configured token means the feature is OFF — we must
+    # never let "" match "" (that would let anyone mint keys). Constant-time compare
+    # avoids leaking the token via response timing.
+    token = _state(request).settings.admin_api_token
+    if not token:
+        raise HTTPException(status_code=403, detail="key management is disabled")
+    presented = _bearer_token(authorization)
+    if presented is None:
+        raise HTTPException(status_code=401, detail="missing admin token")
+    if not hmac.compare_digest(presented, token):
+        raise HTTPException(status_code=401, detail="invalid admin token")
 
 
 def _client_ip(request: Request) -> str:
@@ -168,6 +193,61 @@ async def usage(request: Request, ctx: AuthContext = Depends(require_auth)) -> U
         period_parses=parses,
         projected_invoice_usd=format(projected, ".2f"),
     )
+
+
+# Key management — admin-only. The `bsk_` keys these mint can't reach here (require_admin,
+# not require_auth): a key can never mint more keys. Errors use the shared envelope.
+_ADMIN_ERRORS: dict[int | str, dict[str, Any]] = {
+    401: {"model": ErrorResponse},
+    403: {"model": ErrorResponse},
+}
+
+
+@app.post("/v1/keys", response_model=KeyCreatedResponse, status_code=201, responses=_ADMIN_ERRORS)
+async def create_key(
+    request: Request, body: KeyCreateRequest, _: None = Depends(require_admin)
+) -> KeyCreatedResponse:
+    issued = _state(request).keystore.issue(body.name, body.env, owner=body.owner)
+    # The raw key is returned here and NOWHERE else — the DB only has its argon2 hash.
+    return KeyCreatedResponse(
+        id=issued.id,
+        key=issued.raw_key,
+        prefix=issued.lookup_prefix,
+        name=body.name,
+        env=body.env,
+        tier=issued.tier,
+    )
+
+
+@app.get("/v1/keys", response_model=KeyListResponse, responses=_ADMIN_ERRORS)
+async def list_keys(
+    request: Request,
+    owner: str | None = Query(default=None),
+    _: None = Depends(require_admin),
+) -> KeyListResponse:
+    records = _state(request).keystore.list_keys(owner=owner)
+    return KeyListResponse(
+        keys=[
+            KeyInfo(
+                id=r.id,
+                name=r.name,
+                prefix=r.lookup_prefix,
+                env=r.env,
+                tier=r.tier,
+                owner=r.owner,
+                created_at=r.created_at,
+                revoked_at=r.revoked_at,
+            )
+            for r in records
+        ]
+    )
+
+
+@app.delete("/v1/keys/{key_id}", status_code=204, responses=_ADMIN_ERRORS)
+async def revoke_key(request: Request, key_id: str, _: None = Depends(require_admin)) -> Response:
+    if not _state(request).keystore.revoke(key_id):
+        raise HTTPException(status_code=404, detail="key not found or already revoked")
+    return Response(status_code=204)
 
 
 @app.post(

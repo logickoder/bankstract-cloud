@@ -41,6 +41,20 @@ class IssuedKey:
     tier: str
 
 
+@dataclass(frozen=True)
+class KeyRecord:
+    """Key metadata for listing — never carries the raw key or its hash."""
+
+    id: str
+    name: str
+    lookup_prefix: str
+    env: str
+    tier: str
+    owner: str | None
+    created_at: str
+    revoked_at: str | None
+
+
 def generate_api_key(env: str) -> tuple[str, str]:
     if env not in ("live", "test"):
         raise ValueError(f"env must be 'live' or 'test', got {env!r}")
@@ -56,13 +70,14 @@ class KeyStore:
         self._conn = conn
         self._demo_api_key = demo_api_key
 
-    def issue(self, name: str, env: str) -> IssuedKey:
+    def issue(self, name: str, env: str, *, owner: str | None = None) -> IssuedKey:
         raw, prefix = generate_api_key(env)
         key_id = uuid.uuid4().hex
         tier = "live" if env == "live" else "test"
         self._conn.execute(
-            "INSERT INTO api_keys (id, name, lookup_prefix, key_hash, env, tier, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO api_keys "
+            "(id, name, lookup_prefix, key_hash, env, tier, owner, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 key_id,
                 name,
@@ -70,18 +85,46 @@ class KeyStore:
                 _hasher.hash(raw),
                 env,
                 tier,
+                owner,
                 datetime.now(UTC).isoformat(),
             ),
         )
         self._conn.commit()
         return IssuedKey(id=key_id, raw_key=raw, lookup_prefix=prefix, tier=tier)
 
-    def revoke(self, key_id: str) -> None:
-        self._conn.execute(
+    def list_keys(self, *, owner: str | None = None) -> list[KeyRecord]:
+        sql = (
+            "SELECT id, name, lookup_prefix, env, tier, owner, created_at, revoked_at FROM api_keys"
+        )
+        params: tuple[str, ...] = ()
+        if owner is not None:
+            sql += " WHERE owner = ?"
+            params = (owner,)
+        sql += " ORDER BY created_at DESC"
+        rows = self._conn.execute(sql, params).fetchall()
+        return [
+            KeyRecord(
+                id=r["id"],
+                name=r["name"],
+                lookup_prefix=r["lookup_prefix"],
+                env=r["env"],
+                tier=r["tier"],
+                owner=r["owner"],
+                created_at=r["created_at"],
+                revoked_at=r["revoked_at"],
+            )
+            for r in rows
+        ]
+
+    def revoke(self, key_id: str) -> bool:
+        # Soft delete — set revoked_at, never DELETE (keeps the audit trail). Returns
+        # False if no active key matched, so the caller can 404.
+        cur = self._conn.execute(
             "UPDATE api_keys SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL",
             (datetime.now(UTC).isoformat(), key_id),
         )
         self._conn.commit()
+        return cur.rowcount > 0
 
     def authenticate(self, raw_key: str) -> AuthContext | None:
         if self._demo_api_key and hmac.compare_digest(raw_key, self._demo_api_key):
