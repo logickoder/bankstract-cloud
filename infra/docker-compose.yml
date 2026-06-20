@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2026 Jeffery Orazulike
+#
+# Self-host bundle — verifies the AGPL self-host claim. One command runs the whole
+# stack: FastAPI worker + Next.js demo behind a Caddy reverse proxy.
+#   cp .env.example .env && docker compose up --build
+
+services:
+  worker:
+    build:
+      context: ../apps/worker
+    environment:
+      BANKSTRACT_CLOUD_ENV: production
+      AUDIT_DB_PATH: /data/audit.sqlite
+      # Must match the demo's DEMO_API_KEY so the anonymous demo tier authenticates.
+      DEMO_API_KEY: ${DEMO_API_KEY:-bsk_test_demo_selfhost}
+      # Empty disables Turnstile verification. Set a real secret in production.
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
+    volumes:
+      - audit:/data
+    restart: unless-stopped
+
+  demo:
+    build:
+      context: ..
+      dockerfile: apps/demo/Dockerfile
+      args:
+        # Public Turnstile site key — inlined at build (client widget).
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-1x00000000000000000000AA}
+    environment:
+      # Server-only, runtime: where the demo's /api/parse proxy forwards to.
+      WORKER_URL: http://worker:8000
+      DEMO_API_KEY: ${DEMO_API_KEY:-bsk_test_demo_selfhost}
+    depends_on:
+      - worker
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - worker
+      - demo
+    restart: unless-stopped
+
+volumes:
+  audit:
+  caddy_data:
+  caddy_config:

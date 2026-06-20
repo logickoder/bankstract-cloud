@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2026 Jeffery Orazulike
+#
+# Default: HTTP on :80 (correct behind Cloudflare, which terminates TLS — the PRD
+# topology). For a standalone box with its own TLS, replace ":80" with your hostname
+# (e.g. "bankstract.example.com") and Caddy auto-provisions a Let's Encrypt cert.
+
+:80 {
+	# Match the worker's 50 MB cap, with headroom for multipart overhead. Without this
+	# the proxy would clip large uploads before the worker ever sees them.
+	request_body {
+		max_size 52MB
+	}
+
+	# B2B API + health checks → worker.
+	@worker path /v1/* /healthz /readyz
+	handle @worker {
+		reverse_proxy worker:8000
+	}
+
+	# Consumer demo (UI + its server-side /api/parse proxy) → demo.
+	handle {
+		reverse_proxy demo:3000
+	}
+}

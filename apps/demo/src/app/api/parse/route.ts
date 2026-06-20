@@ -39,7 +39,9 @@ function pickClientIp(request: NextRequest): string {
 
 export async function POST(request: NextRequest): Promise<Response> {
   const apiKey = process.env.DEMO_API_KEY
-  const base = process.env.NEXT_PUBLIC_API_URL
+  // WORKER_URL is server-only + runtime-settable (preferred for self-host). Falls back
+  // to NEXT_PUBLIC_API_URL for local dev. The browser never uses either — it posts here.
+  const base = process.env.WORKER_URL ?? process.env.NEXT_PUBLIC_API_URL
   if (!apiKey || !base) {
     // Fail fast + loud: an empty key would otherwise surface as a misleading 401.
     console.error('demo proxy misconfigured: DEMO_API_KEY or NEXT_PUBLIC_API_URL is unset')

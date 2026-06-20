@@ -1,0 +1,28 @@
+# Demo image builds from the repo root — keep the context lean.
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/build
+.git
+.github
+
+# python / worker (not part of the demo image)
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+
+# local state + secrets
+**/*.sqlite*
+**/*.db*
+**/.env
+**/.env.*
+!**/.env.example
+
+# not needed in any image build context
+infra
+test-results
+playwright-report
+**/_local
+**/_scratch
