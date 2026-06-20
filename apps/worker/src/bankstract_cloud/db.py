@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Generator
-from contextlib import contextmanager
 
 # Audit, API keys, and rate-limit counters share one SQLite file. NONE of these
 # tables hold PDF payload data (Directive 1) — metadata and auth material only.
@@ -55,13 +53,3 @@ def connect(db_path: str) -> sqlite3.Connection:
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(_SCHEMA)
     conn.commit()
-
-
-@contextmanager
-def transaction(conn: sqlite3.Connection) -> Generator[sqlite3.Connection, None, None]:
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise

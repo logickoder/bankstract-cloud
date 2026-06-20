@@ -22,12 +22,21 @@ ENGINE_VERSION: str = getattr(bankstract, "__version__", "unknown")
 
 
 class MappedEngineError(Exception):
-    """An engine exception translated to a known HTTP outcome. Carries error_class
-    for the audit log."""
+    """An engine exception translated to a known HTTP outcome. Carries the fields
+    the error envelope surfaces: error_class, format_version, marker_coverage."""
 
-    def __init__(self, message: str, *, error_class: str) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_class: str,
+        format_version: str | None = None,
+        marker_coverage: float | None = None,
+    ) -> None:
         super().__init__(message)
         self.error_class = error_class
+        self.format_version = format_version
+        self.marker_coverage = marker_coverage
 
 
 class UnsupportedStatementError(MappedEngineError):
@@ -38,16 +47,48 @@ class EngineError(MappedEngineError):
     """Unexpected engine error. Maps to HTTP 500. format_version is best-effort."""
 
 
+def _looks_encrypted(data: bytes) -> bool:
+    """Heuristic encryption check from the raw bytes.
+
+    The engine raises EncryptedSourceError only once a parser opens the document.
+    On auto-detect it can't read the encrypted text to pick a bank, so an encrypted
+    upload surfaces as the generic "no parser detected". We recognise encryption here
+    so the client can show the password-removal path instead of a generic error.
+    """
+    if data[:5] == b"%PDF-" and b"/Encrypt" in data:
+        return True
+    # Encrypted OOXML (xlsx) is wrapped in an OLE/CFB container, not a zip.
+    return data[:4] == b"\xd0\xcf\x11\xe0"
+
+
 @contextmanager
-def _translate_engine_errors() -> Generator[None, None, None]:
+def _translate_engine_errors(source: bytes | None = None) -> Generator[None, None, None]:
     try:
         yield
-    except ParseError as exc:
-        raise UnsupportedStatementError(str(exc), error_class="ParseError") from exc
     except ReconciliationError as exc:
-        # Structurally parsed but the balance check failed — the result is not
-        # trustworthy, so we refuse it rather than return suspect numbers.
-        raise UnsupportedStatementError(str(exc), error_class="ReconciliationError") from exc
+        # Parsed but the balance check failed — refuse rather than return suspect numbers.
+        raise UnsupportedStatementError(
+            str(exc),
+            error_class="ReconciliationError",
+            format_version=getattr(exc, "format_version", None),
+        ) from exc
+    except ParseError as exc:
+        # ParseError is the base — type(exc).__name__ surfaces the specific subclass
+        # the engine raised (EncryptedSourceError, EmptyStatementError, LayoutDriftError
+        # in 0.13+) without a hard import. marker_coverage rides along when present.
+        error_class = type(exc).__name__
+        # Upgrade a bare "no parser detected" to EncryptedSourceError when the bytes are
+        # encrypted — on 0.13 the engine can't detect a bank from locked text so it gives
+        # up generically. Engine 0.14 raises EncryptedSourceError during auto-detect, after
+        # which this branch no-ops (error_class is already specific) — kept as a fallback.
+        if error_class == "ParseError" and source is not None and _looks_encrypted(source):
+            error_class = "EncryptedSourceError"
+        raise UnsupportedStatementError(
+            str(exc),
+            error_class=error_class,
+            format_version=getattr(exc, "format_version", None),
+            marker_coverage=getattr(exc, "marker_coverage", None),
+        ) from exc
     except MappedEngineError:
         raise
     except Exception as exc:  # translate any other engine error to a typed failure
@@ -57,6 +98,12 @@ def _translate_engine_errors() -> Generator[None, None, None]:
 @dataclass(frozen=True)
 class ParseOutcome:
     response: ParseResponse
+    parser_detected: str | None
+
+
+@dataclass(frozen=True)
+class CsvOutcome:
+    data: bytes
     parser_detected: str | None
 
 
@@ -88,22 +135,34 @@ def list_supported_banks() -> list[str]:
     return list(bankstract.list_parsers())
 
 
-def list_supported_redactors() -> list[str]:
-    return list(bankstract.list_redactors())
-
-
-def parse_pdf(data: bytes, *, bank: str | None = None) -> ParseOutcome:
-    """Parse PDF bytes entirely in memory. Directive 2 — bytes never touch disk.
-
-    The BytesIO buffer is the only home for the PDF; it is released when this
-    function returns and the caller drops the reference.
-    """
+def _buffer_and_detect(data: bytes) -> tuple[io.BytesIO, str | None]:
+    """Wrap bytes in the single in-memory buffer (Directive 2) and advisory-detect the
+    bank. The buffer is rewound so the caller can hand it to the engine."""
     buf = io.BytesIO(data)
     detected = _detect(buf)
     buf.seek(0)
-    with _translate_engine_errors():
+    return buf, detected
+
+
+def parse_pdf(data: bytes, *, bank: str | None = None) -> ParseOutcome:
+    """Parse PDF bytes entirely in memory. Directive 2 — bytes never touch disk."""
+    buf, detected = _buffer_and_detect(data)
+    with _translate_engine_errors(source=data):
         result = bankstract.parse(buf, bank=bank)
     return ParseOutcome(response=_to_response(result), parser_detected=detected)
+
+
+def parse_csv(data: bytes, *, bank: str | None = None) -> CsvOutcome:
+    """Parse and serialize to CSV in one engine call.
+
+    bankstract.parse_to() parses and writes the chosen format in-memory and returns
+    bytes — no tempfile (Directive 2). The CSV holds transaction data, so it leaves
+    only in the HTTP response; it is never logged or persisted.
+    """
+    buf, detected = _buffer_and_detect(data)
+    with _translate_engine_errors(source=data):
+        csv_bytes = bankstract.parse_to(buf, format="csv", bank=bank)
+    return CsvOutcome(data=csv_bytes, parser_detected=detected)
 
 
 def redact_pdf(data: bytes, *, bank: str | None = None) -> RedactOutcome:
@@ -113,8 +172,9 @@ def redact_pdf(data: bytes, *, bank: str | None = None) -> RedactOutcome:
     in-memory (engine guarantees no tempfile). The worker streams them straight to
     the HTTP response; nothing is written to disk and no payload is logged.
     """
+    # No _detect() here — RedactResult already carries the matched bank.
     buf = io.BytesIO(data)
-    with _translate_engine_errors():
+    with _translate_engine_errors(source=data):
         result = bankstract.redact(buf, bank=bank)
 
     return RedactOutcome(

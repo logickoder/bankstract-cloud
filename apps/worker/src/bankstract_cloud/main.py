@@ -8,9 +8,22 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Literal
 
-from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request, Response, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
 from .audit import AuditEntry, AuditLog
@@ -23,12 +36,14 @@ from .engine import (
     EngineError,
     UnsupportedStatementError,
     list_supported_banks,
+    parse_csv,
     parse_pdf,
     redact_pdf,
 )
 from .models import (
     BankInfo,
     BanksResponse,
+    ErrorResponse,
     HealthResponse,
     ParseResponse,
     ReadyResponse,
@@ -73,6 +88,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="bankstract-cloud worker", version=__version__, lifespan=lifespan)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    return _error_response(exc.status_code, str(exc.detail), _class_for_status(exc.status_code))
 
 
 def _state(request: Request) -> AppState:
@@ -150,7 +170,17 @@ async def usage(request: Request, ctx: AuthContext = Depends(require_auth)) -> U
     )
 
 
-@app.post("/v1/parse", response_model=ParseResponse)
+@app.post(
+    "/v1/parse",
+    response_model=ParseResponse,
+    responses={
+        401: {"model": ErrorResponse},
+        413: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+)
 async def parse(
     request: Request,
     pdf: UploadFile,
@@ -158,6 +188,7 @@ async def parse(
     bank: str | None = Form(default=None),
     redact: bool = Form(default=False),
     turnstile_token: str | None = Form(default=None),
+    fmt: Literal["json", "csv"] = Query(default="json", alias="format"),
 ) -> ParseResponse | Response:
     state = _state(request)
     settings = state.settings
@@ -188,8 +219,7 @@ async def parse(
     try:
         if redact:
             redacted = redact_pdf(data, bank=bank)
-            _audit(state, ctx, pdf.filename, byte_count, redacted.bank, True, None)
-            _maybe_bill(state, ctx)
+            _record_success(state, ctx, pdf.filename, byte_count, redacted.bank)
             # Stream redacted bytes straight to the response — no disk, no payload log.
             return Response(
                 content=redacted.data,
@@ -199,22 +229,79 @@ async def parse(
                     "X-Bankstract-Format-Version": redacted.format_version,
                 },
             )
+        if fmt == "csv":
+            csv_outcome = parse_csv(data, bank=bank)
+            _record_success(state, ctx, pdf.filename, byte_count, csv_outcome.parser_detected)
+            return Response(
+                content=csv_outcome.data,
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=statement.csv"},
+            )
         outcome = parse_pdf(data, bank=bank)
     except UnsupportedStatementError as exc:
         _audit(state, ctx, pdf.filename, byte_count, None, False, exc.error_class)
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        # error_class carries the specific engine failure (encrypted / empty / drift /
+        # reconcile / parse); marker_coverage rides along for EmptyStatementError.
+        return _error_response(
+            422,
+            str(exc),
+            exc.error_class,
+            format_version=exc.format_version,
+            marker_coverage=exc.marker_coverage,
+        )
     except EngineError as exc:
         _audit(state, ctx, pdf.filename, byte_count, None, False, exc.error_class)
-        raise HTTPException(
-            status_code=500,
-            detail={"error": str(exc), "format_version": None},
-        ) from exc
+        return _error_response(500, str(exc), exc.error_class, format_version=exc.format_version)
     finally:
         del data  # drop PDF bytes promptly (Directive 1)
 
-    _audit(state, ctx, pdf.filename, byte_count, outcome.parser_detected, True, None)
-    _maybe_bill(state, ctx)
+    _record_success(state, ctx, pdf.filename, byte_count, outcome.parser_detected)
     return outcome.response
+
+
+def _record_success(
+    state: AppState,
+    ctx: AuthContext,
+    filename: str | None,
+    byte_count: int,
+    parser_detected: str | None,
+) -> None:
+    _audit(state, ctx, filename, byte_count, parser_detected, True, None)
+    _maybe_bill(state, ctx)
+
+
+def _error_response(
+    status: int,
+    message: str,
+    error_class: str,
+    *,
+    format_version: str | None = None,
+    marker_coverage: float | None = None,
+) -> JSONResponse:
+    body = ErrorResponse(
+        error=message,
+        error_class=error_class,
+        format_version=format_version,
+        marker_coverage=marker_coverage,
+    )
+    return JSONResponse(status_code=status, content=body.model_dump(mode="json"))
+
+
+# Framework errors (auth, size, rate limit) are raised as HTTPException. This handler
+# unifies them into the same ErrorResponse envelope as engine errors, so every non-2xx
+# response shares one shape.
+_STATUS_CLASS_MAP = {
+    401: "AuthError",
+    403: "PermissionError",
+    413: "PayloadTooLarge",
+    415: "UnsupportedMediaType",
+    429: "RateLimitError",
+    503: "ServiceUnavailable",
+}
+
+
+def _class_for_status(status: int) -> str:
+    return _STATUS_CLASS_MAP.get(status, "WorkerError")
 
 
 def _maybe_bill(state: AppState, ctx: AuthContext) -> None:

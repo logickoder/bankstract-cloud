@@ -23,6 +23,9 @@ def test_parse_unsupported_pdf_returns_422(harness: Harness) -> None:
         "/v1/parse", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
     assert resp.status_code == 422
+    body = resp.json()
+    assert body["error_class"] == "ParseError"
+    assert "error" in body
 
 
 def test_parse_oversize_returns_413(harness: Harness) -> None:

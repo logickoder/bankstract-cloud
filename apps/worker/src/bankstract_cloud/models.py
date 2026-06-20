@@ -5,32 +5,36 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, PlainSerializer
 
-# The engine (bankstract 0.10.0) returns dataclasses (ParseResult, StatementMetadata)
-# holding a pydantic Transaction. It exposes no model_dump. We define our own response
-# contract here so the wire format is decoupled from engine internals across versions.
+# The engine (bankstract) returns dataclasses (ParseResult, StatementMetadata) holding a
+# pydantic Transaction. It exposes no model_dump. We define our own response contract here
+# so the wire format is decoupled from engine internals across versions.
 # Money is serialized as strings — Decimal precision must survive JSON (no float drift).
 
 
-def _money(value: Decimal | None) -> str | None:
+def _money_str(value: Decimal) -> str:
+    return format(value, "f")
+
+
+def _money_opt(value: Decimal | None) -> str | None:
     return None if value is None else format(value, "f")
+
+
+Money = Annotated[Decimal, PlainSerializer(_money_str, when_used="json")]
+OptionalMoney = Annotated[Decimal | None, PlainSerializer(_money_opt, when_used="json")]
 
 
 class TransactionOut(BaseModel):
     date: datetime
     narration: str
-    debit: Decimal
-    credit: Decimal
-    balance: Decimal | None
+    debit: Money
+    credit: Money
+    balance: OptionalMoney
     reference: str | None
     currency: str
-
-    @field_serializer("debit", "credit", "balance", when_used="json")
-    def _ser_money(self, value: Decimal | None) -> str | None:
-        return _money(value)
 
 
 class StatementMetadataOut(BaseModel):
@@ -39,21 +43,13 @@ class StatementMetadataOut(BaseModel):
     account_number_masked: str | None
     statement_period_start: datetime | None
     statement_period_end: datetime | None
-    opening_balance: Decimal | None
-    closing_balance: Decimal | None
-
-    @field_serializer("opening_balance", "closing_balance", when_used="json")
-    def _ser_money(self, value: Decimal | None) -> str | None:
-        return _money(value)
+    opening_balance: OptionalMoney
+    closing_balance: OptionalMoney
 
 
 class TotalsOut(BaseModel):
-    credit: Decimal | None
-    debit: Decimal | None
-
-    @field_serializer("credit", "debit", when_used="json")
-    def _ser_money(self, value: Decimal | None) -> str | None:
-        return _money(value)
+    credit: OptionalMoney
+    debit: OptionalMoney
 
 
 class ParseResponse(BaseModel):
@@ -65,9 +61,24 @@ class ParseResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
+    """Error envelope for all non-2xx responses. `error_class` is one of:
+
+    - `EncryptedSourceError` — source is password-protected
+    - `EmptyStatementError` — parsed clean, zero rows (see `marker_coverage`)
+    - `LayoutDriftError` — bank detected, structure broke
+    - `ReconciliationError` — totals don't match the statement
+    - `ParseError` — last-resort parse failure
+    - `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /
+      `WorkerError` — framework concerns
+
+    `marker_coverage` is populated only for `EmptyStatementError`: high coverage with
+    zero rows ≈ legitimately empty; lower coverage ≈ silent layout drift.
+    """
+
     error: str
     error_class: str
     format_version: str | None = None
+    marker_coverage: float | None = None
 
 
 class BankInfo(BaseModel):

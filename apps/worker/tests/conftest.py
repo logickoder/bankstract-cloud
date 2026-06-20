@@ -7,10 +7,31 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 from tests.fixtures import MINIMAL_PDF
+
+# The engine's own committed encrypted fixture — fetched at test time (never vendored,
+# no bank PDFs in this repo). Mirrors how the demo consumes engine sample fixtures.
+_ENCRYPTED_PDF_URL = "https://raw.githubusercontent.com/logickoder/bankstract/main/tests/fixtures/encrypted_sample.pdf"
+
+
+@pytest.fixture(scope="session")
+def encrypted_pdf(request: pytest.FixtureRequest) -> bytes:
+    # Cache to the gitignored .pytest_cache dir — download once, reuse across runs.
+    cache_path = request.config.cache.mkdir("bankstract_fixtures") / "encrypted_sample.pdf"
+    if cache_path.exists():
+        return cache_path.read_bytes()
+    try:
+        resp = httpx.get(_ENCRYPTED_PDF_URL, timeout=15.0, follow_redirects=True)
+        resp.raise_for_status()
+    except Exception as exc:  # network-gated integration fixture
+        pytest.skip(f"encrypted fixture unavailable (offline?): {exc}")
+    cache_path.write_bytes(resp.content)
+    return resp.content
+
 
 DEMO_KEY = "bsk_test_demo_anonymous_key"
 MAX_BYTES = 2000

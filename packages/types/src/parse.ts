@@ -44,10 +44,15 @@ export interface ParseResponse {
   transactions: Transaction[]
 }
 
+// Envelope for all non-2xx responses. error_class is one of: EncryptedSourceError,
+// EmptyStatementError (see marker_coverage), LayoutDriftError, ReconciliationError,
+// ParseError, or a framework class (AuthError, PayloadTooLarge, RateLimitError, …).
 export interface ErrorResponse {
   error: string
   error_class: string
   format_version: string | null
+  /** Populated only for EmptyStatementError: high coverage + zero rows ≈ truly empty. */
+  marker_coverage: number | null
 }
 
 export interface BankInfo {

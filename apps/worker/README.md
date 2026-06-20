@@ -25,7 +25,7 @@ uv run pytest
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
-| POST | `/v1/parse` | Bearer | multipart `pdf`; optional `bank`. Default returns ParseResponse JSON. `redact=true` returns the redacted document bytes (PDF or XLSX) with the matching `Content-Type`. |
+| POST | `/v1/parse` | Bearer | multipart `pdf`; optional `bank`. `?format=json` (default) returns ParseResponse JSON; `?format=csv` returns engine-serialized CSV (`text/csv` + `Content-Disposition`). `redact=true` returns the redacted document bytes (PDF or XLSX) with the matching `Content-Type`. |
 | GET | `/v1/banks` | Bearer | engine-reported supported parsers |
 | GET | `/v1/usage` | Bearer | current-month parses + projected invoice |
 | GET | `/v1/status` | — | worker + engine version |

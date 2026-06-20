@@ -36,10 +36,6 @@ class Settings(BaseSettings):
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
 
-    @property
-    def stripe_enabled(self) -> bool:
-        return bool(self.stripe_secret_key)
-
 
 @lru_cache
 def get_settings() -> Settings:

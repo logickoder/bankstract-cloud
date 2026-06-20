@@ -1,5 +1,8 @@
 packages:
   - apps/*
   - packages/*
+allowBuilds:
+  esbuild: true
+  sharp: true
 
 # apps/worker is Python (uv-managed) and has no package.json — pnpm skips it.
