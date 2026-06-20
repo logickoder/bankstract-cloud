@@ -5,4 +5,9 @@ allowBuilds:
   esbuild: true
   sharp: true
 
+# Pin transitive deps to patched versions (pnpm audit advisories).
+overrides:
+  postcss@<8.5.10: ">=8.5.10"
+  esbuild@>=0.27.3 <0.28.1: ">=0.28.1"
+
 # apps/worker is Python (uv-managed) and has no package.json — pnpm skips it.
