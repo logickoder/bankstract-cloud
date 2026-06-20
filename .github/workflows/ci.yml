@@ -46,6 +46,9 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Fail on moderate+ advisories. Low (often dev-only / unreachable in prod) won't
+      # block merges; raise the level for stricter. Pin fixes via pnpm overrides.
+      - run: pnpm audit --audit-level=moderate
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
