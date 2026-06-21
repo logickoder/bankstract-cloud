@@ -133,9 +133,12 @@ def test_status_requires_admin(harness: Harness) -> None:
 
 
 def test_subscribe_initializes_checkout(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fake_init(self: Any, *, email: str, plan_code: str, owner: str) -> dict[str, str]:
+    async def fake_init(
+        self: Any, *, email: str, plan_code: str, owner: str, callback_url: str | None = None
+    ) -> dict[str, str]:
         assert plan_code == "PLN_starter_test"
         assert owner == "user_sub"
+        assert callback_url == "https://app.test/dashboard/billing"
         return {
             "authorization_url": "https://paystack.test/checkout",
             "access_code": "acc_1",
@@ -145,7 +148,12 @@ def test_subscribe_initializes_checkout(harness: Harness, monkeypatch: pytest.Mo
     monkeypatch.setattr("bankstract_cloud.paystack.PaystackClient.init_subscription", fake_init)
     res = harness.client.post(
         "/v1/admin/billing/subscribe",
-        json={"owner": "user_sub", "email": "dev@acme.test", "tier": "starter"},
+        json={
+            "owner": "user_sub",
+            "email": "dev@acme.test",
+            "tier": "starter",
+            "callback_url": "https://app.test/dashboard/billing",
+        },
         headers=auth_header(harness.admin_token),
     )
     assert res.status_code == 200

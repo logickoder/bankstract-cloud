@@ -38,14 +38,17 @@ class PaystackClient:
         digest = hmac.new(self._secret_key.encode(), body, hashlib.sha512).hexdigest()
         return hmac.compare_digest(digest, signature)
 
-    async def init_subscription(self, *, email: str, plan_code: str, owner: str) -> dict[str, str]:
+    async def init_subscription(
+        self, *, email: str, plan_code: str, owner: str, callback_url: str | None = None
+    ) -> dict[str, str]:
         # Initialize a transaction bound to a plan. On a successful charge Paystack creates
         # the subscription and fires subscription.create; metadata.owner rides charge.success
-        # so the webhook can map customer_code -> owner. Returns inline-checkout params.
-        data = await self._post(
-            "/transaction/initialize",
-            {"email": email, "plan": plan_code, "metadata": {"owner": owner}},
-        )
+        # so the webhook can map customer_code -> owner. callback_url is where Paystack sends
+        # the user after payment. Returns inline-checkout params.
+        payload: dict[str, Any] = {"email": email, "plan": plan_code, "metadata": {"owner": owner}}
+        if callback_url:
+            payload["callback_url"] = callback_url
+        data = await self._post("/transaction/initialize", payload)
         d = data["data"]
         return {
             "authorization_url": str(d["authorization_url"]),

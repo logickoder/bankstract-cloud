@@ -18,10 +18,19 @@ export async function POST(request: Request) {
   const parsed = initSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'invalid tier' }, { status: 422 })
 
+  // Paystack returns the user here after payment; the billing page re-reads status on load.
+  const base = process.env.BETTER_AUTH_URL ?? new URL(request.url).origin
+  const callback_url = `${base}/dashboard/billing`
+
   return passthrough(
     await workerFetch('/v1/admin/billing/subscribe', {
       method: 'POST',
-      body: JSON.stringify({ owner: user.id, email: user.email, tier: parsed.data.tier }),
+      body: JSON.stringify({
+        owner: user.id,
+        email: user.email,
+        tier: parsed.data.tier,
+        callback_url,
+      }),
     }),
   )
 }

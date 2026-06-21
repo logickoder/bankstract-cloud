@@ -45,7 +45,10 @@ async def admin_subscribe(
         raise HTTPException(status_code=503, detail=f"tier {body.tier} not configured")
     try:
         params = await state.paystack.init_subscription(
-            email=body.email, plan_code=plan_code, owner=body.owner
+            email=body.email,
+            plan_code=plan_code,
+            owner=body.owner,
+            callback_url=body.callback_url,
         )
     except PaystackError as exc:
         logger.warning("paystack subscribe failed for owner %s: %s", body.owner, exc)

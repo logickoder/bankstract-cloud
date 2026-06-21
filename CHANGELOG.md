@@ -29,4 +29,3 @@ All notable changes to bankstract-cloud. Format follows [Keep a Changelog](https
 ### Pending (tracked follow-ups)
 
 - Overage auto-invoicing: an end-of-cycle cron to call the overage charge automatically (manual via `/v1/admin/billing/charge-overage` for now).
-- Paystack `callback_url` from `apps/app` so the post-payment redirect returns to `/dashboard/billing` and refreshes status.
