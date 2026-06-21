@@ -1,0 +1,107 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* Copyright (C) 2026 Jeffery Orazulike */
+@import "tailwindcss";
+
+/* Design tokens (DESIGN.md) live in @bankstract/ui; importing theme.css also generates
+   utilities for the shared components. Fonts are injected as CSS vars by lib/fonts.ts. */
+@import "@bankstract/ui/theme.css";
+
+html {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Grain over the page bg (DESIGN: subtle, viewer should not consciously notice). */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  filter: url(#bs-grain);
+}
+
+/* Hero radial accent glow at top-right (DESIGN hero spec). */
+.hero-glow {
+  background: radial-gradient(60% 60% at 85% 0%, var(--color-accent-glow), transparent 70%);
+}
+
+/* Signature transform animation (TransformationDemo). Static by default; the single
+   accent sweep + row materialization run only when motion is welcome (DESIGN: one
+   signature animation, reduced-motion safe). */
+.sweep-bar {
+  display: none;
+}
+.sweep-caret {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sweep-bar {
+    display: block;
+    left: 6%;
+    background: linear-gradient(to bottom, transparent, var(--color-accent), transparent);
+    box-shadow: 0 0 24px 2px var(--color-accent-glow);
+    animation: bs-sweep 4.2s ease-in-out infinite;
+  }
+  .sweep-row {
+    opacity: 0;
+    animation: bs-row 4.2s ease-in-out infinite;
+  }
+  .sweep-caret {
+    display: inline-block;
+    animation: bs-blink 1s step-end infinite;
+  }
+}
+
+@keyframes bs-sweep {
+  0% {
+    left: 6%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  55% {
+    left: 94%;
+    opacity: 1;
+  }
+  65%,
+  100% {
+    left: 94%;
+    opacity: 0;
+  }
+}
+
+@keyframes bs-row {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes bs-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
