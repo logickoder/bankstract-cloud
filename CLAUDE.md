@@ -331,7 +331,7 @@ Fixture privacy rule (mirrors bankstract engine):
 - "We" only when referring to the team; never "us / our customers" upsell-speak.
 - Naira amounts ALWAYS in JetBrains Mono. Visual rule.
 - Bank names in plain text, no logos in body copy (logos go in coverage grid only).
-- Owner brand identifier is `logickoder`. Always link to `github.com/logickoder` in public-facing copy.
+- Owner brand identifier is `logickoder`. Split link convention in public-facing copy: brand/person credit ("Built by logickoder", footer name) links to the personal site `https://logickoder.dev`; code/repo links (engine, cloud, view source, star on GitHub, self-host) link to `github.com/logickoder/<repo>`.
 
 ---
 

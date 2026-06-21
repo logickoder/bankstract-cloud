@@ -15,7 +15,8 @@ export const links = {
   cloud: 'https://github.com/logickoder/bankstract-cloud',
   selfHost: 'https://github.com/logickoder/bankstract-cloud/blob/main/infra/README.md',
   security: 'https://github.com/logickoder/bankstract-cloud/blob/main/SECURITY.md',
-  owner: 'https://github.com/logickoder',
+  // Brand/person credit goes to the personal site; code/repo links go to GitHub.
+  owner: 'https://logickoder.dev',
   sales: 'mailto:hello@logickoder.dev?subject=bankstract%20Enterprise',
   // Paid tiers are not live (Paystack KYC pending). Paid-tier CTAs collect interest here;
   // swap to the Resend audience when apps/app + Paystack land.

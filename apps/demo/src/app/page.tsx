@@ -51,7 +51,7 @@ export default function Page() {
           >
             Security
           </a>
-          <a className={linkClass} href="https://github.com/logickoder">
+          <a className={linkClass} href="https://logickoder.dev">
             logickoder
           </a>
         </nav>
