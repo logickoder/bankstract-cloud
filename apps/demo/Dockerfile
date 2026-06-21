@@ -2,7 +2,7 @@
 # Copyright (C) 2026 Jeffery Orazulike
 #
 # Build context: repo root (needs the pnpm workspace + packages/).
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 RUN corepack enable
 WORKDIR /repo
 
@@ -20,7 +20,7 @@ ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY \
     NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter demo build
 
-FROM node:20-slim AS runner
+FROM node:24-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
