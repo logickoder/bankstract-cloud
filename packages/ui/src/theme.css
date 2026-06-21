@@ -1,0 +1,42 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* Copyright (C) 2026 Jeffery Orazulike */
+
+/* Single source of truth for design tokens (DESIGN.md). A consuming app imports this
+   after `@import "tailwindcss"`. The @source line makes Tailwind generate utilities for
+   the component classes that live in this package, so they survive the consumer build.
+   --font-* expect the app to inject the matching CSS vars via next/font. */
+@source './**/*.tsx';
+
+@theme {
+  --color-bg: #0a0a0a;
+  --color-bg-secondary: #111418;
+  --color-bg-tertiary: #1a1d23;
+  --color-bg-inverse: #fafaf9;
+
+  --color-fg: #fafaf9;
+  --color-fg-secondary: #a1a1aa;
+  --color-fg-tertiary: #71717a;
+  --color-fg-inverse: #0a0a0a;
+
+  --color-accent: #d2691e;
+  --color-accent-hover: #b85718;
+  --color-accent-muted: #d2691e40;
+  --color-accent-glow: #d2691e20;
+
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #ef4444;
+  --color-info: #60a5fa;
+
+  --color-border: #27272a;
+
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --shadow-glow-accent: 0 0 80px -20px #d2691e20;
+}

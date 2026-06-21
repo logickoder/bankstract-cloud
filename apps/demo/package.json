@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@bankstract/types": "workspace:*",
+    "@bankstract/ui": "workspace:*",
     "@marsidev/react-turnstile": "1.5.3",
     "next": "16.2.9",
     "react": "19.2.7",

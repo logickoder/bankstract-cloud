@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+import { linkClass } from '@bankstract/ui'
 import Link from 'next/link'
-
-import { LINK_CLASS } from '../lib/styles'
 
 export default function NotFound() {
   return (
@@ -12,7 +11,7 @@ export default function NotFound() {
       <p className="text-fg-secondary">
         No statement here. This page was never parsed into existence.
       </p>
-      <Link className={LINK_CLASS} href="/">
+      <Link className={linkClass} href="/">
         Back to the demo
       </Link>
     </main>

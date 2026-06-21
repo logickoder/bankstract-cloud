@@ -4,12 +4,10 @@
 'use client'
 
 import type { ParseResponse, Transaction } from '@bankstract/types'
+import { Badge, linkClass } from '@bankstract/ui'
 import { useState } from 'react'
 
 import { displayDate, displayMoney, displayNaira, signedNaira } from '../lib/format'
-import { LINK_CLASS } from '../lib/styles'
-
-import { Badge } from './ui/Badge'
 
 const PREVIEW_ROWS = 10
 
@@ -90,7 +88,7 @@ export function ResultTable({ data }: { data: ParseResponse }) {
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className={LINK_CLASS}
+            className={linkClass}
           >
             {expanded ? 'Show first 10' : `Show all ${total} rows`}
           </button>

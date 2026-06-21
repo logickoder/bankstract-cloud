@@ -2,32 +2,9 @@
 /* Copyright (C) 2026 Jeffery Orazulike */
 @import "tailwindcss";
 
-/* DESIGN.md tokens. only what the demo uses. True #0a0a0a, not shadcn zinc. */
-@theme {
-  --color-bg: #0a0a0a;
-  --color-bg-secondary: #111418;
-  --color-bg-tertiary: #1a1d23;
-
-  --color-fg: #fafaf9;
-  --color-fg-secondary: #a1a1aa;
-  --color-fg-tertiary: #71717a;
-
-  --color-accent: #d2691e;
-  --color-accent-hover: #b85718;
-  --color-accent-muted: #d2691e40;
-  --color-accent-glow: #d2691e20;
-
-  --color-border: #27272a;
-  --color-error: #ef4444;
-  --color-success: #34d399;
-
-  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
-
-  --radius-md: 8px;
-  --radius-lg: 12px;
-}
+/* Design tokens (DESIGN.md) live in @bankstract/ui; importing theme.css also generates
+   utilities for the shared components. Fonts are injected as CSS vars by lib/fonts.ts. */
+@import "@bankstract/ui/theme.css";
 
 html {
   background-color: var(--color-bg);

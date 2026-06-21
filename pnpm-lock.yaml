@@ -27,6 +27,9 @@ importers:
       '@bankstract/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@bankstract/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@marsidev/react-turnstile':
         specifier: 1.5.3
         version: 1.5.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -169,6 +172,43 @@ importers:
       '@bankstract/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.4(jiti@2.7.0)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/ui:
+    dependencies:
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      react:
+        specifier: ^19.2.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.7(react@19.2.7)
+      tailwind-merge:
+        specifier: ^3.3.1
+        version: 3.6.0
+    devDependencies:
+      '@bankstract/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@bankstract/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/react':
+        specifier: ^19.2.0
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.0
+        version: 19.2.3(@types/react@19.2.17)
       eslint:
         specifier: ^9.17.0
         version: 9.39.4(jiti@2.7.0)

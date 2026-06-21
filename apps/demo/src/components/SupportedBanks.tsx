@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { SUPPORTED_BANKS } from '../lib/banks'
+import { Badge } from '@bankstract/ui'
 
-import { Badge } from './ui/Badge'
+import { SUPPORTED_BANKS } from '../lib/banks'
 
 export function SupportedBanks() {
   return (

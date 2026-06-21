@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+import { Anchor } from '@bankstract/ui'
+
 import { DemoClient } from '../components/DemoClient'
-import { LINK_CLASS } from '../lib/styles'
 
 export default function Page() {
   return (
@@ -20,18 +21,11 @@ export default function Page() {
 
       <div className="text-center text-sm text-fg-tertiary">
         <p>
-          For production use, see the{' '}
-          <a className={LINK_CLASS} href="/docs">
-            API docs
-          </a>
-          .
+          For production use, see the <Anchor href="/docs">API docs</Anchor>.
         </p>
         <p className="mt-1">
           Don&apos;t trust us? Self-host with{' '}
-          <a className={LINK_CLASS} href="https://github.com/logickoder/bankstract">
-            the engine
-          </a>
-          .
+          <Anchor href="https://github.com/logickoder/bankstract">the engine</Anchor>.
         </p>
       </div>
 

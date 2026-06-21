@@ -4,12 +4,12 @@
 'use client'
 
 import type { ParseResponse } from '@bankstract/types'
+import { Button } from '@bankstract/ui'
 import { type RefObject, useState } from 'react'
 
 import { downloadCsv, triggerBlobDownload } from '../lib/parse-client'
 
 import type { TurnstileHandle } from './TurnstileGate'
-import { Button } from './ui/Button'
 
 interface ResultActionsProps {
   data: ParseResponse

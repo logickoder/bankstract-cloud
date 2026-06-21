@@ -2,9 +2,8 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import type { ParseResponse } from '@bankstract/types'
+import { linkClass } from '@bankstract/ui'
 import type { RefObject } from 'react'
-
-import { LINK_CLASS } from '../lib/styles'
 
 import { ResultActions } from './ResultActions'
 import { ResultTable } from './ResultTable'
@@ -32,7 +31,7 @@ export function ResultView({
       {sample ? (
         <p className="text-xs text-fg-secondary">
           Showing a redacted {data.metadata?.bank ?? ''} sample. Drop your own, or{' '}
-          <button type="button" onClick={onSampleCycle} className={LINK_CLASS}>
+          <button type="button" onClick={onSampleCycle} className={linkClass}>
             try another bank
           </button>
           .

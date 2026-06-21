@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { type DemoErrorCode, ERROR_ACTION, ERROR_COPY, tooLargeCopy } from '../lib/errors'
-import { LINK_CLASS } from '../lib/styles'
+import { Button, linkClass } from '@bankstract/ui'
 
-import { Button } from './ui/Button'
+import { type DemoErrorCode, ERROR_ACTION, ERROR_COPY, tooLargeCopy } from '../lib/errors'
 
 export function ErrorPanel({
   code,
@@ -26,7 +25,7 @@ export function ErrorPanel({
         </Button>
         {action ? (
           <a
-            className={`text-sm ${LINK_CLASS}`}
+            className={`text-sm ${linkClass}`}
             href={action.href}
             target="_blank"
             rel="noreferrer"

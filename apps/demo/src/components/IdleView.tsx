@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+import { linkClass } from '@bankstract/ui'
+
 import type { DemoState } from '../lib/state'
-import { LINK_CLASS } from '../lib/styles'
 
 import { Dropzone } from './Dropzone'
 import { SupportedBanks } from './SupportedBanks'
@@ -40,7 +41,7 @@ export function IdleView({
             type="button"
             disabled={status === 'parsing'}
             onClick={onSample}
-            className={`${LINK_CLASS} disabled:opacity-50`}
+            className={`${linkClass} disabled:opacity-50`}
           >
             Try a sample
           </button>
