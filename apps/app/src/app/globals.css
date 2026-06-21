@@ -2,16 +2,5 @@
 /* Copyright (C) 2026 Jeffery Orazulike */
 @import "tailwindcss";
 
-/* Design tokens (DESIGN.md) live in @bankstract/ui. */
+/* Design tokens + html/body baseline (DESIGN.md) live in @bankstract/ui/theme.css. */
 @import "@bankstract/ui/theme.css";
-
-html {
-  background-color: var(--color-bg);
-  color: var(--color-fg);
-  overflow-x: hidden;
-}
-
-body {
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-}

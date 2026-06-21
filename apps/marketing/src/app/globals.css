@@ -2,23 +2,10 @@
 /* Copyright (C) 2026 Jeffery Orazulike */
 @import "tailwindcss";
 
-/* Design tokens (DESIGN.md) live in @bankstract/ui; importing theme.css also generates
-   utilities for the shared components. Fonts are injected as CSS vars by lib/fonts.ts. */
+/* Design tokens, html/body baseline, grain-section + hero-glow live in
+   @bankstract/ui/theme.css (shared); importing it also generates utilities for the
+   shared components. Fonts come from @bankstract/ui/fonts (applied on <html>). */
 @import "@bankstract/ui/theme.css";
-
-html {
-  background-color: var(--color-bg);
-  color: var(--color-fg);
-  /* Belt-and-suspenders: no horizontal scroll on small screens. */
-  overflow-x: hidden;
-}
-
-body {
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* grain-section + hero-glow now live in @bankstract/ui theme.css (shared). */
 
 /* Signature transform animation (TransformationDemo). A scan-line reads the PDF, each
    transaction flies across the gap, and the matching CSV row materializes on arrival

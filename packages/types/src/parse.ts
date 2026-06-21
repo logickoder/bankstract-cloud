@@ -100,3 +100,43 @@ export const REDACT_MEDIA_TYPES: Record<RedactFormat, string> = {
   pdf: 'application/pdf',
   xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
+
+// Owner usage aggregation. /v1/admin/usage powers the dashboard Overview + Usage.
+export interface DailyCount {
+  date: string
+  count: number
+}
+
+export interface OwnerUsageResponse {
+  owner: string
+  period_parses: number
+  /** 0..1: successful parses / total attempts this cycle. */
+  success_rate: number
+  daily: DailyCount[]
+}
+
+// API-key management (admin-only endpoints under /v1/keys).
+export interface KeyInfo {
+  id: string
+  name: string
+  prefix: string
+  env: string
+  tier: string
+  owner: string | null
+  created_at: string
+  revoked_at: string | null
+}
+
+// Returned once, on creation: the only time the raw `key` is ever exposed.
+export interface KeyCreatedResponse {
+  id: string
+  key: string
+  prefix: string
+  name: string
+  env: string
+  tier: string
+}
+
+export interface KeyListResponse {
+  keys: KeyInfo[]
+}

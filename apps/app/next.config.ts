@@ -14,7 +14,7 @@ const config: NextConfig = {
   // match production chrome.
   devIndicators: false,
   outputFileTracingRoot: monorepoRoot,
-  transpilePackages: ['@bankstract/ui'],
+  transpilePackages: ['@bankstract/types', '@bankstract/ui'],
   // libSQL client ships prebuilt native bits; keep it external so it isn't bundled.
   serverExternalPackages: ['@libsql/client', 'libsql'],
   turbopack: {},

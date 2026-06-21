@@ -11,21 +11,14 @@ import {
   DialogDescription,
   DialogTitle,
   Input,
+  useClipboard,
 } from '@bankstract/ui'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { EnvBadge, StatusBadge } from '@/components/KeyBadges'
 import { PageHeading } from '@/components/PageHeading'
-import type { KeyInfo } from '@/lib/worker'
-
-interface CreatedKey {
-  id: string
-  key: string
-  prefix: string
-  name: string
-  env: string
-}
+import type { KeyCreatedResponse, KeyInfo } from '@/lib/worker'
 
 function fmtDate(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10)
@@ -39,8 +32,8 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
   const [env, setEnv] = useState<'test' | 'live'>('test')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [created, setCreated] = useState<CreatedKey | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [created, setCreated] = useState<KeyCreatedResponse | null>(null)
+  const { copied, copy } = useClipboard()
 
   // Overview's "Create your first key" CTA links here with ?create=1 to open the dialog directly.
   useEffect(() => {
@@ -52,7 +45,6 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
     setEnv('test')
     setError('')
     setCreated(null)
-    setCopied(false)
   }
 
   async function create() {
@@ -72,19 +64,13 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
       setError('Could not create the key. Try again.')
       return
     }
-    setCreated((await res.json()) as CreatedKey)
+    setCreated((await res.json()) as KeyCreatedResponse)
     router.refresh()
   }
 
   async function revoke(id: string) {
     const res = await fetch(`/api/keys/${id}`, { method: 'DELETE' })
     if (res.ok) router.refresh()
-  }
-
-  async function copy() {
-    if (!created) return
-    await navigator.clipboard.writeText(created.key).catch(() => undefined)
-    setCopied(true)
   }
 
   return (
@@ -190,7 +176,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
                 {created.key}
               </div>
               <div className="mt-4 flex justify-end gap-2">
-                <Button variant="secondary" size="sm" onClick={() => void copy()}>
+                <Button variant="secondary" size="sm" onClick={() => void copy(created.key)}>
                   {copied ? 'Copied' : 'Copy'}
                 </Button>
                 <Button size="sm" onClick={() => setOpen(false)}>

@@ -27,6 +27,9 @@ importers:
 
   apps/app:
     dependencies:
+      '@bankstract/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@bankstract/ui':
         specifier: workspace:*
         version: link:../../packages/ui

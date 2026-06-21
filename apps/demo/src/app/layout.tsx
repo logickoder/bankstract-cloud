@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}>
       <body>
         <GrainFilter />
-        <div className="grain" aria-hidden="true" />
+        <div className="grain-fixed" aria-hidden="true" />
         <div className="relative z-10">{children}</div>
       </body>
     </html>

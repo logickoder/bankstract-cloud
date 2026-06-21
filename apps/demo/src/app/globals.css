@@ -2,26 +2,7 @@
 /* Copyright (C) 2026 Jeffery Orazulike */
 @import "tailwindcss";
 
-/* Design tokens (DESIGN.md) live in @bankstract/ui; importing theme.css also generates
-   utilities for the shared components. Fonts are injected as CSS vars by lib/fonts.ts. */
+/* Design tokens, html/body baseline, and grain helpers (grain-fixed blankets the
+   viewport) live in @bankstract/ui/theme.css (shared); importing it also generates
+   utilities for the shared components. Fonts come from @bankstract/ui/fonts. */
 @import "@bankstract/ui/theme.css";
-
-html {
-  background-color: var(--color-bg);
-  color: var(--color-fg);
-}
-
-body {
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Grain over the page bg (DESIGN: subtle, viewer should not consciously notice). */
-.grain {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.06;
-  filter: url(#bs-grain);
-}

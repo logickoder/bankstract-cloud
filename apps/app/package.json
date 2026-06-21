@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@bankstract/types": "workspace:*",
     "@bankstract/ui": "workspace:*",
     "@libsql/client": "^0.14.0",
     "@radix-ui/react-dialog": "^1.1.6",

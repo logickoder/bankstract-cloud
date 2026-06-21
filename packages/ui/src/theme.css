@@ -41,16 +41,38 @@
   --shadow-glow-accent: 0 0 80px -20px #d2691e20;
 }
 
+/* App baseline. Every consuming app imports this, so the html/body defaults live once. */
+html {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  /* No horizontal scroll on small screens (recurring mobile-overflow guard). */
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Shared brand surfaces. Render <GrainFilter/> once per app (defines #bs-grain), then put
-   `grain-section` on any relative element to ride the grain. `hero-glow` is the radial
-   accent wash. DESIGN: grain subtle (viewer should not consciously notice). */
-.grain-section {
-  position: absolute;
+   `grain-section` on any relative element to ride the grain, or `grain-fixed` on a top-level
+   element to blanket the viewport. `hero-glow` is the radial accent wash.
+   DESIGN: grain subtle (viewer should not consciously notice). */
+.grain-section,
+.grain-fixed {
   inset: 0;
   z-index: 0;
   pointer-events: none;
   opacity: 0.06;
   filter: url(#bs-grain);
+}
+
+.grain-section {
+  position: absolute;
+}
+
+.grain-fixed {
+  position: fixed;
 }
 
 .hero-glow {

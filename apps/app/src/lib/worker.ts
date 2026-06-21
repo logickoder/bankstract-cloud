@@ -27,20 +27,10 @@ export async function passthrough(res: Response): Promise<Response> {
   })
 }
 
-export interface KeyInfo {
-  id: string
-  name: string
-  prefix: string
-  env: string
-  tier: string
-  owner: string | null
-  created_at: string
-  revoked_at: string | null
-}
-
-export interface OwnerUsage {
-  owner: string
-  period_parses: number
-  success_rate: number
-  daily: { date: string; count: number }[]
-}
+// Worker /v1 wire contract lives once in @bankstract/types (mirrors the worker pydantic
+// models). Re-exported here so dashboard code keeps a single `@/lib/worker` import surface.
+export type {
+  KeyCreatedResponse,
+  KeyInfo,
+  OwnerUsageResponse as OwnerUsage,
+} from '@bankstract/types'
