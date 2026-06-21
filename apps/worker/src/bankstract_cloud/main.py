@@ -119,7 +119,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     return _error_response(exc.status_code, str(exc.detail), _class_for_status(exc.status_code))
 
 
-def _state(request: Request) -> AppState:
+def get_state(request: Request) -> AppState:
     state = getattr(request.app.state, "app_state", None)
     if state is None:  # pragma: no cover - only if accessed outside lifespan
         raise HTTPException(status_code=503, detail="worker not ready")
@@ -133,23 +133,26 @@ def _bearer_token(authorization: str | None) -> str | None:
 
 
 def require_auth(
-    request: Request,
     authorization: str | None = Header(default=None),
+    state: AppState = Depends(get_state),
 ) -> AuthContext:
     raw_key = _bearer_token(authorization)
     if raw_key is None:
         raise HTTPException(status_code=401, detail="missing or malformed API key")
-    ctx = _state(request).keystore.authenticate(raw_key)
+    ctx = state.keystore.authenticate(raw_key)
     if ctx is None:
         raise HTTPException(status_code=401, detail="invalid API key")
     return ctx
 
 
-def require_admin(request: Request, authorization: str | None = Header(default=None)) -> None:
+def require_admin(
+    authorization: str | None = Header(default=None),
+    state: AppState = Depends(get_state),
+) -> None:
     # Gates key management. An empty configured token means the feature is OFF, so we must
     # never let "" match "" (that would let anyone mint keys). Constant-time compare
     # avoids leaking the token via response timing.
-    token = _state(request).settings.admin_api_token
+    token = state.settings.admin_api_token
     if not token:
         raise HTTPException(status_code=403, detail="key management is disabled")
     presented = _bearer_token(authorization)
@@ -175,8 +178,7 @@ async def healthz() -> HealthResponse:
 
 
 @app.get("/readyz", response_model=ReadyResponse, tags=["Health"], summary="Readiness probe")
-async def readyz(request: Request) -> ReadyResponse:
-    state = _state(request)
+async def readyz(state: AppState = Depends(get_state)) -> ReadyResponse:
     db_ok = True
     try:
         state.audit.count_success_for_key("__probe__", since_iso="1970-01-01T00:00:00+00:00")
@@ -216,8 +218,10 @@ async def banks(_: AuthContext = Depends(require_auth)) -> BanksResponse:
     tags=["Account"],
     summary="Current billing-period usage",
 )
-async def usage(request: Request, ctx: AuthContext = Depends(require_auth)) -> UsageResponse:
-    state = _state(request)
+async def usage(
+    ctx: AuthContext = Depends(require_auth),
+    state: AppState = Depends(get_state),
+) -> UsageResponse:
     parses = state.audit.count_success_for_key(
         ctx.api_key_id, since_iso=current_period_start_iso()
     )
@@ -247,11 +251,10 @@ _ADMIN_ERRORS: dict[int | str, dict[str, Any]] = {
     "for the current cycle. Powers the dashboard Overview + Usage.",
 )
 async def admin_usage(
-    request: Request,
     owner: str = Query(..., min_length=1),
     _: None = Depends(require_admin),
+    state: AppState = Depends(get_state),
 ) -> OwnerUsageResponse:
-    state = _state(request)
     total, ok, daily = state.audit.owner_usage(owner, since_iso=current_period_start_iso())
     return OwnerUsageResponse(
         owner=owner,
@@ -271,9 +274,11 @@ async def admin_usage(
     description="Admin-only. Returns the raw key exactly once; only its argon2 hash is stored.",
 )
 async def create_key(
-    request: Request, body: KeyCreateRequest, _: None = Depends(require_admin)
+    body: KeyCreateRequest,
+    _: None = Depends(require_admin),
+    state: AppState = Depends(get_state),
 ) -> KeyCreatedResponse:
-    issued = _state(request).keystore.issue(body.name, body.env, owner=body.owner)
+    issued = state.keystore.issue(body.name, body.env, owner=body.owner)
     # The raw key is returned here and NOWHERE else. The DB only has its argon2 hash.
     return KeyCreatedResponse(
         id=issued.id,
@@ -293,11 +298,11 @@ async def create_key(
     summary="List API keys",
 )
 async def list_keys(
-    request: Request,
     owner: str | None = Query(default=None),
     _: None = Depends(require_admin),
+    state: AppState = Depends(get_state),
 ) -> KeyListResponse:
-    records = _state(request).keystore.list_keys(owner=owner)
+    records = state.keystore.list_keys(owner=owner)
     return KeyListResponse(
         keys=[
             KeyInfo(
@@ -322,8 +327,12 @@ async def list_keys(
     tags=["Keys"],
     summary="Revoke an API key",
 )
-async def revoke_key(request: Request, key_id: str, _: None = Depends(require_admin)) -> Response:
-    if not _state(request).keystore.revoke(key_id):
+async def revoke_key(
+    key_id: str,
+    _: None = Depends(require_admin),
+    state: AppState = Depends(get_state),
+) -> Response:
+    if not state.keystore.revoke(key_id):
         raise HTTPException(status_code=404, detail="key not found or already revoked")
     return Response(status_code=204)
 
@@ -355,27 +364,14 @@ async def parse(
     redact: bool = Form(default=False),
     turnstile_token: str | None = Form(default=None),
     fmt: Literal["json", "csv"] = Query(default="json", alias="format"),
+    state: AppState = Depends(get_state),
 ) -> ParseResponse | Response:
-    state = _state(request)
     settings = state.settings
 
     _enforce_size_header(request, settings.max_upload_bytes)
 
     if ctx.is_anonymous:
-        ok = await verify_turnstile(
-            turnstile_token or "",
-            secret=settings.turnstile_secret_key,
-            remote_ip=_client_ip(request),
-        )
-        if not ok:
-            raise HTTPException(status_code=401, detail="Turnstile verification failed")
-        allowed = state.rate_limiter.check(
-            f"demo:{_client_ip(request)}",
-            max_count=settings.demo_rate_limit_max,
-            window_seconds=settings.demo_rate_limit_window_seconds,
-        )
-        if not allowed:
-            raise HTTPException(status_code=429, detail="rate limit exceeded")
+        await _check_anonymous_access(request, state, turnstile_token)
 
     data = await pdf.read()
     byte_count = len(data)
@@ -432,6 +428,30 @@ async def parse(
         )
         return JSONResponse(content=enveloped)
     return outcome.response
+
+
+async def _check_anonymous_access(
+    request: Request,
+    state: AppState,
+    turnstile_token: str | None,
+) -> None:
+    # Demo tier: prove human (Turnstile) then spend against the per-IP rate budget.
+    # Authenticated keys skip this entirely.
+    settings = state.settings
+    ok = await verify_turnstile(
+        turnstile_token or "",
+        secret=settings.turnstile_secret_key,
+        remote_ip=_client_ip(request),
+    )
+    if not ok:
+        raise HTTPException(status_code=401, detail="Turnstile verification failed")
+    allowed = state.rate_limiter.check(
+        f"demo:{_client_ip(request)}",
+        max_count=settings.demo_rate_limit_max,
+        window_seconds=settings.demo_rate_limit_window_seconds,
+    )
+    if not allowed:
+        raise HTTPException(status_code=429, detail="rate limit exceeded")
 
 
 def _record_success(
