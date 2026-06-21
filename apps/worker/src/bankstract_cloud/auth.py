@@ -27,6 +27,7 @@ _hasher = PasswordHasher()
 class AuthContext:
     api_key_id: str
     tier: str  # "live" | "test" | "anonymous"
+    owner: str | None = None  # apps/app user id; None for demo. Drives the subscription gate.
 
     @property
     def is_billable(self) -> bool:
@@ -139,7 +140,7 @@ class KeyStore:
 
         prefix = raw_key[:_PREFIX_LEN]
         rows = self._conn.execute(
-            "SELECT id, key_hash, tier FROM api_keys "
+            "SELECT id, key_hash, tier, owner FROM api_keys "
             "WHERE lookup_prefix = ? AND revoked_at IS NULL",
             (prefix,),
         ).fetchall()
@@ -148,5 +149,5 @@ class KeyStore:
                 _hasher.verify(row["key_hash"], raw_key)
             except VerifyMismatchError:
                 continue
-            return AuthContext(api_key_id=row["id"], tier=row["tier"])
+            return AuthContext(api_key_id=row["id"], tier=row["tier"], owner=row["owner"])
         return None

@@ -60,8 +60,12 @@ def test_banks_lists_engine_parsers(harness: Harness) -> None:
 
 
 def test_usage_starts_at_zero(harness: Harness) -> None:
+    # test_key has no owner/subscription: no tier, no cap, no overage.
     resp = harness.client.get("/v1/usage", headers=auth_header(harness.test_key))
     assert resp.status_code == 200
     body = resp.json()
     assert body["period_parses"] == 0
-    assert body["projected_invoice_usd"] == "0.00"
+    assert body["tier"] is None
+    assert body["monthly_cap"] is None
+    assert body["overage_parses"] == 0
+    assert body["projected_overage_naira"] == "0.00"

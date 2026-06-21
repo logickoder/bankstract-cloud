@@ -46,7 +46,8 @@ export interface ParseResponse {
 
 // Envelope for all non-2xx responses. error_class is one of: EncryptedSourceError,
 // EmptyStatementError (see marker_coverage), LayoutDriftError, ReconciliationError,
-// ParseError, or a framework class (AuthError, PayloadTooLarge, RateLimitError, …).
+// ParseError, or a framework class (AuthError, PayloadTooLarge, RateLimitError,
+// subscription_inactive on 402 when a live key has no active subscription, …).
 export interface ErrorResponse {
   error: string
   error_class: string
@@ -66,10 +67,16 @@ export interface BanksResponse {
 
 export interface UsageResponse {
   api_key_id: string
-  /** Successful parses in the current calendar-month billing period. */
+  /** Paid tier ("starter" | "growth" | "scale"), or null for a test key / no subscription. */
+  tier: string | null
+  /** Successful parses across the owner's keys this cycle (failures never count). */
   period_parses: number
-  /** USD, fixed 2dp string, e.g. "12.30". */
-  projected_invoice_usd: DecimalString
+  /** Included monthly parses for the tier; null when there is no cap. */
+  monthly_cap: number | null
+  /** Parses beyond the cap this cycle. */
+  overage_parses: number
+  /** Projected overage in NGN, exact 2dp string (e.g. "1530.00"). "0.00" within cap. */
+  projected_overage_naira: DecimalString
 }
 
 export interface StatusResponse {

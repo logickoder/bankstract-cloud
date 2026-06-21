@@ -31,8 +31,17 @@ class Settings(BaseSettings):
     admin_api_token: str = ""
 
     # Empty in dev => billing no-ops and only logs intent (Directive 6: no fake charges).
+    # Stripe scaffolding is retained until the Paystack migration's later slices remove it.
     stripe_secret_key: str = ""
     stripe_meter_event_name: str = "parses_v1"
+
+    # Paystack (NGN subscriptions). Empty secret => billing disabled (dev no-op, no fake
+    # charges). Plan codes are the Paystack dashboard PLN_ codes per paid tier; owner
+    # provisions the plans and fills these before deploy.
+    paystack_secret_key: str = ""
+    paystack_plan_starter: str = ""
+    paystack_plan_growth: str = ""
+    paystack_plan_scale: str = ""
 
     turnstile_secret_key: str = ""
 
@@ -41,6 +50,20 @@ class Settings(BaseSettings):
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+
+    @property
+    def paystack_plan_by_tier(self) -> dict[str, str]:
+        return {
+            "starter": self.paystack_plan_starter,
+            "growth": self.paystack_plan_growth,
+            "scale": self.paystack_plan_scale,
+        }
+
+    @property
+    def tier_by_paystack_plan(self) -> dict[str, str]:
+        # Reverse map for webhook plan_code -> tier. Empty (unconfigured) codes are skipped
+        # so a blank dev config never maps "" to a tier.
+        return {code: tier for tier, code in self.paystack_plan_by_tier.items() if code}
 
 
 @lru_cache

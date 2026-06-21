@@ -92,8 +92,13 @@ class BanksResponse(BaseModel):
 
 class UsageResponse(BaseModel):
     api_key_id: str
+    tier: str | None
+    # Successful parses across the owner's keys this cycle (failures never count).
     period_parses: int
-    projected_invoice_usd: str
+    monthly_cap: int | None
+    overage_parses: int
+    # Projected overage in NGN, exact 2dp string (e.g. "1530.00"). "0.00" within cap.
+    projected_overage_naira: str
 
 
 class DailyCount(BaseModel):
@@ -144,6 +149,32 @@ class KeyInfo(BaseModel):
 
 class KeyListResponse(BaseModel):
     keys: list[KeyInfo]
+
+
+class SubscribeRequest(BaseModel):
+    owner: str
+    email: str
+    tier: Literal["starter", "growth", "scale"]
+
+
+class SubscribeResponse(BaseModel):
+    # Paystack inline-checkout params for the client to complete payment.
+    authorization_url: str
+    access_code: str
+    reference: str
+
+
+class SubscriptionStatusResponse(BaseModel):
+    owner: str
+    tier: str | None
+    status: str  # "active" | "inactive" | "none"
+    current_period_end: str | None
+
+
+class OverageChargeResponse(BaseModel):
+    owner: str
+    overage_parses: int
+    request_code: str | None  # Paystack payment-request code, or None when nothing to bill
 
 
 class HealthResponse(BaseModel):

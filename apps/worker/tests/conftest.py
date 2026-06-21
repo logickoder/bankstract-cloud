@@ -35,6 +35,8 @@ def encrypted_pdf(request: pytest.FixtureRequest) -> bytes:
 
 DEMO_KEY = "bsk_test_demo_anonymous_key"
 ADMIN_TOKEN = "admin-secret-token"
+PAYSTACK_SECRET = "sk_test_paystack_dummy"  # signs webhook fixtures; never a real key
+PAYSTACK_PLAN_STARTER = "PLN_starter_test"
 MAX_BYTES = 2000
 
 
@@ -52,6 +54,7 @@ class Harness:
     test_key: str  # tier="test", not billable
     demo_key: str  # tier="anonymous"
     admin_token: str  # gates /v1/keys
+    paystack_secret: str  # signs webhook fixtures (HMAC-SHA512)
 
 
 def _make_harness(
@@ -63,6 +66,8 @@ def _make_harness(
     monkeypatch.setenv("MAX_UPLOAD_BYTES", str(MAX_BYTES))
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "")  # disabled in tests
     monkeypatch.setenv("STRIPE_SECRET_KEY", "")  # billing no-op in tests
+    monkeypatch.setenv("PAYSTACK_SECRET_KEY", PAYSTACK_SECRET)
+    monkeypatch.setenv("PAYSTACK_PLAN_STARTER", PAYSTACK_PLAN_STARTER)
     monkeypatch.setenv("DEMO_RATE_LIMIT_MAX", "5")
 
     from bankstract_cloud.config import get_settings
@@ -73,7 +78,11 @@ def _make_harness(
     with TestClient(app) as client:
         issued = app.state.app_state.keystore.issue("test-suite", "test")
         yield Harness(
-            client=client, test_key=issued.raw_key, demo_key=DEMO_KEY, admin_token=admin_token
+            client=client,
+            test_key=issued.raw_key,
+            demo_key=DEMO_KEY,
+            admin_token=admin_token,
+            paystack_secret=PAYSTACK_SECRET,
         )
 
     get_settings.cache_clear()
