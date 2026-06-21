@@ -18,3 +18,20 @@ test('renders the card layout (not the table) at 375px', async ({ page }) => {
   await expect(page.getByText('+ ₦500.00')).toBeVisible()
   await expect(page.getByText('DEBIT', { exact: true })).toBeHidden()
 })
+
+test('no horizontal overflow on small screens (idle + result)', async ({ page }) => {
+  await blockTurnstile(page)
+  await mockParse(page, { body: FIXTURE_RESPONSE })
+  const noOverflow = () =>
+    page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('/')
+    expect(await noOverflow()).toBeLessThanOrEqual(1)
+    await dropStatement(page)
+    expect(await noOverflow()).toBeLessThanOrEqual(1)
+  }
+})
