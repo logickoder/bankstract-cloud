@@ -81,7 +81,7 @@ Pro-rated refund within the first 7 days of any paid tier. After 7 days the curr
 
 Prices are VAT-inclusive. The owner's business entity issues FIRS-compliant tax invoices on request via the dashboard `Download invoice` action.
 
-> **Implementation status (2026-06-21):** the pricing decision is canonical. The worker billing migration (`apps/worker/.../billing.py`, Stripe to Paystack) and the dashboard checkout are pending follow-up tasks tracked in CHANGELOG. The shipped worker still carries Stripe scaffolding until that migration lands.
+> **Implementation status (2026-06-21):** the pricing decision is canonical and the Paystack migration has landed. Worker billing lives in `paystack.py` / `subscriptions.py` / `usage.py` / `routes/billing.py`, with the live-key `402 subscription_inactive` gate in `routes/parse.py`. The dashboard checkout (`apps/app` Billing page → `/api/billing/init` → worker) is in place; overage auto-invoicing (end-of-cycle cron) is the one remaining follow-up.
 
 ## Privacy posture (LOCKED)
 
@@ -112,7 +112,7 @@ Honest copy:
 | Worker | FastAPI + uvicorn, imports `bankstract` directly |
 | Hosting | Hetzner CAX11 (ARM, 2 vCPU, 4GB) + Coolify + Cloudflare in front |
 | Domain | `bankstract.logickoder.dev` (subdomain, free, inherits SSL from owned `logickoder.dev`). Pivot to standalone TLD when first B2B contract revenue justifies. |
-| Payments | Paystack (NGN subscriptions, see § Pricing). Worker billing.py migration pending (CHANGELOG) |
+| Payments | Paystack (NGN subscriptions, see § Pricing). Worker holds the secret; `apps/app` proxies checkout |
 | Audit log | SQLite on worker box, backed up nightly to Hetzner Storage Box |
 | Email transactional | Resend |
 | Error tracking | Sentry free tier |
@@ -156,9 +156,9 @@ Total fixed cost: **~₦5–6k/mo (~$4–5/mo)**. Domain: ₦0 (subdomain on own
                                              │
                                              ▼
                                     ┌──────────────────┐
-                                    │  Stripe usage    │
-                                    │  billing record  │
-                                    │  (paid keys only)│
+                                    │  Overage meter   │
+                                    │  (cap vs success │
+                                    │   count, live)   │
                                     └──────────────────┘
 ```
 
@@ -229,7 +229,7 @@ Response 200 (redact=true):
     X-Bankstract-Redactions: 11338
 
 Response 401  invalid / missing API key
-Response 402  billing failure (Stripe declined)
+Response 402  subscription inactive (error_class: subscription_inactive)
 Response 413  file too large (>50MB)
 Response 422  no parser/redactor detected (unsupported bank or wrong format)
 Response 429  rate limit exceeded
@@ -316,7 +316,7 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 | Single-box hosting outage (Hetzner) | Daily backup to Hetzner Storage Box. Status page transparent on incidents. Multi-region = v1.5+. |
 | AGPL deters B2B procurement | Clarify in docs: AGPL applies to the hosted app, NOT to API consumers (HTTP boundary). Legal sub-page if friction surfaces. |
 | Competitor fork-and-host | AGPL forces fork-host to open-source changes. BSL pivot reserved as escape hatch. |
-| Stripe usage-billing edge cases (partial parses, billing for parse errors) | Bill on success only. Parse errors return error response, no Stripe usage record. Document policy publicly. |
+| Overage edge cases (partial parses, billing for parse errors) | Bill on success only. Parse errors return an error response and never count toward the cap or overage. Document policy publicly. |
 | NGN payment friction (consumer paywall, when introduced) | Paystack integration deferred; only ships if consumer paywall signal validates. |
 | Privacy claim challenged by user / journalist | All code public. AGPL repo + docker-compose = verifiable. Honest copy ("we process in memory, we don't store") not overclaim ("we never see"). |
 
@@ -368,7 +368,7 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 | A | Anti-abuse on consumer demo: signup-required vs anonymous w/ Turnstile | Anonymous w/ Turnstile + IP rate limit | Lock pre-build |
 | B | File size cap | 50 MB hard cap, browser pre-flight check | Lock pre-build |
 | C | Result expiry | HTTP response only, no re-download | Lock pre-build |
-| D | B2B onboarding flow | Self-serve API key + Stripe usage billing | Lock pre-build |
+| D | B2B onboarding flow | Self-serve API key + Paystack subscription billing | Lock pre-build |
 | E | Logging stack | stdout + Sentry + UptimeRobot | Lock pre-build |
 | F | Export format coverage at v1 | **Generic CSV + JSON only.** Cloud emits one canonical CSV shape (owner-controlled, documented in PRD § Canonical CSV schema). BB-Wallet's proprietary import format dropped (third-party drift risk). Sibling tool `budgetbakers-wallet-importer` adds a `bankstract-csv` reader in its own repo. The impedance match lives in the consumer tool, not in Cloud. Future tool integrations (YNAB, Money Manager, etc.) follow the same pattern: ship as standalone importers reading the canonical CSV, never as Cloud writers. | Lock pre-launch |
 | G | Email transactional | Resend | Lock pre-launch |

@@ -37,7 +37,7 @@ infra/
 PDF flow: client → FastAPI worker → `BytesIO` → `bankstract.parse(stream)` → JSON response. No `Path.write_bytes`, no `NamedTemporaryFile(delete=False)`, no caching layers. PDF content never logged.
 
 ### 2. No secrets in source
-Public repo. `.env.production` gitignored. `.env.example` documents env vars. Pre-commit scans for `sk_live_`, `pk_live_`, `PAYSTACK_SECRET_KEY=`, `STRIPE_SECRET_KEY=` and similar. Halt commit on match. `sk_live_`/`pk_live_` are Paystack live keys (Stripe shared the same prefixes); `STRIPE_SECRET_KEY=` stays scanned until the billing migration removes the Stripe scaffolding. Use `bsk_test_` for dev keys, never `bsk_live_`.
+Public repo. `.env.production` gitignored. `.env.example` documents env vars. Pre-commit scans for `sk_live_`, `pk_live_`, `PAYSTACK_SECRET_KEY=` and similar. Halt commit on match. `sk_live_`/`pk_live_` are Paystack live keys. Use `bsk_test_` for dev keys, never `bsk_live_`.
 
 ### 3. AGPL-3.0 headers on source files
 All `.ts`, `.tsx`, `.py` files in `apps/` and `packages/` start with the short notice from `LICENSE_HEADER.txt`. Engine import (`bankstract`, MIT) is a runtime dependency, no header inheritance.
@@ -156,7 +156,7 @@ If a request matches any of the above, state which item, refer to PRD.md § Out 
 | What's the API shape? | `PRD.md` § API surface |
 | How do I add an export format? | `apps/worker/src/bankstract_cloud/writers/` |
 | How is auth wired? | `apps/app/src/lib/auth.ts` + `proxy.ts` (Better Auth; sessions in `apps/app/data/auth.db`, gitignored, self-host bundle intact) + `apps/worker/src/bankstract_cloud/auth.py` (separate API-key bearer path) |
-| How is billing wired? | Paystack NGN subscriptions (PRD § Pricing). `apps/worker/src/bankstract_cloud/billing.py` still carries Stripe scaffolding until the migration lands (CHANGELOG). |
+| How is billing wired? | Paystack NGN subscriptions (PRD § Pricing). Worker: `paystack.py` (client + HMAC webhook verify), `subscriptions.py` (state store + webhook dispatch), `usage.py` (overage), `routes/billing.py` (endpoints). 402 gate in `routes/parse.py`. `apps/app` proxies via `/api/billing/init`; worker holds the secret. |
 | What's the privacy posture? | `CLAUDE.md` § Directive 1 + `PRD.md` § Privacy posture |
 | Why AGPL not MIT? | `CLAUDE.md` § Directive 3 + `PRD.md` § License |
 | How do I add a new bank? | NOT here. Engine repo: `github.com/logickoder/bankstract` § CONTRIBUTING |

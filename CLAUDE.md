@@ -30,7 +30,7 @@ This repo is public. Secrets in source = breach.
 - `.env.production` gitignored from root + every app
 - `.env.example` checked in with placeholder values + comments
 - Paystack secret key, Better Auth secret + OAuth client secrets, Sentry DSN, DB connection string → environment variables only
-- Pre-commit hook scans for `sk_live_`, `pk_live_`, `PAYSTACK_SECRET_KEY=`, `STRIPE_SECRET_KEY=` patterns; halt commit if matched. `sk_live_` / `pk_live_` are Paystack live keys (allow `sk_test_` / `pk_test_` in dev). Paystack signs webhooks with the secret key via HMAC-SHA512; there is no separate webhook secret. `STRIPE_SECRET_KEY=` stays in the scan until the billing migration removes the Stripe scaffolding
+- Pre-commit hook scans for `sk_live_`, `pk_live_`, `PAYSTACK_SECRET_KEY=` patterns; halt commit if matched. `sk_live_` / `pk_live_` are Paystack live keys (allow `sk_test_` / `pk_test_` in dev). Paystack signs webhooks with the secret key via HMAC-SHA512; there is no separate webhook secret.
 - If you generate a secret as part of dev work (test API key, etc), use the `test_` / `bsk_test_` prefix; never `live_`
 
 ### 3. LICENSE IS AGPL-3.0: RESPECT THE COPYLEFT
@@ -294,7 +294,7 @@ Billing is monthly subscription tiers in NGN via Paystack, NOT per-parse USD met
 
 API key state is bound to subscription state: an active subscription → key parses; an inactive/suspended subscription → key returns `402` with `error_class: subscription_inactive`. Webhook events (`charge.success`, `subscription.create`, `subscription.disable`, `subscription.not_renew`, `invoice.payment_failed`) are verified with HMAC-SHA512 against the Paystack secret key and deduped by event reference.
 
-Implementation pending: `apps/worker/.../billing.py` still carries Stripe scaffolding until the Paystack migration lands (tracked in CHANGELOG). Treat this section as the go-forward directive.
+Implemented: `paystack.py` (HMAC-SHA512 webhook verify + subscription init + overage invoice), `subscriptions.py` (owner-keyed state store + webhook dispatch), `usage.py` (overage metering), and the `routes/billing.py` endpoints. The live-key `402 subscription_inactive` gate lives in `routes/parse.py`. The worker is the source of truth; `apps/app` proxies billing through it and never holds the Paystack secret.
 
 ---
 

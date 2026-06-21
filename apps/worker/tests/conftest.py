@@ -65,7 +65,6 @@ def _make_harness(
     monkeypatch.setenv("ADMIN_API_TOKEN", admin_token)
     monkeypatch.setenv("MAX_UPLOAD_BYTES", str(MAX_BYTES))
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "")  # disabled in tests
-    monkeypatch.setenv("STRIPE_SECRET_KEY", "")  # billing no-op in tests
     monkeypatch.setenv("PAYSTACK_SECRET_KEY", PAYSTACK_SECRET)
     monkeypatch.setenv("PAYSTACK_PLAN_STARTER", PAYSTACK_PLAN_STARTER)
     monkeypatch.setenv("DEMO_RATE_LIMIT_MAX", "5")

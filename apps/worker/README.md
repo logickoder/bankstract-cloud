@@ -57,15 +57,22 @@ from bankstract_cloud.auth import KeyStore
 
 ```
 src/bankstract_cloud/
-  main.py        FastAPI app + endpoints + error map
-  engine.py      bankstract wrapper, in-memory parse, error classification
-  models.py      pydantic response contract (money serialized as strings)
-  auth.py        argon2 API key store + AuthContext
-  audit.py       metadata-only audit log
-  rate_limit.py  fixed-window per-IP limiter (anonymous demo)
-  billing.py     metered usage (Stripe; migrating to Paystack NGN, see CHANGELOG)
-  turnstile.py   Cloudflare Turnstile verification (anonymous tier)
-  db.py          SQLite connection + schema
-  config.py      env-driven settings
-tests/           pytest: synthetic PDFs only, no real statements
+  main.py          FastAPI app + lifespan + wiring (orchestrator)
+  routes/          per-domain endpoints (health, account, keys, billing, parse)
+  state.py         AppState + auth dependencies (require_auth/require_admin)
+  responses.py     shared ErrorResponse envelope + status->class map
+  engine.py        bankstract wrapper, in-memory parse, error classification
+  models.py        pydantic request/response contract (money as strings)
+  auth.py          argon2 API key store + AuthContext
+  audit.py         metadata-only audit log
+  rate_limit.py    fixed-window per-IP limiter (anonymous demo)
+  paystack.py      Paystack client (HMAC-SHA512 webhook verify, subscribe, invoice)
+  subscriptions.py subscription state store + webhook dispatch
+  usage.py         overage metering (per-owner, against tier cap)
+  tiers.py         paid-tier caps + overage rates (PRD pricing)
+  turnstile.py     Cloudflare Turnstile verification (anonymous tier)
+  db.py            SQLite connection + Alembic migration runner
+  migrations/      Alembic migrations (no ORM; hand-written)
+  config.py        env-driven settings
+tests/             pytest: synthetic PDFs only, no real statements
 ```

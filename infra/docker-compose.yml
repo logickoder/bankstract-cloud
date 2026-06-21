@@ -16,7 +16,11 @@ services:
       DEMO_API_KEY: ${DEMO_API_KEY:-bsk_test_demo_selfhost}
       # Empty disables Turnstile verification. Set a real secret in production.
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      # Empty disables billing (free self-host). Paystack NGN subscriptions.
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_PLAN_STARTER: ${PAYSTACK_PLAN_STARTER:-}
+      PAYSTACK_PLAN_GROWTH: ${PAYSTACK_PLAN_GROWTH:-}
+      PAYSTACK_PLAN_SCALE: ${PAYSTACK_PLAN_SCALE:-}
       ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost}
     volumes:
       - audit:/data

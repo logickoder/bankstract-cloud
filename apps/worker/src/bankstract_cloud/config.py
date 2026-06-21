@@ -30,14 +30,9 @@ class Settings(BaseSettings):
     # mint keys). Set this only where you run the dashboard / admin tooling.
     admin_api_token: str = ""
 
-    # Empty in dev => billing no-ops and only logs intent (Directive 6: no fake charges).
-    # Stripe scaffolding is retained until the Paystack migration's later slices remove it.
-    stripe_secret_key: str = ""
-    stripe_meter_event_name: str = "parses_v1"
-
     # Paystack (NGN subscriptions). Empty secret => billing disabled (dev no-op, no fake
-    # charges). Plan codes are the Paystack dashboard PLN_ codes per paid tier; owner
-    # provisions the plans and fills these before deploy.
+    # charges, Directive 6). Plan codes are the Paystack dashboard PLN_ codes per paid tier;
+    # owner provisions the plans and fills these before deploy.
     paystack_secret_key: str = ""
     paystack_plan_starter: str = ""
     paystack_plan_growth: str = ""
