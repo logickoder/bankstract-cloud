@@ -63,7 +63,7 @@ src/bankstract_cloud/
   auth.py        argon2 API key store + AuthContext
   audit.py       metadata-only audit log
   rate_limit.py  fixed-window per-IP limiter (anonymous demo)
-  billing.py     Stripe metered usage (no-op when unconfigured)
+  billing.py     metered usage (Stripe; migrating to Paystack NGN, see CHANGELOG)
   turnstile.py   Cloudflare Turnstile verification (anonymous tier)
   db.py          SQLite connection + schema
   config.py      env-driven settings

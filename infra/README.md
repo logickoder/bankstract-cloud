@@ -39,7 +39,7 @@ Routing lives in [`Caddyfile`](./Caddyfile). The 52 MB `request_body` cap matche
 
 1. **Domain + TLS.** Edit `Caddyfile`: replace `:80` with your hostname (e.g. `bankstract.example.com`). Caddy auto-provisions a Let's Encrypt cert. Behind Cloudflare (which terminates TLS), keep `:80`.
 2. **Turnstile.** Provision a real Cloudflare Turnstile widget, then set `TURNSTILE_SECRET_KEY` (worker) and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (demo, build-time). Empty secret = verification disabled = the demo is open to abuse.
-3. **Stripe.** Set `STRIPE_SECRET_KEY` for metered billing; empty = free self-host.
+3. **Billing.** Set `STRIPE_SECRET_KEY` for metered billing; empty = free self-host. Billing is migrating to Paystack NGN (see CHANGELOG); the worker reads `STRIPE_SECRET_KEY` until that lands.
 4. **Backups.** Persist the `audit` volume if you want the audit trail across redeploys.
 
 ## Updating

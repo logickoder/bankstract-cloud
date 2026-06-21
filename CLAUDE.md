@@ -29,8 +29,8 @@ This repo is public. Secrets in source = breach.
 
 - `.env.production` gitignored from root + every app
 - `.env.example` checked in with placeholder values + comments
-- Stripe webhook signing secret, Clerk private key, Sentry DSN, DB connection string → environment variables only
-- Pre-commit hook scans for `sk_live_`, `whsec_`, `pk_live_`, `STRIPE_SECRET_KEY=` patterns; halt commit if matched
+- Paystack secret key, Clerk private key, Sentry DSN, DB connection string → environment variables only
+- Pre-commit hook scans for `sk_live_`, `pk_live_`, `PAYSTACK_SECRET_KEY=`, `STRIPE_SECRET_KEY=` patterns; halt commit if matched. `sk_live_` / `pk_live_` are Paystack live keys (allow `sk_test_` / `pk_test_` in dev). Paystack signs webhooks with the secret key via HMAC-SHA512; there is no separate webhook secret. `STRIPE_SECRET_KEY=` stays in the scan until the billing migration removes the Stripe scaffolding
 - If you generate a secret as part of dev work (test API key, etc), use the `test_` / `bsk_test_` prefix; never `live_`
 
 ### 3. LICENSE IS AGPL-3.0: RESPECT THE COPYLEFT
@@ -128,7 +128,7 @@ App separation logic:
 - Tailwind v4
 - shadcn/ui + Magic UI components
 - Clerk for auth (apps/app only; demo is anonymous)
-- Stripe for billing (apps/app only)
+- Paystack for billing (apps/app only; NGN subscriptions, see PRD.md § Pricing)
 - Cloudflare Turnstile (apps/demo + apps/marketing forms)
 
 ### Worker (apps/worker)
@@ -253,7 +253,7 @@ POST /v1/parse
 Response:
   200 → ParseResponse JSON (wire contract: apps/worker/src/.../models.py)
   401 → invalid / missing API key
-  402 → billing failure (Stripe declined)
+  402 → billing failure (subscription inactive; error_class: subscription_inactive)
   413 → file too large (>50MB)
   422 → no parser detected (unsupported bank or wrong format)
   429 → rate limit exceeded
@@ -288,9 +288,13 @@ async def parse(pdf: UploadFile, redact: bool = False, bank: str | None = None) 
 
 `apps/demo` POSTs to the same `/v1/parse` worker endpoint using a public demo key + Turnstile token. Server validates Turnstile + applies anonymous rate limit. One worker code path, two surfaces.
 
-### 5. Stripe usage billing per parse
+### 5. Paystack NGN subscription billing
 
-Each successful parse from a paid API key → Stripe metered billing record `meter=parses_v1, quantity=1, api_key_id=<id>`. Failed parses (parser errors) → not billed.
+Billing is monthly subscription tiers in NGN via Paystack, NOT per-parse USD metering (changed 2026-06-21, see PRD.md § Pricing + CHANGELOG). Each tier carries a monthly parse cap; parses beyond the cap meter as overage (`₦15/12/8` per parse by tier) and bill via Paystack Invoices at end of cycle. Failed parses (parser errors) → never counted, never billed.
+
+API key state is bound to subscription state: an active subscription → key parses; an inactive/suspended subscription → key returns `402` with `error_class: subscription_inactive`. Webhook events (`charge.success`, `subscription.create`, `subscription.disable`, `subscription.not_renew`, `invoice.payment_failed`) are verified with HMAC-SHA512 against the Paystack secret key and deduped by event reference.
+
+Implementation pending: `apps/worker/.../billing.py` still carries Stripe scaffolding until the Paystack migration lands (tracked in CHANGELOG). Treat this section as the go-forward directive.
 
 ---
 
@@ -311,7 +315,7 @@ Fixture privacy rule (mirrors bankstract engine):
 ## API KEY CONVENTIONS
 
 - Format: `bsk_<env>_<random32>` where `<env>` is `live` or `test`
-- `bsk_live_` keys hit production billing
+- `bsk_live_` keys parse under an active Paystack subscription; an inactive subscription → `402 subscription_inactive`
 - `bsk_test_` keys parse for free, used in onboarding + integration testing
 - Keys stored hashed (argon2) in DB; raw key shown ONCE on creation
 - Revocation = mark `revoked_at` timestamp; never delete (audit trail)

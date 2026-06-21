@@ -6,7 +6,7 @@ from __future__ import annotations
 import sqlite3
 import time
 
-# Fixed-window counter. Anonymous demo surface = 10 parses/hour per IP (PRD).
+# Fixed-window counter. Anonymous demo surface = 50 parses/month per IP (PRD).
 # Keyed by an opaque bucket (e.g. "demo:<ip>"); no PDF or identity payload stored.
 
 

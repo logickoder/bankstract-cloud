@@ -20,7 +20,7 @@ If a change matches the "not accepted" list, it will be closed with a pointer to
 ## Ground rules
 
 1. **No real bank data, ever.** No real names, account numbers, BVN, or addresses anywhere: code, fixtures, tests, or issues. Use `FOO`, `ACME`, `1111 2222`. Worker tests use synthetic PDFs only.
-2. **No secrets in commits.** Dev keys use `test_` / `bsk_test_` prefixes. The pre-commit scan halts on `sk_live_`, `whsec_`, `pk_live_`, `STRIPE_SECRET_KEY=`.
+2. **No secrets in commits.** Dev keys use `test_` / `bsk_test_` prefixes. The pre-commit scan halts on `sk_live_`, `pk_live_`, `PAYSTACK_SECRET_KEY=`, `STRIPE_SECRET_KEY=` (`sk_live_`/`pk_live_` are Paystack live keys; `STRIPE_SECRET_KEY=` stays scanned until the billing migration lands).
 3. **PDF bytes stay in memory.** No code path may write a PDF to disk or log its contents. PRs that do are rejected on sight.
 4. **AGPL header on new source files.** Every `.ts`/`.tsx`/`.py` in `apps/` and `packages/` starts with the SPDX short form:
    ```

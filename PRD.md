@@ -45,13 +45,43 @@ const result = await client.parse(pdfBuffer)
 
 ## Pricing
 
-| Tier | Price | Includes |
-|------|-------|----------|
-| Self-host | Free | CLI + docker-compose. AGPL-3.0 source. Run on your own infra. |
-| Consumer demo | Free | Web UI, all banks, all exports, redaction. Anti-abuse capped via Cloudflare Turnstile + per-IP rate limit. No SLA. |
-| **B2B API** | **$0.10 / parse** | REST API, NDPR-redact endpoint, self-serve API key, Stripe usage billing, monthly invoice. Volume discount at 5k / 20k / 100k parses/mo. |
+NGN-anchored monthly subscriptions. Nigeria-first indefinitely. International USD surface deferred until the first US/EU lead.
 
-Consumer paywall: not shipped v1. If usage signal validates (daily active parsers > 100, multi-bank consolidation traction), introduce Hobby/Pro tiers post-validation. Until then: free for individuals, paid for businesses.
+### Tiers
+
+| Tier | Price (NGN) | Cap | Overage | API key | SLA |
+|------|-------------|-----|---------|---------|-----|
+| Self-host | ₦0 | unlimited | n/a | n/a (run your own engine) | best-effort, community Discord |
+| Free demo | ₦0 | 50 parses/mo per IP | hard-stop | no | none. anonymous, Turnstile-gated, watermarked outputs |
+| Starter | ₦9,500/mo | 1,000 parses/mo | ₦15/parse | yes | email support, no uptime guarantee |
+| Growth | ₦35,000/mo | 10,000 parses/mo | ₦12/parse | yes | priority email + Discord, 99% target |
+| Scale | ₦150,000/mo | 100,000 parses/mo | ₦8/parse | yes | dedicated Slack, 99.5% SLA |
+| Enterprise | Custom (₦500k to ₦5M/mo band) | unlimited | negotiated | yes + per-key rate limits | dedicated Slack, 99.9% SLA, NDPR audit support, on-prem option |
+
+Annual prepay: 15% off across all paid tiers (Starter ₦96,900, Growth ₦357,000, Scale ₦1,530,000).
+
+### Payment processor
+
+Paystack only. NGN cards and NGN bank transfer. Subscriptions drive monthly billing. Overage is metered in-app and charged via Paystack Invoices at end of cycle. Webhook signatures verified with HMAC-SHA512 against the Paystack secret key. API key lifecycle is bound to subscription state: an inactive subscription returns `402` with `error_class: subscription_inactive`.
+
+### Not in v1 pricing
+
+- USD card collection (Paystack USD endpoint exists, deferred until a non-Nigerian lead)
+- Stripe / Stripe Atlas (Nigeria-first indefinitely; revisit only on a US/EU enterprise contract)
+- Lifetime deal one-shots (wrong audience for Nigerian fintech infra)
+- Pay-as-you-go without a subscription (overage requires an active sub)
+- Volume-discount cliffs inside Starter/Growth (Scale is the volume tier)
+- Per-bank parser surcharges (all banks included on all paid tiers)
+
+### Refund posture
+
+Pro-rated refund within the first 7 days of any paid tier. After 7 days the current cycle is non-refundable, cancel any time. Enterprise refunds per contract.
+
+### Tax
+
+Prices are VAT-inclusive. The owner's business entity issues FIRS-compliant tax invoices on request via the dashboard `Download invoice` action.
+
+> **Implementation status (2026-06-21):** the pricing decision is canonical. The worker billing migration (`apps/worker/.../billing.py`, Stripe to Paystack) and the dashboard checkout are pending follow-up tasks tracked in CHANGELOG. The shipped worker still carries Stripe scaffolding until that migration lands.
 
 ## Privacy posture (LOCKED)
 
@@ -81,7 +111,7 @@ Honest copy:
 | Worker | FastAPI + uvicorn, imports `bankstract` directly |
 | Hosting | Hetzner CAX11 (ARM, 2 vCPU, 4GB) + Coolify + Cloudflare in front |
 | Domain | `bankstract.logickoder.dev` (subdomain, free, inherits SSL from owned `logickoder.dev`). Pivot to standalone TLD when first B2B contract revenue justifies. |
-| Payments | Stripe (USD B2B, $0.10/parse usage billing) |
+| Payments | Paystack (NGN subscriptions, see § Pricing). Worker billing.py migration pending (CHANGELOG) |
 | Audit log | SQLite on worker box, backed up nightly to Hetzner Storage Box |
 | Email transactional | Resend |
 | Error tracking | Sentry free tier |
@@ -228,7 +258,7 @@ GET /v1/usage
 Same `/v1/parse` handler internally; demo wrapper passes:
 - Public demo API key (server-side)
 - Cloudflare Turnstile token from client (server validates)
-- Anonymous IP-based rate limit (10 parses/hour per IP)
+- Anonymous IP-based rate limit (50 parses/month per IP)
 
 ### Health
 

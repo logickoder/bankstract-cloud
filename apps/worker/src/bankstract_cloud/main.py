@@ -57,6 +57,7 @@ from .models import (
 )
 from .rate_limit import RateLimiter
 from .turnstile import verify_turnstile
+from .watermark import DEMO_TIER, watermark_csv, watermark_json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("bankstract_cloud")
@@ -334,7 +335,7 @@ async def parse(
 
     _enforce_size_header(request, settings.max_upload_bytes)
 
-    if ctx.tier == "anonymous":
+    if ctx.is_anonymous:
         ok = await verify_turnstile(
             turnstile_token or "",
             secret=settings.turnstile_secret_key,
@@ -368,11 +369,13 @@ async def parse(
                     "X-Bankstract-Format-Version": redacted.format_version,
                 },
             )
+        # Free-demo (anonymous tier) outputs are watermarked; paid/test pass through.
+        wm_tier = DEMO_TIER if ctx.is_anonymous else ctx.tier
         if fmt == "csv":
             csv_outcome = parse_csv(data, bank=bank)
             _record_success(state, ctx, pdf.filename, byte_count, csv_outcome.parser_detected)
             return Response(
-                content=csv_outcome.data,
+                content=watermark_csv(csv_outcome.data, tier=wm_tier),
                 media_type="text/csv",
                 headers={"Content-Disposition": "attachment; filename=statement.csv"},
             )
@@ -395,6 +398,13 @@ async def parse(
         del data  # drop PDF bytes promptly (Directive 1)
 
     _record_success(state, ctx, pdf.filename, byte_count, outcome.parser_detected)
+    if wm_tier == DEMO_TIER:
+        enveloped = watermark_json(
+            outcome.response.model_dump(mode="json"),
+            tier=wm_tier,
+            generated_at=datetime.now(UTC).isoformat(),
+        )
+        return JSONResponse(content=enveloped)
     return outcome.response
 
 

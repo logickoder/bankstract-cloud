@@ -20,7 +20,7 @@ export const ERROR_COPY: Record<DemoErrorCode, string> = {
   too_large: 'File too big. 50 MB cap. Trim or split it, then try again.',
   wrong_type: 'PDF or XLSX only. Re-export from your bank app as PDF.',
   unauthorized: "Couldn't verify you're human. Refresh and try again.",
-  rate_limited: "You've hit the demo limit (10 parses/hour). For higher volume, use the API.",
+  rate_limited: "You've hit the demo limit (50 parses/month). For higher volume, use the API.",
   encrypted:
     "That PDF is password-protected. We don't decrypt statements. Open it in any viewer, save a copy without the password, then drop it again.",
   empty:

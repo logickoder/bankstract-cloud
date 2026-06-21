@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     # 50 MB hard cap (PRD open-question B, locked). Enforced before the engine runs.
     max_upload_bytes: int = 52_428_800
 
-    demo_rate_limit_max: int = 10
-    demo_rate_limit_window_seconds: int = 3600
+    # Free demo: 50 parses/month per IP (PRD § Pricing). 30-day rolling window.
+    demo_rate_limit_max: int = 50
+    demo_rate_limit_window_seconds: int = 2_592_000
 
     allowed_origins: str = "http://localhost:3000"
 

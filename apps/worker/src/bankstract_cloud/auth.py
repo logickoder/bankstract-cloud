@@ -32,6 +32,10 @@ class AuthContext:
     def is_billable(self) -> bool:
         return self.tier == "live"
 
+    @property
+    def is_anonymous(self) -> bool:
+        return self.tier == "anonymous"
+
 
 @dataclass(frozen=True)
 class IssuedKey:

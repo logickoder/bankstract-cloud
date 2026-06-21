@@ -5,20 +5,24 @@ description: Pricing, rate limits, and what's billed.
 
 ## Pricing
 
+Monthly NGN subscriptions via Paystack. The full tier table (Starter, Growth, Scale, Enterprise, with caps and overage rates) lives in the [product spec](https://github.com/logickoder/bankstract-cloud/blob/main/PRD.md#pricing).
+
 | Tier | Price | Includes |
 |------|-------|----------|
 | `bsk_test_` | Free | Full API, integration testing |
-| `bsk_live_` | **$0.10 / successful parse** | Production, metered monthly via Stripe |
+| `bsk_live_` | Subscription (NGN/mo) | Production parses up to your tier cap, then per-parse overage |
 | Self-host | Free | Run the AGPL-3.0 stack yourself |
 
 ## What's billed
 
-Only **successful** parses from a `live` key. Parse failures (any 4xx/5xx) are never billed. If the engine can't read it, you don't pay. CSV and redact requests bill the same as a JSON parse (one operation = one charge).
+Parses count against your monthly tier cap. Parses past the cap meter as overage (`₦15` / `₦12` / `₦8` per parse by tier) and bill via Paystack Invoices at end of cycle. Only **successful** parses count. Failures (any 4xx/5xx) are never counted and never billed. If the engine can't read it, you don't pay. CSV and redact requests count the same as a JSON parse (one operation = one parse).
+
+An inactive subscription returns `402` with `error_class: "subscription_inactive"`.
 
 ## Rate limits
 
-The anonymous demo surface is capped at **10 parses/hour per IP**. Authenticated keys are not hard-rate-limited during the alpha; abuse protection scales with load. A `429` returns the standard envelope with `error_class: "RateLimitError"`.
+The anonymous demo surface is capped at **50 parses/month per IP**. Authenticated keys are not hard-rate-limited during the alpha; abuse protection scales with load. A `429` returns the standard envelope with `error_class: "RateLimitError"`.
 
 ## Usage
 
-`GET /v1/usage` returns the current calendar-month parse count and a projected invoice for the calling key.
+`GET /v1/usage` returns the current cycle parse count for the calling key. See the [API reference](/docs/api/usage_v1_usage_get) for the exact response shape.

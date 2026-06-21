@@ -15,7 +15,7 @@ Authorization: Bearer bsk_live_xxx
 
 | Prefix | Billed | Use |
 |--------|--------|-----|
-| `bsk_live_` | Yes ($0.10 / successful parse) | Production |
+| `bsk_live_` | Yes (counts against your NGN subscription tier cap) | Production |
 | `bsk_test_` | No | Integration + onboarding |
 
 Keys are shown **once** at creation and stored only as an argon2 hash. We can't recover a lost key, so store it securely. Revoke and re-issue if it leaks.

@@ -55,6 +55,11 @@ export function ResultActions({ data, file, turnstile, onReset }: ResultActionsP
       {csvFailed ? (
         <p className="text-xs text-error">CSV export failed. Try again, or download JSON.</p>
       ) : null}
+      <p className="text-xs text-fg-tertiary">
+        Demo downloads are watermarked. CSV adds a comment header. JSON adds a{' '}
+        <code className="font-mono">_demo</code> field. The transaction data is complete and
+        unchanged.
+      </p>
     </div>
   )
 }
