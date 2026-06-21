@@ -27,7 +27,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
-from .audit import AuditEntry, AuditLog
+from .audit import AuditEntry, AuditLog, current_period_start_iso
 from .auth import AuthContext, KeyStore
 from .billing import BillingClient, BillingError
 from .config import Settings, get_settings
@@ -44,12 +44,14 @@ from .engine import (
 from .models import (
     BankInfo,
     BanksResponse,
+    DailyCount,
     ErrorResponse,
     HealthResponse,
     KeyCreatedResponse,
     KeyCreateRequest,
     KeyInfo,
     KeyListResponse,
+    OwnerUsageResponse,
     ParseResponse,
     ReadyResponse,
     StatusResponse,
@@ -216,9 +218,9 @@ async def banks(_: AuthContext = Depends(require_auth)) -> BanksResponse:
 )
 async def usage(request: Request, ctx: AuthContext = Depends(require_auth)) -> UsageResponse:
     state = _state(request)
-    now = datetime.now(UTC)
-    period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    parses = state.audit.count_success_for_key(ctx.api_key_id, since_iso=period_start.isoformat())
+    parses = state.audit.count_success_for_key(
+        ctx.api_key_id, since_iso=current_period_start_iso()
+    )
     projected = parses * float(state.billing.price_per_parse_usd())
     return UsageResponse(
         api_key_id=ctx.api_key_id,
@@ -233,6 +235,30 @@ _ADMIN_ERRORS: dict[int | str, dict[str, Any]] = {
     401: {"model": ErrorResponse},
     403: {"model": ErrorResponse},
 }
+
+
+@app.get(
+    "/v1/admin/usage",
+    response_model=OwnerUsageResponse,
+    responses=_ADMIN_ERRORS,
+    tags=["Account"],
+    summary="Owner usage aggregation (admin)",
+    description="Admin-only. Aggregates audit metadata across all keys owned by `owner` "
+    "for the current cycle. Powers the dashboard Overview + Usage.",
+)
+async def admin_usage(
+    request: Request,
+    owner: str = Query(..., min_length=1),
+    _: None = Depends(require_admin),
+) -> OwnerUsageResponse:
+    state = _state(request)
+    total, ok, daily = state.audit.owner_usage(owner, since_iso=current_period_start_iso())
+    return OwnerUsageResponse(
+        owner=owner,
+        period_parses=ok,
+        success_rate=round(ok / total, 4) if total else 0.0,
+        daily=[DailyCount(date=d, count=c) for d, c in daily],
+    )
 
 
 @app.post(

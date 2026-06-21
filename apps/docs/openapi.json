@@ -171,6 +171,86 @@
         }
       }
     },
+    "/v1/admin/usage": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Owner usage aggregation (admin)",
+        "description": "Admin-only. Aggregates audit metadata across all keys owned by `owner` for the current cycle. Powers the dashboard Overview + Usage.",
+        "operationId": "admin_usage_v1_admin_usage_get",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Owner"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerUsageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/keys": {
       "post": {
         "tags": [
@@ -597,6 +677,24 @@
         ],
         "title": "Body_parse_v1_parse_post"
       },
+      "DailyCount": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "count"
+        ],
+        "title": "DailyCount"
+      },
       "ErrorResponse": {
         "properties": {
           "error": {
@@ -814,6 +912,37 @@
           "keys"
         ],
         "title": "KeyListResponse"
+      },
+      "OwnerUsageResponse": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "period_parses": {
+            "type": "integer",
+            "title": "Period Parses"
+          },
+          "success_rate": {
+            "type": "number",
+            "title": "Success Rate"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/DailyCount"
+            },
+            "type": "array",
+            "title": "Daily"
+          }
+        },
+        "type": "object",
+        "required": [
+          "owner",
+          "period_parses",
+          "success_rate",
+          "daily"
+        ],
+        "title": "OwnerUsageResponse"
       },
       "ParseResponse": {
         "properties": {

@@ -48,3 +48,7 @@ __pycache__/
 *.swp
 .idea/
 .vscode/
+
+# apps/app Better Auth local DB (self-host stores sessions here; never commit)
+apps/app/data/
+apps/app/drizzle/

@@ -91,6 +91,7 @@ The single load-bearing trust claim is: **we process in memory, we never write y
 - No PDF writes to disk
 - No logging of PDF contents, transaction details, account holders, balances
 - Audit log = metadata only: filename, byte count, parser detected, success/fail timestamp, API key ID (or anonymous)
+- User records (dashboard accounts + sessions) live in our own database on Hetzner EU infra (Better Auth, self-hosted), not an external auth provider. No login-path subprocessor.
 - No persistence of `ParseResult.transactions` or `metadata`
 - Worker source open under AGPL-3.0. Anyone can audit the claim
 
@@ -106,7 +107,7 @@ Honest copy:
 | Layer | Choice |
 |-------|--------|
 | Frontend (marketing, app, docs, demo) | Next.js 16 + Tailwind v4 + shadcn/ui + Magic UI |
-| Auth (B2B/app) | Clerk |
+| Auth (B2B/app) | Better Auth (self-hosted; users + sessions in our own SQLite, not an external auth provider) |
 | Auth (consumer demo) | Anonymous + Cloudflare Turnstile + per-IP rate limit |
 | Worker | FastAPI + uvicorn, imports `bankstract` directly |
 | Hosting | Hetzner CAX11 (ARM, 2 vCPU, 4GB) + Coolify + Cloudflare in front |
@@ -180,7 +181,7 @@ bankstract-cloud/
 ├── .env.example                  documented env vars
 ├── apps/
 │   ├── marketing/                Next.js 16: landing, pricing, OSS callout
-│   ├── app/                      Next.js 16: developer dashboard (Clerk auth, API keys, usage, billing)
+│   ├── app/                      Next.js 16: developer dashboard (Better Auth, API keys, usage, billing)
 │   ├── docs/                     Mintlify or Fumadocs: OpenAPI spec + integration guides
 │   ├── demo/                     Next.js 16: consumer drag-drop showcase
 │   └── worker/                   FastAPI: wraps bankstract engine
@@ -326,7 +327,7 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 - [ ] Pre-decisions resolved: domain + Hetzner provisioned (Coolify) + Cloudflare zone + AGPL repo init
 - [ ] Marketing landing (B2B hero w/ curl snippet, OSS callout, free-demo CTA, dual-CTA outro)
 - [ ] FastAPI worker + `/v1/parse` endpoint w/ API key bearer auth + rate limit
-- [ ] Stripe usage billing + self-serve API key issuance + dashboard (Clerk auth, usage charts via Tremor)
+- [ ] Paystack usage billing + self-serve API key issuance + dashboard (Better Auth, usage charts)
 - [ ] Developer docs site (OpenAPI spec + curl/Python/TS examples + integration guides)
 - [ ] Consumer "try it" demo (drag-drop → JSON preview + CSV/JSON download, anonymous + Turnstile + IP rate limit)
 - [ ] Soft launch (Show HN + Twitter) + cold outbound to 5–10 lending fintechs

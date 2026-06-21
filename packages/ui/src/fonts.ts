@@ -3,8 +3,9 @@
 
 import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google'
 
-// next/font subsets, no CSS @import (DESIGN perf rule). Exposed as CSS variables
-// consumed by the @theme font tokens in globals.css.
+// Shared across every Next app. next/font subsets, no CSS @import (DESIGN perf rule).
+// Exposed as CSS variables consumed by the @theme font tokens in @bankstract/ui/theme.css.
+// Apply all three .variable classes on <html> in each app's root layout.
 export const fraunces = Fraunces({
   subsets: ['latin'],
   variable: '--font-fraunces',

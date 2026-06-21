@@ -29,7 +29,7 @@ This repo is public. Secrets in source = breach.
 
 - `.env.production` gitignored from root + every app
 - `.env.example` checked in with placeholder values + comments
-- Paystack secret key, Clerk private key, Sentry DSN, DB connection string → environment variables only
+- Paystack secret key, Better Auth secret + OAuth client secrets, Sentry DSN, DB connection string → environment variables only
 - Pre-commit hook scans for `sk_live_`, `pk_live_`, `PAYSTACK_SECRET_KEY=`, `STRIPE_SECRET_KEY=` patterns; halt commit if matched. `sk_live_` / `pk_live_` are Paystack live keys (allow `sk_test_` / `pk_test_` in dev). Paystack signs webhooks with the secret key via HMAC-SHA512; there is no separate webhook secret. `STRIPE_SECRET_KEY=` stays in the scan until the billing migration removes the Stripe scaffolding
 - If you generate a secret as part of dev work (test API key, etc), use the `test_` / `bsk_test_` prefix; never `live_`
 
@@ -96,7 +96,7 @@ bankstract-cloud/
 ├── .gitignore                    .env.production, .env.local, _local/, etc
 ├── apps/
 │   ├── marketing/                Next.js 16: landing, pricing, OSS callout
-│   ├── app/                      Next.js 16: developer dashboard (Clerk auth, API keys, usage, billing)
+│   ├── app/                      Next.js 16: developer dashboard (Better Auth, API keys, usage, billing)
 │   ├── docs/                     Mintlify or Fumadocs: OpenAPI spec + integration guides
 │   ├── demo/                     Next.js 16: consumer drag-drop showcase (anonymous + Turnstile)
 │   └── worker/                   FastAPI (Python): wraps bankstract engine, parse endpoint, B2B auth
@@ -114,7 +114,7 @@ bankstract-cloud/
 App separation logic:
 - `marketing/` vs `app/` separate because: different audience (visitor vs auth'd dev), different deploy cadence, different SEO posture
 - `docs/` separate because: ships an OpenAPI spec + interactive playground; tooling (Mintlify/Fumadocs) is opinionated
-- `demo/` vs `app/` separate because: demo = anonymous + Turnstile + no auth; app = Clerk-auth'd + key management. Different rate-limit + state stories
+- `demo/` vs `app/` separate because: demo = anonymous + Turnstile + no auth; app = Better Auth + key management. Different rate-limit + state stories
 - `worker/` separate because: Python (not TS); deployed as a container alongside Coolify-managed Next.js services
 
 ---
@@ -127,7 +127,7 @@ App separation logic:
 - TypeScript strict
 - Tailwind v4
 - shadcn/ui + Magic UI components
-- Clerk for auth (apps/app only; demo is anonymous)
+- Better Auth for auth (apps/app only; self-hosted, users + sessions in the app's own SQLite via Drizzle + libSQL; OAuth Google/GitHub + email magic-link via Resend, no password; demo is anonymous). Retired Clerk 2026-06-21: a proprietary SaaS on the login path contradicts the AGPL self-host pitch, and own-DB user records strengthen the NDPR/procurement posture + keep the self-host bundle self-contained.
 - Paystack for billing (apps/app only; NGN subscriptions, see PRD.md § Pricing)
 - Cloudflare Turnstile (apps/demo + apps/marketing forms)
 
@@ -150,7 +150,7 @@ See [`DESIGN.md`](./DESIGN.md): single source of truth for tokens, components, p
 ### Hosting
 - All Next.js apps + FastAPI worker run on single Hetzner CAX11 (ARM, 2 vCPU, 4GB RAM) via Coolify
 - Cloudflare in front (CDN, DDoS, SSL termination, Turnstile)
-- SQLite on worker box for audit log + Clerk-backed dashboard for keys
+- SQLite on worker box for audit log + Better Auth SQLite on the app box for users/sessions
 - Backups: nightly to Cloudflare R2 (free tier: 10GB egress + storage)
 - Domain: `bankstract.logickoder.dev` (subdomain on owner-controlled `logickoder.dev`, ₦0). Pivot to standalone TLD post-revenue.
 - **Fixed cost: ~₦5–6k/mo (~$4–5/mo). Locked indie-cheap.**

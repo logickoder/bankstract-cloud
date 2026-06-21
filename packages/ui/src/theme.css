@@ -40,3 +40,19 @@
 
   --shadow-glow-accent: 0 0 80px -20px #d2691e20;
 }
+
+/* Shared brand surfaces. Render <GrainFilter/> once per app (defines #bs-grain), then put
+   `grain-section` on any relative element to ride the grain. `hero-glow` is the radial
+   accent wash. DESIGN: grain subtle (viewer should not consciously notice). */
+.grain-section {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  filter: url(#bs-grain);
+}
+
+.hero-glow {
+  background: radial-gradient(60% 60% at 85% 0%, var(--color-accent-glow), transparent 70%);
+}

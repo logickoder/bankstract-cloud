@@ -17,7 +17,7 @@ Owner: Jeffery Orazulike (github.com/logickoder).
 ```
 apps/
   marketing/    Next.js 16: landing page
-  app/          Next.js 16: auth'd dev dashboard (Clerk + Paystack)
+  app/          Next.js 16: auth'd dev dashboard (Better Auth + Paystack)
   docs/         Mintlify or Fumadocs: API docs
   demo/         Next.js 16: anonymous drag-drop showcase (Turnstile)
   worker/       FastAPI: imports `bankstract` engine, exposes /v1/parse
@@ -155,7 +155,7 @@ If a request matches any of the above, state which item, refer to PRD.md § Out 
 | Why does this product exist? | `PRD.md` § What + Why |
 | What's the API shape? | `PRD.md` § API surface |
 | How do I add an export format? | `apps/worker/src/bankstract_cloud/writers/` |
-| How is auth wired? | `apps/app/src/middleware.ts` (Clerk) + `apps/worker/src/bankstract_cloud/auth.py` (API key bearer) |
+| How is auth wired? | `apps/app/src/lib/auth.ts` + `proxy.ts` (Better Auth; sessions in `apps/app/data/auth.db`, gitignored, self-host bundle intact) + `apps/worker/src/bankstract_cloud/auth.py` (separate API-key bearer path) |
 | How is billing wired? | Paystack NGN subscriptions (PRD § Pricing). `apps/worker/src/bankstract_cloud/billing.py` still carries Stripe scaffolding until the migration lands (CHANGELOG). |
 | What's the privacy posture? | `CLAUDE.md` § Directive 1 + `PRD.md` § Privacy posture |
 | Why AGPL not MIT? | `CLAUDE.md` § Directive 3 + `PRD.md` § License |

@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* Copyright (C) 2026 Jeffery Orazulike */
+@import "tailwindcss";
+
+/* Design tokens (DESIGN.md) live in @bankstract/ui. */
+@import "@bankstract/ui/theme.css";
+
+html {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

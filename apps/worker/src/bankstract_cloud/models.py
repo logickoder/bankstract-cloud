@@ -96,6 +96,18 @@ class UsageResponse(BaseModel):
     projected_invoice_usd: str
 
 
+class DailyCount(BaseModel):
+    date: str
+    count: int
+
+
+class OwnerUsageResponse(BaseModel):
+    owner: str
+    period_parses: int
+    success_rate: float
+    daily: list[DailyCount]
+
+
 class StatusResponse(BaseModel):
     status: Literal["ok"]
     worker_version: str

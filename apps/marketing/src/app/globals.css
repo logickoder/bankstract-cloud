@@ -18,21 +18,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Grain rides hero + feature section backgrounds only (DESIGN applied-to). Subtle:
-   the viewer should not consciously notice it. */
-.grain-section {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.06;
-  filter: url(#bs-grain);
-}
-
-/* Hero radial accent glow at top-right (DESIGN hero spec). */
-.hero-glow {
-  background: radial-gradient(60% 60% at 85% 0%, var(--color-accent-glow), transparent 70%);
-}
+/* grain-section + hero-glow now live in @bankstract/ui theme.css (shared). */
 
 /* Signature transform animation (TransformationDemo). A scan-line reads the PDF, each
    transaction flies across the gap, and the matching CSV row materializes on arrival

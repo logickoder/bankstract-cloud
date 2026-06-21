@@ -1,0 +1,14 @@
+{
+  "extends": "@bankstract/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    // A Next app emits no .d.ts; turn off declaration so TS doesn't run the
+    // "inferred type isn't portable" check on Better Auth's zod-derived types.
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}

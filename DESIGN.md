@@ -16,7 +16,7 @@ status: draft
 version: 0.1.0
 last_updated: 2026-06-18
 parent_inspiration:
-  - portfolio.logickoder.dev (Phase 2 brand)
+  - logickoder.dev (Phase 2 brand)
 visual_refs:
   primary: inngest.com
   business_model: trigger.dev
