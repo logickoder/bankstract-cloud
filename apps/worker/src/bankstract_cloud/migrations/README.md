@@ -35,6 +35,8 @@ with op.batch_alter_table("api_keys") as batch:
 
 ## Existing dev DBs
 
-A DB created before Alembic has the tables but no `alembic_version`. Pre-launch (no prod data),
-just delete it and let `upgrade head` rebuild. Otherwise `uv run alembic stamp 0001_baseline`
-marks it at the floor without re-creating.
+A DB created before Alembic (or whose first stamp half-completed) has the full schema but no
+recorded revision. `db._bridge_unversioned` handles this automatically at boot: when the whole
+baseline schema is present but unversioned, it stamps `0001_baseline` instead of re-creating the
+tables. A fresh or PARTIAL DB is left alone, so `upgrade head` either builds it or fails loudly
+on an ambiguous half-schema (delete it and let it rebuild, pre-launch).

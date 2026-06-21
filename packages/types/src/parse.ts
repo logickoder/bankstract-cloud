@@ -147,3 +147,18 @@ export interface KeyCreatedResponse {
 export interface KeyListResponse {
   keys: KeyInfo[]
 }
+
+// Billing (Paystack). The worker holds the secret; apps/app proxies these admin endpoints.
+export interface SubscribeResponse {
+  authorization_url: string
+  access_code: string
+  reference: string
+}
+
+export interface SubscriptionStatusResponse {
+  owner: string
+  tier: string | null
+  /** "active" | "inactive" | "none". Only "active" lets a live key parse. */
+  status: string
+  current_period_end: string | null
+}
