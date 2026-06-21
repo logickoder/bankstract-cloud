@@ -27,8 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             />
           </filter>
         </svg>
-        <div className="grain" aria-hidden="true" />
-        <div className="relative z-10">{children}</div>
+        {children}
       </body>
     </html>
   )

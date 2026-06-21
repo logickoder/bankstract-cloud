@@ -10,26 +10,56 @@ test('hero renders headline + both CTAs', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Read the docs' })).toBeVisible()
 })
 
-test('pricing renders the NGN tiers', async ({ page }) => {
+test('pricing renders NGN tiers with waitlist CTAs (Paystack not live)', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('₦9,500')).toBeVisible()
   await expect(page.getByText('₦35,000')).toBeVisible()
   await expect(page.getByText('₦150,000')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Notify me on launch' }).first()).toBeVisible()
   await expect(page.getByRole('link', { name: 'Talk to sales' }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Start', exact: true })).toHaveCount(0)
 })
 
-test('bank coverage grid lists shipped banks', async ({ page }) => {
+test('bank grid lists shipped NG banks and excludes wise', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Reads Naija banks first')).toBeVisible()
   for (const bank of ['fbn', 'opay', 'palmpay', 'zenith']) {
     await expect(page.getByText(bank, { exact: true }).first()).toBeVisible()
   }
+  await expect(page.getByText('wise', { exact: true })).toHaveCount(0)
+})
+
+test('renamed headings + footer voice anchor', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'NDPR by default' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Fails noisy' })).toBeVisible()
+  await expect(page.getByText('Built in Lagos.')).toBeVisible()
 })
 
 test('code tabs switch language panels', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('tab', { name: 'Python' }).click()
   await expect(page.getByText('import requests')).toBeVisible()
+})
+
+test('code blocks have a working copy button', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/')
+  const copy = page.getByRole('button', { name: 'Copy code' }).first()
+  await expect(copy).toBeVisible()
+  await copy.click()
+  await expect(page.getByRole('button', { name: 'Copied' }).first()).toBeVisible()
+})
+
+test('no horizontal overflow on small screens', async ({ page }) => {
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('/')
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(1)
+  }
 })
 
 test('transformation demo is fully static under reduced-motion', async ({ page }) => {

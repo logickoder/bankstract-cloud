@@ -16,13 +16,7 @@ export const HERO_CURL = `curl -X POST ${ENDPOINT} \\
   -F "pdf=@statement.pdf"`
 
 export const CODE_SAMPLES: readonly CodeSample[] = [
-  {
-    lang: 'bash',
-    label: 'curl',
-    code: `curl -X POST ${ENDPOINT} \\
-  -H "Authorization: Bearer bsk_live_..." \\
-  -F "pdf=@statement.pdf"`,
-  },
+  { lang: 'bash', label: 'curl', code: HERO_CURL },
   {
     lang: 'python',
     label: 'Python',

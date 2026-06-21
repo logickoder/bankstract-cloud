@@ -30,7 +30,10 @@ export function PricingSection() {
         {PAID_TIERS.map((t) => (
           <Card
             key={t.name}
-            className={cn('flex flex-col', t.highlight && 'border-accent')}
+            className={cn(
+              'flex flex-col transition duration-200 hover:-translate-y-1',
+              t.highlight && 'border-accent',
+            )}
           >
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-fg">{t.name}</h3>
@@ -54,9 +57,9 @@ export function PricingSection() {
                 <dd className="text-right text-fg">{t.sla}</dd>
               </div>
             </dl>
-            <a href={links.signup} className="mt-6">
+            <a href={links.waitlist} className="mt-auto pt-6">
               <Button variant={t.highlight ? 'primary' : 'secondary'} className="w-full">
-                Start
+                Notify me on launch
               </Button>
             </a>
           </Card>

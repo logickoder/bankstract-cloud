@@ -33,13 +33,13 @@ const FEATURES: readonly Feature[] = [
 
 export function FeatureGrid() {
   return (
-    <Section>
+    <Section grain>
       <SectionHeading>What you get</SectionHeading>
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         {FEATURES.map(({ icon: Icon, title, body }) => (
           <Card key={title}>
             <Icon className="size-6 text-accent" aria-hidden="true" />
-            <h3 className="mt-4 font-medium text-fg">{title}</h3>
+            <h3 className="mt-4 font-display text-2xl font-semibold text-fg">{title}</h3>
             <p className="mt-2 text-sm text-fg-secondary">{body}</p>
           </Card>
         ))}

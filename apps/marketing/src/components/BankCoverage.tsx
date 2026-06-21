@@ -18,9 +18,7 @@ export function BankCoverage() {
           <BankCoverageCell key={entry.id} entry={entry} />
         ))}
       </div>
-      <p className="mt-6 text-sm text-fg-tertiary">
-        Format drift fixed in 48h or you don&apos;t pay.
-      </p>
+      <p className="mt-6 text-sm text-fg-tertiary">Format drift fixed in 48h.</p>
     </Section>
   )
 }

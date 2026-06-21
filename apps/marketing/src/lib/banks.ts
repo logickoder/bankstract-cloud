@@ -2,13 +2,13 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 // Coverage data. SHIPPED mirrors the engine's list_parsers() (bankstract 0.13), lowercase
-// as the engine reports. PLANNED is the public roadmap. Directive 6: the coverage grid
-// renders from this data, never a hardcoded list inside the component. Keep SHIPPED in
-// sync with the engine; never claim a bank the engine cannot parse.
+// as the engine reports. ROADMAP is the public roadmap: `next` = in active development,
+// `planned` = wanted. Directive 6: the coverage grid renders from this data, never a
+// hardcoded list inside the component. Keep SHIPPED in sync with the engine; never claim a
+// bank the engine cannot parse, and never list a non-Nigerian institution here.
 export interface BankEntry {
   id: string
-  status: 'shipped' | 'planned'
-  target?: string
+  status: 'shipped' | 'next' | 'planned'
 }
 
 export const SHIPPED_BANKS: readonly BankEntry[] = [
@@ -18,13 +18,12 @@ export const SHIPPED_BANKS: readonly BankEntry[] = [
   { id: 'zenith', status: 'shipped' },
 ]
 
-export const PLANNED_BANKS: readonly BankEntry[] = [
-  { id: 'gtb', status: 'planned', target: '0.14' },
-  { id: 'kuda', status: 'planned', target: '0.15' },
+export const ROADMAP_BANKS: readonly BankEntry[] = [
+  { id: 'gtb', status: 'next' },
+  { id: 'kuda', status: 'next' },
   { id: 'sparkle', status: 'planned' },
   { id: 'alat', status: 'planned' },
   { id: 'stanbic', status: 'planned' },
-  { id: 'wise', status: 'planned' },
 ]
 
-export const ALL_BANKS: readonly BankEntry[] = [...SHIPPED_BANKS, ...PLANNED_BANKS]
+export const ALL_BANKS: readonly BankEntry[] = [...SHIPPED_BANKS, ...ROADMAP_BANKS]

@@ -14,7 +14,7 @@ export function CodeTabsSection() {
     panel: <CodeBlock code={sample.code} lang={sample.lang} />,
   }))
   return (
-    <Section>
+    <Section surface="raised">
       <SectionHeading>Integrate today</SectionHeading>
       <p className="mt-3 mb-8 max-w-xl text-fg-secondary">
         One endpoint. Your language. Same JSON contract every time.

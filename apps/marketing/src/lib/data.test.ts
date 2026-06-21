@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { ALL_BANKS, PLANNED_BANKS, SHIPPED_BANKS } from './banks'
+import { ALL_BANKS, ROADMAP_BANKS, SHIPPED_BANKS } from './banks'
 import { CODE_SAMPLES } from './code-samples'
 import { ENTERPRISE, FREE_TIERS, PAID_TIERS } from './pricing'
 
@@ -16,9 +16,11 @@ describe('banks', () => {
     }
   })
 
-  it('marks planned banks distinctly and merges all', () => {
-    for (const b of PLANNED_BANKS) expect(b.status).toBe('planned')
-    expect(ALL_BANKS).toHaveLength(SHIPPED_BANKS.length + PLANNED_BANKS.length)
+  it('roadmap banks are next or planned, and only Nigerian banks ship', () => {
+    for (const b of ROADMAP_BANKS) expect(['next', 'planned']).toContain(b.status)
+    expect(ALL_BANKS).toHaveLength(SHIPPED_BANKS.length + ROADMAP_BANKS.length)
+    // wise is a UK fintech, never a Nigerian bank in this grid.
+    expect(ALL_BANKS.map((b) => b.id)).not.toContain('wise')
   })
 })
 

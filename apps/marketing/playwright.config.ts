@@ -7,6 +7,9 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './__tests__/e2e',
   fullyParallel: true,
+  // Cap workers: all specs hit one page, and a thundering herd against the first
+  // (uncached) Turbopack compile flakes. 3 keeps it parallel but stable.
+  workers: 3,
   use: { baseURL: 'http://localhost:3001' },
   webServer: {
     command: 'pnpm dev --port 3001',

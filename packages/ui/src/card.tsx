@@ -8,8 +8,12 @@ import { cn } from './lib/cn'
 export function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('rounded-lg border border-border bg-bg-secondary p-6', className)}
+      className={cn(
+        'rounded-lg border border-border bg-bg-secondary p-6 transition-colors hover:border-fg-tertiary hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.6)]',
+        className,
+      )}
       {...props}
     />
   )
 }
+

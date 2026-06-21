@@ -53,8 +53,7 @@ export const PAID_TIERS: readonly PaidTier[] = [
 export const ENTERPRISE = {
   name: 'Enterprise',
   band: '₦500k to ₦5M/mo',
-  detail:
-    'Unlimited parses, per-key rate limits, 99.9% SLA, NDPR audit support, on-prem option.',
+  detail: 'Unlimited parses, per-key rate limits, 99.9% SLA, NDPR audit support.',
 } as const
 
 export const ANNUAL_NOTE = 'Annual prepay: 15% off across all paid tiers.'

@@ -19,7 +19,7 @@ export function Tabs({ items }: { items: TabItem[] }) {
   const [active, setActive] = useState(0)
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1" role="tablist">
+      <div className="inline-flex gap-1 self-start rounded-md bg-bg-tertiary p-1" role="tablist">
         {items.map((item, i) => (
           <button
             key={item.label}
@@ -28,10 +28,8 @@ export function Tabs({ items }: { items: TabItem[] }) {
             aria-selected={i === active}
             onClick={() => setActive(i)}
             className={cn(
-              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              i === active
-                ? 'bg-bg-tertiary text-fg'
-                : 'text-fg-secondary hover:bg-bg-secondary hover:text-fg',
+              'rounded-sm px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none',
+              i === active ? 'bg-bg-secondary text-fg' : 'text-fg-secondary hover:text-fg',
             )}
           >
             {item.label}

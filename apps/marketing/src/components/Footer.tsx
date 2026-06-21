@@ -63,7 +63,8 @@ export function Footer() {
         ))}
       </div>
       <div className="mx-auto w-full max-w-5xl px-6 pb-10 text-xs text-fg-tertiary">
-        Open source statement parsing API for Nigerian banks. Built by logickoder.
+        <p>Open source statement parsing API for Nigerian banks.</p>
+        <p className="mt-1">Built in Lagos. Built by logickoder.</p>
       </div>
     </footer>
   )

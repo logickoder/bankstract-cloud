@@ -9,6 +9,8 @@
 html {
   background-color: var(--color-bg);
   color: var(--color-fg);
+  /* Belt-and-suspenders: no horizontal scroll on small screens. */
+  overflow-x: hidden;
 }
 
 body {
@@ -16,13 +18,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Grain over the page bg (DESIGN: subtle, viewer should not consciously notice). */
-.grain {
-  position: fixed;
+/* Grain rides hero + feature section backgrounds only (DESIGN applied-to). Subtle:
+   the viewer should not consciously notice it. */
+.grain-section {
+  position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.06;
   filter: url(#bs-grain);
 }
 
@@ -31,12 +34,11 @@ body {
   background: radial-gradient(60% 60% at 85% 0%, var(--color-accent-glow), transparent 70%);
 }
 
-/* Signature transform animation (TransformationDemo). Static by default; the single
-   accent sweep + row materialization run only when motion is welcome (DESIGN: one
-   signature animation, reduced-motion safe). */
-.sweep-bar {
-  display: none;
-}
+/* Signature transform animation (TransformationDemo). A scan-line reads the PDF, each
+   transaction flies across the gap, and the matching CSV row materializes on arrival
+   (DESIGN hero-transformation). Static by default; motion only when welcome. */
+.sweep-bar,
+.flyer,
 .sweep-caret {
   display: none;
 }
@@ -44,14 +46,19 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   .sweep-bar {
     display: block;
-    left: 6%;
+    left: 4%;
     background: linear-gradient(to bottom, transparent, var(--color-accent), transparent);
     box-shadow: 0 0 24px 2px var(--color-accent-glow);
-    animation: bs-sweep 4.2s ease-in-out infinite;
+    animation: bs-scan 4s ease-in-out infinite;
+  }
+  .flyer {
+    display: block;
+    opacity: 0;
+    animation: bs-fly 4s ease-in-out infinite;
   }
   .sweep-row {
     opacity: 0;
-    animation: bs-row 4.2s ease-in-out infinite;
+    animation: bs-row 4s ease-in-out infinite;
   }
   .sweep-caret {
     display: inline-block;
@@ -59,35 +66,59 @@ body {
   }
 }
 
-@keyframes bs-sweep {
+/* Scan-line stays over the PDF pane (the left column of the 3-col grid). */
+@keyframes bs-scan {
   0% {
-    left: 6%;
+    left: 4%;
     opacity: 0;
   }
-  8% {
+  6% {
     opacity: 1;
   }
-  55% {
-    left: 94%;
+  24% {
+    left: 30%;
     opacity: 1;
   }
-  65%,
+  32%,
   100% {
-    left: 94%;
+    left: 30%;
     opacity: 0;
   }
 }
 
-@keyframes bs-row {
-  0% {
+/* A transaction flies from the PDF pane edge across to the table. */
+@keyframes bs-fly {
+  0%,
+  10% {
+    left: 30%;
     opacity: 0;
-    transform: translateY(6px);
   }
-  12% {
+  20% {
+    opacity: 1;
+  }
+  60% {
+    left: 62%;
+    opacity: 1;
+  }
+  70%,
+  100% {
+    left: 62%;
+    opacity: 0;
+  }
+}
+
+/* The row lands as its flyer arrives, then holds, then resets for the next loop. */
+@keyframes bs-row {
+  0%,
+  56% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  64% {
     opacity: 1;
     transform: none;
   }
-  88% {
+  92% {
     opacity: 1;
   }
   100% {

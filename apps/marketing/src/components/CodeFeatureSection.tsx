@@ -37,14 +37,16 @@ result = bankstract.parse(buf)`,
 
 export function CodeFeatureSection() {
   return (
-    <Section>
-      <SectionHeading>Reliable by default</SectionHeading>
+    <Section surface="raised">
+      <SectionHeading>Fails noisy</SectionHeading>
       <div className="mt-10 flex flex-col gap-12">
         {FEATURES.map((f) => (
           <div key={f.title} className="grid items-center gap-6 lg:grid-cols-2">
             <CodeBlock code={f.code} lang={f.lang} />
             <div>
-              <h3 className="font-medium text-fg">{f.title}</h3>
+              <h3 className="font-display text-[32px] font-semibold leading-tight tracking-[-0.02em] text-fg">
+                {f.title}
+              </h3>
               <p className="mt-2 text-fg-secondary">{f.body}</p>
             </div>
           </div>

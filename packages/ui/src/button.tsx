@@ -7,7 +7,9 @@ import type { ComponentProps } from 'react'
 import { cn } from './lib/cn'
 
 const button = cva(
-  'inline-flex items-center justify-center rounded-md border font-medium transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50',
+  // static-with-hover (DESIGN motion): colour transition only (no scale/glow), a subtle
+  // press, and an accent focus ring for keyboard users.
+  'inline-flex items-center justify-center rounded-md border font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:translate-y-px disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {

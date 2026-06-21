@@ -23,6 +23,9 @@ const CSV_ROWS: readonly (readonly string[])[] = [
 
 const CURL = 'curl -X POST /v1/parse -F "pdf=@statement.pdf"'
 
+// Each flyer is the essence of one transaction, carried from the PDF into the table.
+const FLYERS: readonly string[] = CSV_ROWS.map((r) => `${r[1]}  ${r[2]}`)
+
 export function TransformationDemo() {
   return (
     <Section>
@@ -39,7 +42,7 @@ export function TransformationDemo() {
 
           <div className="flex items-center justify-center">
             <span
-              className="flex size-8 items-center justify-center rounded-full border border-border text-accent"
+              className="flex size-8 rotate-90 items-center justify-center rounded-full border border-border text-accent lg:rotate-0"
               aria-hidden="true"
             >
               &rarr;
@@ -61,7 +64,7 @@ export function TransformationDemo() {
                   <tr
                     key={row[0]}
                     className="sweep-row border-t border-border"
-                    style={{ animationDelay: `${0.9 + i * 0.45}s` }}
+                    style={{ animationDelay: `${i * 0.5}s` }}
                   >
                     {row.map((cell, c) => (
                       <td key={c} className={`px-3 py-2 ${c >= 2 ? 'text-right' : ''}`}>
@@ -76,6 +79,19 @@ export function TransformationDemo() {
         </div>
 
         <div className="sweep-bar pointer-events-none absolute inset-y-0 w-px" aria-hidden="true" />
+
+        {/* Transactions in flight from the PDF to the table (desktop layout only). */}
+        <div className="pointer-events-none absolute inset-0 hidden lg:block" aria-hidden="true">
+          {FLYERS.map((flyer, i) => (
+            <span
+              key={flyer}
+              className="flyer absolute whitespace-nowrap rounded border border-accent-muted bg-bg-tertiary px-2 py-0.5 font-mono text-[10px] text-accent"
+              style={{ top: `${42 + i * 9}%`, animationDelay: `${i * 0.5}s` }}
+            >
+              {flyer}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="mt-5 flex items-center gap-2 rounded-md border border-border bg-bg-secondary px-4 py-2.5 font-mono text-xs">

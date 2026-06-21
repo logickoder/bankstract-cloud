@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Anchor, Button } from '@bankstract/ui'
+import { Anchor, Badge, Button, linkClass } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 
@@ -15,6 +15,14 @@ export function OssPrideSection() {
         The cloud layer and the engine are both public. Run the whole stack yourself with
         docker-compose. No license fee, no lock-in.
       </p>
+      {/* DESIGN oss-pride stats. Live star/contributor counts are deferred: a new repo
+          showing a low count is a weak signal. License badge + a star CTA carry the trust. */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm">
+        <Badge tone="accent">AGPL-3.0</Badge>
+        <a href={links.cloud} className={linkClass}>
+          Star on GitHub
+        </a>
+      </div>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <a href={links.selfHost}>
           <Button variant="primary">Self-host with docker-compose</Button>

@@ -17,4 +17,7 @@ export const links = {
   security: 'https://github.com/logickoder/bankstract-cloud/blob/main/SECURITY.md',
   owner: 'https://github.com/logickoder',
   sales: 'mailto:hello@logickoder.dev?subject=bankstract%20Enterprise',
+  // Paid tiers are not live (Paystack KYC pending). Paid-tier CTAs collect interest here;
+  // swap to the Resend audience when apps/app + Paystack land.
+  waitlist: 'mailto:hello@logickoder.dev?subject=bankstract%20waitlist',
 } as const

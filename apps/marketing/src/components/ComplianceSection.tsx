@@ -16,8 +16,8 @@ const BULLETS: readonly string[] = [
 
 export function ComplianceSection() {
   return (
-    <Section>
-      <SectionHeading>Built for compliance</SectionHeading>
+    <Section surface="raised">
+      <SectionHeading>NDPR by default</SectionHeading>
       <ul className="mt-8 flex flex-col gap-3">
         {BULLETS.map((b) => (
           <li key={b} className="flex gap-3 text-fg-secondary">
