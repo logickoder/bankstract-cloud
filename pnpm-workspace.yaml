@@ -4,6 +4,9 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
+  # Pulled in by @scalar/api-client-react (OpenAPI playground). Its postinstall only
+  # selects a Vue build; the React client does not need it.
+  vue-demi: false
 
 minimumReleaseAgeExclude:
   - fumadocs-core@16.10.5

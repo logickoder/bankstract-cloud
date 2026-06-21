@@ -3,13 +3,13 @@
 
 import { docs } from 'collections/server'
 import { loader } from 'fumadocs-core/source'
+import { openapiPlugin } from 'fumadocs-openapi/server'
 
-
-// TODO(openapi): re-add `plugins: [openapiPlugin()]` + openapi.staticSource() to wire
-// the interactive API reference once the fumadocs-openapi v11 render path is settled.
-// The scaffolding (lib/openapi.ts, components/api-page.tsx, scripts/generate-docs.ts,
-// the committed openapi.json) is ready.
+// openapiPlugin reads the `_openapi` frontmatter that `pnpm gen` writes into the
+// generated content/docs/api/*.mdx pages and attaches getOpenAPIPageProps() to each,
+// which the slug route renders as an interactive operation page.
 export const source = loader({
   baseUrl: '/docs',
   source: docs.toFumadocsSource(),
+  plugins: [openapiPlugin()],
 })

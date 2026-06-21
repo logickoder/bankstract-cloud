@@ -4,6 +4,10 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
+/* Tailwind v4 scans source files for classes; the OpenAPIPage component lives in
+   node_modules and would otherwise emit unstyled. */
+@source '../node_modules/fumadocs-openapi/dist/**/*.js';
+
 /* Brand: single burnt-orange accent (DESIGN.md). Docs otherwise keep the Fumadocs
    default theme. Accent + font only. */
 :root,

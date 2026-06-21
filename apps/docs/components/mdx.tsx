@@ -4,8 +4,8 @@
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import type { MDXComponents } from 'mdx/types'
 
-// TODO(openapi): add `OpenAPIPage` from components/api-page once the interactive API
-// reference is wired (see lib/source.ts).
+// OpenAPIPage is injected per-page by the route (it needs the page's preloaded schema
+// bound in), so it is passed through `components` rather than registered statically.
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
