@@ -54,9 +54,38 @@ cp .env.example .env        # fill the REQUIRED values (see below)
 docker compose up --build -d
 ```
 
-Required in `.env`: `PUBLIC_ORIGIN`, `ADMIN_API_TOKEN` (same value reaches worker + app), `DEMO_API_KEY`, `BETTER_AUTH_SECRET`. Billing/OAuth/Resend/Sentry/R2 are optional (empty = that feature off).
-
 On first boot the app runs `drizzle-kit push` to create the Better Auth schema in the `auth` volume, then serves. The worker runs its Alembic migrations the same way.
+
+## Filling `.env`
+
+Three tiers. Generate the random secrets with `openssl`:
+
+```bash
+openssl rand -hex 32                      # -> ADMIN_API_TOKEN
+openssl rand -hex 32                      # -> BETTER_AUTH_SECRET
+echo "bsk_test_$(openssl rand -hex 16)"   # -> DEMO_API_KEY
+```
+
+**Tier 1 - required to boot.** With only these, the stack comes up: worker parses (test keys, free), demo works, dashboard loads. But nobody can sign in yet (Tier 2).
+
+- `PUBLIC_ORIGIN` - the product domain, e.g. `https://bankstract.logickoder.dev`.
+- `ADMIN_API_TOKEN` - shared app <-> worker admin token (the `openssl` output).
+- `BETTER_AUTH_SECRET` - session signing key (the `openssl` output).
+- `DEMO_API_KEY` - shared demo <-> worker key (a `bsk_test_` value).
+
+**Tier 2 - so users can sign in (pick at least one).** Without one, sign-in does not work in prod (magic links only print to the app's server log).
+
+- **Resend** (magic-link email, easiest): `resend.com` -> API Keys -> `RESEND_API_KEY=re_...`. Free tier; verify a sending domain in Cloudflare DNS first (until then you can only email yourself).
+- **Google / GitHub OAuth**: create an OAuth app, set the callback to `<PUBLIC_ORIGIN>/app/api/auth/callback/<provider>` (see below), fill the client id + secret.
+
+**Tier 3 - defer until ready (empty = feature off).**
+
+- **Paystack** (after KYC): dashboard -> API keys (`sk_live_`) + create the subscription plans -> `PLN_` codes for each tier (monthly + annual). Empty = billing off, test keys still work.
+- **Turnstile**: demo bot gate. `TURNSTILE_SECRET_KEY` + the public site key from Cloudflare.
+- **Sentry**: `SENTRY_DSN` from sentry.io.
+- **R2 backup**: Cloudflare -> R2 -> bucket + S3 API token -> `R2_*`. Empty = local snapshots only.
+
+First deploy: fill **Tier 1 + Resend**, leave the rest empty, get it live, then add the others incrementally.
 
 ## Cloudflare + DNS
 
