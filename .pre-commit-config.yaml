@@ -1,0 +1,79 @@
+# Mirrors the repo gates (CLAUDE.md Directive 9 + Directive 2):
+#  - TS/TSX: eslint + tsc + vitest via turbo. NO prettier: the repo has no prettier config and
+#    its idiom is single-quote / no-semicolon; running prettier would mangle it.
+#  - Python worker: ruff + pyright + pytest via uv, run inside apps/worker (the uv project).
+#  - Secret guard (Directive 2): keep Paystack live keys out of this public history.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      # Directive 2: this repo is public. A real Paystack LIVE key is sk_live_ / pk_live_ followed
+      # by the key body, so the regex requires that suffix. That catches genuine keys (a real
+      # PAYSTACK_SECRET_KEY is an sk_live_ key) without flagging the sk_test_ .env.example
+      # placeholders, prose mentions, or this rule's own pattern text.
+      - id: block-live-secrets
+        name: block Paystack live keys
+        entry: bash -c 'if git diff --cached --no-color -U0 | grep -E "^\+" | grep -vE "^\+\+\+" | grep -nE "(sk|pk)_live_[0-9a-zA-Z]{6,}"; then echo "blocked Paystack live key in staged changes (Directive 2), use sk_test_ or bsk_test_"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
+      # --- TS / TSX (turbo-cached across apps + packages) ---
+      - id: ts-lint
+        name: eslint
+        entry: pnpm lint
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$
+
+      - id: ts-typecheck
+        name: tsc --noEmit
+        entry: pnpm typecheck
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$
+
+      - id: ts-test
+        name: vitest
+        entry: pnpm test
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$
+
+      # --- Python worker (cd into apps/worker; the uv project + sources live there) ---
+      - id: ruff-check
+        name: ruff check
+        entry: bash -c 'cd apps/worker && uv run ruff check .'
+        language: system
+        pass_filenames: false
+        files: ^apps/worker/.*\.(py|toml)$
+
+      - id: ruff-format
+        name: ruff format --check
+        entry: bash -c 'cd apps/worker && uv run ruff format --check .'
+        language: system
+        pass_filenames: false
+        files: ^apps/worker/.*\.py$
+
+      - id: pyright
+        name: pyright (strict)
+        entry: bash -c 'cd apps/worker && uv run pyright .'
+        language: system
+        pass_filenames: false
+        files: ^apps/worker/.*\.(py|toml)$
+
+      - id: pytest
+        name: pytest
+        entry: bash -c 'cd apps/worker && uv run pytest'
+        language: system
+        pass_filenames: false
+        files: ^apps/worker/.*\.py$

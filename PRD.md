@@ -12,7 +12,7 @@
 Hosted SaaS layer on top of the `bankstract` open-source Python engine.
 
 Three-layer architecture:
- 
+
 | Layer | Repo | License | Audience |
 |-------|------|---------|----------|
 | OSS engine | `bankstract` | MIT | Devs who run CLI / `pip install` |

@@ -16,4 +16,3 @@ export function Card({ className, ...props }: ComponentProps<'div'>) {
     />
   )
 }
-

@@ -99,9 +99,7 @@ def test_rerun_is_idempotent(harness: Harness, monkeypatch: pytest.MonkeyPatch) 
     assert charged == [4_500]
 
 
-def test_under_cap_records_no_invoice(
-    harness: Harness, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_under_cap_records_no_invoice(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     state = _state(harness)
     key_id = _setup_owner(state, "owner_under", "CUS_under")
     state.cycle_tiers.snapshot(
@@ -121,9 +119,7 @@ def test_under_cap_records_no_invoice(
     assert state.overage_ledger.already_billed("owner_under", _SINCE)
 
 
-def test_next_cycle_parses_excluded(
-    harness: Harness, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_next_cycle_parses_excluded(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     state = _state(harness)
     key_id = _setup_owner(state, "owner_bound", "CUS_bound")
     state.cycle_tiers.snapshot(

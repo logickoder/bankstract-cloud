@@ -164,9 +164,7 @@ def test_live_key_requires_active_subscription(harness: Harness) -> None:
     issued = harness.client.app.state.app_state.keystore.issue("prod", "live", owner="owner_live")
 
     # No subscription: 402 subscription_inactive, returned before any PDF byte is read.
-    res = harness.client.post(
-        "/v1/parse", headers=auth_header(issued.raw_key), files=pdf_upload()
-    )
+    res = harness.client.post("/v1/parse", headers=auth_header(issued.raw_key), files=pdf_upload())
     assert res.status_code == 402
     assert res.json()["error_class"] == "subscription_inactive"
 

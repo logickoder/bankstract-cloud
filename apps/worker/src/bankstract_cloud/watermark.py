@@ -36,9 +36,7 @@ def watermark_csv(csv_bytes: bytes, *, tier: str) -> bytes:
     return banner + csv_bytes
 
 
-def watermark_json(
-    payload: dict[str, Any], *, tier: str, generated_at: str
-) -> dict[str, Any]:
+def watermark_json(payload: dict[str, Any], *, tier: str, generated_at: str) -> dict[str, Any]:
     """Wrap the payload in a `_demo` envelope for the free demo. No-op for paid tiers.
 
     The original payload keys (metadata, transactions, ...) stay at the top level, so
