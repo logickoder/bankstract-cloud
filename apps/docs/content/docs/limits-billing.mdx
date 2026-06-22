@@ -15,7 +15,11 @@ Monthly NGN subscriptions via Paystack. The full tier table (Starter, Growth, Sc
 
 ## What's billed
 
-Parses count against your monthly tier cap. Parses past the cap meter as overage (`₦15` / `₦12` / `₦8` per parse by tier) and bill via Paystack Invoices at end of cycle. Only **successful** parses count. Failures (any 4xx/5xx) are never counted and never billed. If the engine can't read it, you don't pay. CSV and redact requests count the same as a JSON parse (one operation = one parse).
+Parses count against your monthly tier cap. Parses past the cap meter as overage (`₦15` / `₦12` / `₦8` per parse by tier) and bill via Paystack Invoices at the end of the cycle. Only **successful** parses count. Failures (any 4xx/5xx) are never counted and never billed. If the engine can't read it, you don't pay. CSV and redact requests count the same as a JSON parse (one operation = one parse).
+
+The cap resets on the **1st of each calendar month** (UTC), not on your signup or renewal date. Usage is metered per calendar month, so a key created mid-month still gets the full cap for that month.
+
+Overage is billed as a **separate Paystack invoice** from your monthly subscription charge. Your base subscription renews on its own date (the day you subscribed); the overage invoice for a closed month is raised shortly after that month ends. Expect them on different dates.
 
 An inactive subscription returns `402` with `error_class: "subscription_inactive"`.
 

@@ -81,7 +81,7 @@ Pro-rated refund within the first 7 days of any paid tier. After 7 days the curr
 
 Prices are VAT-inclusive. The owner's business entity issues FIRS-compliant tax invoices on request via the dashboard `Download invoice` action.
 
-> **Implementation status (2026-06-21):** the pricing decision is canonical and the Paystack migration has landed. Worker billing lives in `paystack.py` / `subscriptions.py` / `usage.py` / `routes/billing.py`, with the live-key `402 subscription_inactive` gate in `routes/parse.py`. The dashboard checkout (`apps/app` Billing page → `/api/billing/init` → worker) is in place; overage auto-invoicing (end-of-cycle cron) is the one remaining follow-up.
+> **Implementation status (2026-06-22):** the pricing decision is canonical and the Paystack migration has landed. Worker billing lives in `paystack.py` / `subscriptions.py` / `usage.py` / `routes/billing.py`, with the live-key `402 subscription_inactive` gate in `routes/parse.py`. The dashboard checkout (`apps/app` Billing page → `/api/billing/init` → worker) is in place. Overage auto-invoicing is landed: an in-process daily scheduler (`billing_cron.py`) bills each closed cycle, idempotent per `(owner, cycle)` and self-healing across restarts, with per-cycle tier economics frozen in `cycle_tiers`. The overage metering window is the UTC calendar month (cap resets on the 1st, not the subscription anchor); the overage invoice is a separate Paystack charge from the base-fee renewal. Both `/v1/usage` and the cron read that one window definition (`audit.py`).
 
 ## Privacy posture (LOCKED)
 
