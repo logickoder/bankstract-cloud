@@ -20,5 +20,11 @@ minimumReleaseAgeExclude:
 overrides:
   postcss@<8.5.10: ">=8.5.10"
   esbuild@>=0.27.3 <0.28.1: ">=0.28.1"
+  # GHSA-67mh-4wv8-2f99: esbuild <=0.24.2 dev-server CORS. Reaches us only via the deprecated
+  # @esbuild-kit loader (drizzle-kit config load, no dev server), so unreachable in practice;
+  # bump anyway to clear the advisory.
+  esbuild@<0.25.0: ">=0.25.0"
+  # GHSA-gpj5-g38j-94v9: drizzle-orm <0.45.2 SQL identifier-injection (reachable via auth DB).
+  drizzle-orm@<0.45.2: ">=0.45.2"
 
 # apps/worker is Python (uv-managed) and has no package.json. pnpm skips it.
