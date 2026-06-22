@@ -4,6 +4,9 @@ packages:
 allowBuilds:
   # Unused: apps/app uses libSQL (prebuilt). better-sqlite3 lingers only as a Better Auth
   # optional peer; never build its native binary (it fails under Node 24 and we don't load it).
+  # @sentry/cli downloads a binary for source-map upload. We run Sentry server-side only with no
+  # upload (no withSentryConfig), so its postinstall is unused.
+  '@sentry/cli': false
   better-sqlite3: false
   esbuild: true
   sharp: true

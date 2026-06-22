@@ -19,6 +19,7 @@
     "@bankstract/ui": "workspace:*",
     "@libsql/client": "^0.14.0",
     "@radix-ui/react-dialog": "^1.1.6",
+    "@sentry/nextjs": "^10.59.0",
     "better-auth": "^1.2.7",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.469.0",

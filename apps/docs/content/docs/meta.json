@@ -4,6 +4,7 @@
     "index",
     "quickstart",
     "authentication",
+    "sdk",
     "formats",
     "errors",
     "limits-billing",
