@@ -5,16 +5,13 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from typing import Any, cast
+
+from .clock import utcnow_iso
 
 _ACTIVE = "active"
 _INACTIVE = "inactive"
 _NONE = "none"
-
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
 
 
 @dataclass(frozen=True)
@@ -55,12 +52,21 @@ class SubscriptionStore:
         ).fetchone()
         return row["customer_code"] if row else None
 
+    def billable_owners(self) -> list[tuple[str, str, str]]:
+        # (owner, customer_code, tier) for owners that can be billed: a Paystack customer is
+        # mapped and a tier is set. Drives the overage cron's per-cycle tier snapshot.
+        rows = self._conn.execute(
+            "SELECT owner, customer_code, tier FROM subscriptions "
+            "WHERE customer_code IS NOT NULL AND tier IS NOT NULL"
+        ).fetchall()
+        return [(r["owner"], r["customer_code"], r["tier"]) for r in rows]
+
     def record_event(self, event_key: str) -> bool:
         # Idempotency ledger: True if newly recorded, False if this delivery was already seen.
         try:
             self._conn.execute(
                 "INSERT INTO webhook_events (event_key, received_at) VALUES (?, ?)",
-                (event_key, _now()),
+                (event_key, utcnow_iso()),
             )
             self._conn.commit()
             return True
@@ -75,7 +81,7 @@ class SubscriptionStore:
             "VALUES (?, ?, ?, ?) "
             "ON CONFLICT(owner) DO UPDATE SET customer_code = excluded.customer_code, "
             "updated_at = excluded.updated_at",
-            (owner, customer_code, _INACTIVE, _now()),
+            (owner, customer_code, _INACTIVE, utcnow_iso()),
         )
         self._conn.commit()
 
@@ -97,7 +103,7 @@ class SubscriptionStore:
                 tier,
                 _ACTIVE,
                 current_period_end,
-                _now(),
+                utcnow_iso(),
                 customer_code,
             ),
         )
@@ -106,7 +112,7 @@ class SubscriptionStore:
     def deactivate_by_customer(self, customer_code: str) -> None:
         self._conn.execute(
             "UPDATE subscriptions SET status = ?, updated_at = ? WHERE customer_code = ?",
-            (_INACTIVE, _now(), customer_code),
+            (_INACTIVE, utcnow_iso(), customer_code),
         )
         self._conn.commit()
 

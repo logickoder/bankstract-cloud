@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,8 +16,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import __version__
 from .audit import AuditLog
 from .auth import KeyStore
+from .billing_cron import billing_scheduler
 from .config import get_settings
 from .db import connect, run_migrations
+from .overage_ledger import CycleTierStore, OverageLedger
 from .paystack import PaystackClient
 from .rate_limit import RateLimiter
 from .responses import class_for_status, error_response
@@ -40,10 +43,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         rate_limiter=RateLimiter(conn),
         paystack=PaystackClient(secret_key=settings.paystack_secret_key),
         subscriptions=SubscriptionStore(conn),
+        cycle_tiers=CycleTierStore(conn),
+        overage_ledger=OverageLedger(conn),
     )
+    scheduler = asyncio.create_task(billing_scheduler(app.state.app_state))
     try:
         yield
     finally:
+        # Stop the ticker before closing the shared connection it would otherwise use.
+        scheduler.cancel()
+        with suppress(asyncio.CancelledError):
+            await scheduler
         conn.close()
 
 

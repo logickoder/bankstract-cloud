@@ -19,6 +19,14 @@ class OverageReport:
     overage_amount_kobo: int
 
 
+def overage_for(period_parses: int, *, monthly_cap: int, overage_kobo: int) -> tuple[int, int]:
+    """(overage_parses, overage_amount_kobo) for a cycle. The single definition of the overage
+    formula: both the live-tier path (compute_overage) and the frozen-snapshot cron compute
+    through it, so the dashboard figure and the invoice can never diverge on the math."""
+    overage = max(0, period_parses - monthly_cap)
+    return overage, overage * overage_kobo
+
+
 def compute_overage(*, tier: str | None, period_parses: int) -> OverageReport:
     """Overage for one billing cycle. period_parses is the SUCCESS count across all of an
     owner's keys (failures never count). Unknown/None tier (test key, no subscription) has
@@ -32,13 +40,15 @@ def compute_overage(*, tier: str | None, period_parses: int) -> OverageReport:
             overage_parses=0,
             overage_amount_kobo=0,
         )
-    overage = max(0, period_parses - t.monthly_cap)
+    overage, amount = overage_for(
+        period_parses, monthly_cap=t.monthly_cap, overage_kobo=t.overage_kobo
+    )
     return OverageReport(
         tier=t.name,
         monthly_cap=t.monthly_cap,
         period_parses=period_parses,
         overage_parses=overage,
-        overage_amount_kobo=overage * t.overage_kobo,
+        overage_amount_kobo=amount,
     )
 
 
