@@ -10,8 +10,11 @@ services:
     build:
       context: ../apps/worker
     environment:
-      BANKSTRACT_CLOUD_ENV: production
+      # Settings.env reads the bare ENV var (no prefix); anything else is ignored.
+      ENV: production
       AUDIT_DB_PATH: /data/audit.sqlite
+      # Optional Sentry error reporting (server-side, privacy-scrubbed). Empty = disabled.
+      SENTRY_DSN: ${SENTRY_DSN:-}
       # Must match the demo's DEMO_API_KEY so the anonymous demo tier authenticates.
       DEMO_API_KEY: ${DEMO_API_KEY:-bsk_test_demo_selfhost}
       # Empty disables Turnstile verification. Set a real secret in production.
@@ -37,6 +40,8 @@ services:
       # Server-only, runtime: where the demo's /api/parse proxy forwards to.
       WORKER_URL: http://worker:8000
       DEMO_API_KEY: ${DEMO_API_KEY:-bsk_test_demo_selfhost}
+      # Optional Sentry error reporting (server-side, privacy-scrubbed). Empty = disabled.
+      SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       - worker
     restart: unless-stopped
