@@ -19,6 +19,7 @@ from .auth import KeyStore
 from .billing_cron import billing_scheduler
 from .config import get_settings
 from .db import connect, run_migrations
+from .observability import init_sentry
 from .overage_ledger import CycleTierStore, OverageLedger
 from .paystack import PaystackClient
 from .rate_limit import RateLimiter
@@ -29,6 +30,9 @@ from .subscriptions import SubscriptionStore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("bankstract_cloud")
+
+# Before the app + ASGI integrations load. No-op without SENTRY_DSN (dev/test).
+init_sentry(get_settings())
 
 
 @asynccontextmanager
