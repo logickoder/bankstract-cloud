@@ -1,0 +1,100 @@
+# @logickoder/bankstract
+
+TypeScript SDK for the [bankstract](https://github.com/logickoder/bankstract-cloud) statement-parsing API. Turn a Nigerian bank-statement PDF into structured transactions over a single typed call.
+
+Server-side only. The API key is a secret; never ship it to a browser.
+
+## Install
+
+```bash
+npm install @logickoder/bankstract
+```
+
+Node 18+ (uses the global `fetch`). Ships ESM and CommonJS; types are bundled.
+
+## Usage
+
+```ts
+import { bankstract } from '@logickoder/bankstract'
+import { readFile } from 'node:fs/promises'
+
+const client = bankstract({ apiKey: process.env.BANKSTRACT_API_KEY! })
+
+const pdf = await readFile('statement.pdf')
+const result = await client.parse(pdf)
+
+console.log(result.metadata?.bank, result.transactions.length)
+```
+
+`parse` accepts `Uint8Array | ArrayBuffer | Blob` (a `File` is a `Blob`).
+
+### Redaction
+
+```ts
+const { data, format, redactions } = await client.redact(pdf, { bank: 'gtbank' })
+// `data` is the redacted document bytes (PDF or XLSX), in memory.
+await writeFile(`redacted.${format}`, data)
+```
+
+### Usage and banks
+
+```ts
+const usage = await client.usage()   // tier, parses this cycle, projected overage
+const banks = await client.banks()   // supported bank ids for the `bank` override
+```
+
+## Options
+
+```ts
+bankstract({
+  apiKey,                                   // required
+  baseUrl,    // default 'https://bankstract.logickoder.dev'
+  fetch,      // inject a fetch implementation; default globalThis.fetch
+  timeoutMs,  // per-request timeout, default 30000
+})
+```
+
+Per-call: `parse`/`redact` take `{ bank?, filename?, signal? }`.
+
+## Errors
+
+Every non-2xx response throws a typed `BankstractError` subclass. The API key never appears in the error.
+
+```ts
+import {
+  bankstract,
+  AuthError,
+  SubscriptionInactiveError,
+  PayloadTooLargeError,
+  UnsupportedStatementError,
+  RateLimitError,
+  ServerError,
+  TimeoutError,
+} from '@logickoder/bankstract'
+
+try {
+  await client.parse(pdf)
+} catch (err) {
+  if (err instanceof RateLimitError) {
+    console.log('retry after', err.retryAfter, 'seconds')
+  } else if (err instanceof UnsupportedStatementError) {
+    console.log('no parser matched:', err.errorClass, err.markerCoverage)
+  } else if (err instanceof BankstractError) {
+    console.log(err.status, err.errorClass, err.message)
+  }
+}
+```
+
+| Throws | When |
+|--------|------|
+| `AuthError` | 401, missing/invalid key |
+| `SubscriptionInactiveError` | 402, subscription inactive |
+| `PayloadTooLargeError` | 413, file over 50MB |
+| `UnsupportedStatementError` | 422, no parser / layout drift / reconciliation (see `errorClass`, `markerCoverage`) |
+| `RateLimitError` | 429, with `retryAfter` |
+| `ServerError` | 5xx |
+| `TimeoutError` | request aborted (timeout or your `signal`) |
+
+## License
+
+AGPL-3.0-only. The hosted API is consumed over HTTP; API consumers do not inherit the license.

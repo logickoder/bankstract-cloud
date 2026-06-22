@@ -31,7 +31,7 @@ curl -X POST https://bankstract.logickoder.dev/v1/parse \
 
 ```ts
 // TS SDK (planned)
-import { bankstract } from "@bankstract/sdk"
+import { bankstract } from "@logickoder/bankstract"
 const client = bankstract({ apiKey: process.env.BANKSTRACT_API_KEY! })
 const result = await client.parse(pdfBuffer)
 ```
@@ -306,7 +306,7 @@ pip install bankstract
 bankstract auto statement.pdf -o out.csv
 ```
 
-If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approach is preferred (`pnpm add @bankstract/sdk` or `pip install bankstract-cloud-sdk`). This keeps CLI ergonomics in the engine repo.
+If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approach is preferred (`pnpm add @logickoder/bankstract` or `pip install bankstract-cloud-sdk`). This keeps CLI ergonomics in the engine repo.
 
 ## Risks
 
@@ -340,7 +340,7 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 - [ ] Paystack integration for NGN consumer billing
 - [ ] Opt-in 24h ephemeral history per signed-in user
 - [ ] Status page (`status.bankstract.logickoder.dev`) once first B2B customer asks
-- [ ] B2B SDK packages (`@bankstract/sdk` for TS, `bankstract-cloud` PyPI for Python)
+- [ ] B2B SDK packages (`@logickoder/bankstract` for TS, `bankstract-cloud` PyPI for Python)
 - [ ] Webhook callbacks (async parse for files > sync threshold)
 
 ### v2 (post-launch evaluation)

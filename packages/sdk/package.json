@@ -1,0 +1,45 @@
+{
+  "name": "@logickoder/bankstract",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the bankstract statement-parsing API.",
+  "license": "AGPL-3.0-only",
+  "author": "logickoder",
+  "homepage": "https://github.com/logickoder/bankstract-cloud/tree/main/packages/sdk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/logickoder/bankstract-cloud.git",
+    "directory": "packages/sdk"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+      "require": { "types": "./dist/index.d.cts", "default": "./dist/index.cjs" }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "sideEffects": false,
+  "keywords": ["bankstract", "bank statement", "pdf", "parser", "nigeria", "fintech"],
+  "publishConfig": { "access": "public", "provenance": true },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@bankstract/eslint-config": "workspace:*",
+    "@bankstract/tsconfig": "workspace:*",
+    "@bankstract/types": "workspace:*",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.17.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

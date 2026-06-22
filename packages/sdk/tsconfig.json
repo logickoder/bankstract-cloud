@@ -1,0 +1,9 @@
+{
+  "extends": "@bankstract/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "incremental": false
+  },
+  "include": ["src"]
+}
