@@ -116,9 +116,16 @@ export interface DailyCount {
 
 export interface OwnerUsageResponse {
   owner: string
+  /** Subscription tier, or null when the owner has no active paid tier. */
+  tier: string | null
   period_parses: number
   /** 0..1: successful parses / total attempts this cycle. */
   success_rate: number
+  /** Included parses for the tier, or null when there is no cap (no paid tier). */
+  monthly_cap: number | null
+  overage_parses: number
+  /** Projected overage in NGN, exact 2dp string (e.g. "1530.00"). "0.00" within cap. */
+  projected_overage_naira: string
   daily: DailyCount[]
 }
 

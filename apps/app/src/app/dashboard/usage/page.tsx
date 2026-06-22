@@ -23,16 +23,42 @@ export default async function UsagePage() {
         )}
       </Card>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <Card>
           <div className="text-sm text-fg-secondary">Parses this cycle</div>
-          <div className="mt-2 font-mono text-2xl text-fg">{usage?.period_parses ?? 0}</div>
+          <div className="mt-2 font-mono text-2xl text-fg">
+            {(usage?.period_parses ?? 0).toLocaleString()}
+            {usage?.monthly_cap != null ? (
+              <span className="text-base text-fg-tertiary">
+                {' / '}
+                {usage.monthly_cap.toLocaleString()}
+              </span>
+            ) : null}
+          </div>
+          {usage?.monthly_cap != null ? (
+            <div className="mt-1 text-xs text-fg-tertiary">cap resets on the 1st</div>
+          ) : null}
         </Card>
         <Card>
           <div className="text-sm text-fg-secondary">Success rate</div>
           <div className="mt-2 font-mono text-2xl text-fg">
             {hasData ? `${Math.round(usage.success_rate * 100)}%` : 'n/a'}
           </div>
+        </Card>
+        <Card>
+          <div className="text-sm text-fg-secondary">Projected overage</div>
+          {usage?.monthly_cap != null ? (
+            <>
+              <div className="mt-2 font-mono text-2xl text-fg">
+                ₦{usage.projected_overage_naira}
+              </div>
+              <div className="mt-1 text-xs text-fg-tertiary">
+                {usage.overage_parses.toLocaleString()} parses over cap
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 font-mono text-2xl text-fg-tertiary">n/a</div>
+          )}
         </Card>
       </div>
     </div>

@@ -108,8 +108,13 @@ class DailyCount(BaseModel):
 
 class OwnerUsageResponse(BaseModel):
     owner: str
+    tier: str | None
     period_parses: int
     success_rate: float
+    monthly_cap: int | None
+    overage_parses: int
+    # Projected overage in NGN, exact 2dp string (e.g. "1530.00"). "0.00" within cap.
+    projected_overage_naira: str
     daily: list[DailyCount]
 
 

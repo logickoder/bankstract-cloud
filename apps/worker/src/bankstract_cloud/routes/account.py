@@ -80,9 +80,17 @@ async def admin_usage(
     state: AppState = Depends(get_state),
 ) -> OwnerUsageResponse:
     total, ok, daily = state.audit.owner_usage(owner, since_iso=current_period_start_iso())
+    # Same overage math as /v1/usage (compute_overage), so the dashboard figure and the
+    # invoice never disagree (Directive 6). Cap comes from the owner's subscription tier.
+    tier = state.subscriptions.status_for_owner(owner).tier
+    report = compute_overage(tier=tier, period_parses=ok)
     return OwnerUsageResponse(
         owner=owner,
+        tier=report.tier,
         period_parses=ok,
         success_rate=round(ok / total, 4) if total else 0.0,
+        monthly_cap=report.monthly_cap,
+        overage_parses=report.overage_parses,
+        projected_overage_naira=kobo_to_naira_str(report.overage_amount_kobo),
         daily=[DailyCount(date=d, count=c) for d, c in daily],
     )
