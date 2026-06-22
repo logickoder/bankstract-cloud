@@ -8,16 +8,26 @@ import { useState } from 'react'
 
 import type { SubscribeResponse, SubscriptionStatusResponse } from '@/lib/worker'
 
-// Tier economics mirror PRD § Pricing. Naira renders in JetBrains Mono (voice rule).
+type Interval = 'monthly' | 'annual'
+
+// Tier economics mirror PRD § Pricing. Annual = 15% off (monthly x12 x0.85). Naira renders in
+// JetBrains Mono (voice rule).
 const TIERS = [
-  { id: 'starter', name: 'Starter', price: '9,500', cap: '1,000', overage: '15' },
-  { id: 'growth', name: 'Growth', price: '35,000', cap: '10,000', overage: '12' },
-  { id: 'scale', name: 'Scale', price: '150,000', cap: '100,000', overage: '8' },
+  { id: 'starter', name: 'Starter', price: '9,500', priceAnnual: '96,900', cap: '1,000', overage: '15' },
+  { id: 'growth', name: 'Growth', price: '35,000', priceAnnual: '357,000', cap: '10,000', overage: '12' },
+  { id: 'scale', name: 'Scale', price: '150,000', priceAnnual: '1,530,000', cap: '100,000', overage: '8' },
 ] as const
+
+function tabClass(active: boolean): string {
+  return active
+    ? 'rounded-md bg-bg px-3 py-1.5 font-medium text-fg'
+    : 'rounded-md px-3 py-1.5 text-fg-secondary'
+}
 
 export function BillingClient({ status }: { status: SubscriptionStatusResponse | null }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [interval, setBillingInterval] = useState<Interval>('monthly')
 
   async function subscribe(tier: string) {
     setBusy(tier)
@@ -25,7 +35,7 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
     const res = await fetch('/api/billing/init', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ tier }),
+      body: JSON.stringify({ tier, interval }),
     })
     if (!res.ok) {
       setBusy(null)
@@ -46,15 +56,7 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
           </h2>
           <Badge tone="success">active</Badge>
         </div>
-        <p className="mt-2 text-sm text-fg-secondary">
-          {current ? (
-            <>
-              <span className="font-mono">₦{current.price}</span>/mo. Live keys parse.
-            </>
-          ) : (
-            'Live keys parse.'
-          )}
-        </p>
+        <p className="mt-2 text-sm text-fg-secondary">Live keys parse.</p>
         {status.current_period_end ? (
           <p className="mt-1 text-sm text-fg-tertiary">
             Renews <span className="font-mono">{status.current_period_end.slice(0, 10)}</span>.
@@ -66,12 +68,33 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
 
   return (
     <div className="mt-8">
+      <div className="mb-6 inline-flex rounded-lg border border-border p-1 text-sm">
+        <button
+          type="button"
+          onClick={() => setBillingInterval('monthly')}
+          className={tabClass(interval === 'monthly')}
+        >
+          Monthly
+        </button>
+        <button
+          type="button"
+          onClick={() => setBillingInterval('annual')}
+          className={tabClass(interval === 'annual')}
+        >
+          Annual <span className="text-fg-tertiary">-15%</span>
+        </button>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         {TIERS.map((t) => (
           <Card key={t.id} className="flex flex-col">
             <h2 className="font-display text-lg font-semibold text-fg">{t.name}</h2>
-            <div className="mt-2 font-mono text-2xl text-fg">₦{t.price}</div>
-            <div className="text-xs text-fg-tertiary">per month</div>
+            <div className="mt-2 font-mono text-2xl text-fg">
+              ₦{interval === 'annual' ? t.priceAnnual : t.price}
+            </div>
+            <div className="text-xs text-fg-tertiary">
+              {interval === 'annual' ? 'per year' : 'per month'}
+            </div>
             <ul className="mt-4 flex flex-col gap-1.5 text-sm text-fg-secondary">
               <li>
                 <span className="font-mono">{t.cap}</span> parses/mo included

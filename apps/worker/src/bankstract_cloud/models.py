@@ -160,6 +160,7 @@ class SubscribeRequest(BaseModel):
     owner: str
     email: str
     tier: Literal["starter", "growth", "scale"]
+    interval: Literal["monthly", "annual"] = "monthly"
     # Where Paystack returns the user after payment (apps/app supplies its own URL).
     callback_url: str | None = None
 

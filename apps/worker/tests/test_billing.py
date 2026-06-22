@@ -160,6 +160,44 @@ def test_subscribe_initializes_checkout(harness: Harness, monkeypatch: pytest.Mo
     assert res.json()["reference"] == "ref_1"
 
 
+def test_subscribe_annual_uses_annual_plan(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fake_init(
+        self: Any, *, email: str, plan_code: str, owner: str, callback_url: str | None = None
+    ) -> dict[str, str]:
+        assert plan_code == "PLN_starter_annual_test"
+        return {"authorization_url": "u", "access_code": "a", "reference": "r"}
+
+    monkeypatch.setattr("bankstract_cloud.paystack.PaystackClient.init_subscription", fake_init)
+    res = harness.client.post(
+        "/v1/admin/billing/subscribe",
+        json={"owner": "u", "email": "u@e.test", "tier": "starter", "interval": "annual"},
+        headers=auth_header(harness.admin_token),
+    )
+    assert res.status_code == 200
+
+
+def test_annual_plan_webhook_maps_to_tier(harness: Harness) -> None:
+    # A subscription.create carrying the annual plan code must still resolve to the tier.
+    owner, customer = "user_annual", "CUS_annual"
+    _webhook(harness, _charge(owner, customer))
+    _webhook(harness, _sub_create(customer, "PLN_starter_annual_test"))
+    status = _status(harness, owner)
+    assert status["status"] == "active"
+    assert status["tier"] == "starter"
+
+
+def test_subscribe_unconfigured_annual_503(harness: Harness) -> None:
+    # The Scale annual plan code is unset in the test env -> interval not configured.
+    res = harness.client.post(
+        "/v1/admin/billing/subscribe",
+        json={"owner": "u", "email": "u@e.test", "tier": "scale", "interval": "annual"},
+        headers=auth_header(harness.admin_token),
+    )
+    assert res.status_code == 503
+
+
 def test_live_key_requires_active_subscription(harness: Harness) -> None:
     issued = harness.client.app.state.app_state.keystore.issue("prod", "live", owner="owner_live")
 

@@ -83,8 +83,25 @@ describe('POST /api/billing/init', () => {
       owner: 'user_1',
       email: 'dev@acme.test',
       tier: 'growth',
+      interval: 'monthly',
       callback_url: 'https://app.test/dashboard/billing',
     })
+  })
+
+  it('forwards interval=annual when set', async () => {
+    mockGetUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
+    mockWorkerFetch.mockResolvedValue(
+      new Response(JSON.stringify({ authorization_url: 'https://paystack.test/checkout' }), {
+        status: 200,
+      }),
+    )
+
+    await POST(req({ tier: 'scale', interval: 'annual' }))
+
+    const [, init] = mockWorkerFetch.mock.calls[0]!
+    const body = JSON.parse(init!.body as string) as { tier: string; interval: string }
+    expect(body.tier).toBe('scale')
+    expect(body.interval).toBe('annual')
   })
 
   it('forwards the worker status verbatim on failure', async () => {

@@ -58,7 +58,7 @@ describe('BillingClient', () => {
     await waitFor(() => expect(loc.href).toBe('https://paystack.test/checkout'))
     const [, init] = vi.mocked(fetch).mock.calls[0]!
     expect(typeof init?.body).toBe('string')
-    expect(JSON.parse(init!.body as string)).toEqual({ tier: 'growth' })
+    expect(JSON.parse(init!.body as string)).toEqual({ tier: 'growth', interval: 'monthly' })
   })
 
   it('shows an error and does not redirect when checkout init fails', async () => {
@@ -70,6 +70,31 @@ describe('BillingClient', () => {
 
     expect(await screen.findByText(/could not start checkout/i)).toBeDefined()
     expect(loc.href).toBe('')
+  })
+
+  it('shows annual prices after toggling to Annual', async () => {
+    render(<BillingClient status={null} />)
+    await userEvent.click(screen.getByRole('button', { name: /annual/i }))
+    expect(screen.getByText('₦96,900')).toBeDefined()
+    expect(screen.queryByText('₦9,500')).toBeNull()
+  })
+
+  it('posts the selected interval on subscribe', async () => {
+    const loc = stubLocation()
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ authorization_url: 'https://paystack.test/checkout' }), {
+        status: 200,
+      }),
+    )
+    render(<BillingClient status={null} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /annual/i }))
+    const starterCard = screen.getByRole('heading', { name: 'Starter' }).closest('div')!
+    await userEvent.click(within(starterCard).getByRole('button', { name: /subscribe/i }))
+
+    await waitFor(() => expect(loc.href).toBe('https://paystack.test/checkout'))
+    const [, init] = vi.mocked(fetch).mock.calls[0]!
+    expect(JSON.parse(init!.body as string)).toEqual({ tier: 'starter', interval: 'annual' })
   })
 
   it('renders the current-plan card when the subscription is active', () => {

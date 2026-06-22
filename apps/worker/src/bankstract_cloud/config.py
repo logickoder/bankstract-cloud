@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     paystack_plan_starter: str = ""
     paystack_plan_growth: str = ""
     paystack_plan_scale: str = ""
+    # Annual prepay plans (yearly interval, 15% off). Separate Paystack PLN_ codes per tier;
+    # the tier still drives the cap/overage, the interval only selects which plan is charged.
+    paystack_plan_starter_annual: str = ""
+    paystack_plan_growth_annual: str = ""
+    paystack_plan_scale_annual: str = ""
 
     turnstile_secret_key: str = ""
 
@@ -46,19 +51,32 @@ class Settings(BaseSettings):
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
 
-    @property
-    def paystack_plan_by_tier(self) -> dict[str, str]:
-        return {
-            "starter": self.paystack_plan_starter,
-            "growth": self.paystack_plan_growth,
-            "scale": self.paystack_plan_scale,
-        }
+    def _plan_codes(self) -> list[tuple[str, str, str]]:
+        # The single enumeration of the plan-code settings: (tier, interval, code). Both the
+        # forward lookup and the webhook reverse map derive from it, so adding a tier/interval
+        # is a one-place edit.
+        return [
+            ("starter", "monthly", self.paystack_plan_starter),
+            ("growth", "monthly", self.paystack_plan_growth),
+            ("scale", "monthly", self.paystack_plan_scale),
+            ("starter", "annual", self.paystack_plan_starter_annual),
+            ("growth", "annual", self.paystack_plan_growth_annual),
+            ("scale", "annual", self.paystack_plan_scale_annual),
+        ]
+
+    def plan_for(self, tier: str, interval: str) -> str:
+        """Paystack plan code for a (tier, interval). Empty string when unconfigured."""
+        for t, iv, code in self._plan_codes():
+            if t == tier and iv == interval:
+                return code
+        return ""
 
     @property
     def tier_by_paystack_plan(self) -> dict[str, str]:
-        # Reverse map for webhook plan_code -> tier. Empty (unconfigured) codes are skipped
-        # so a blank dev config never maps "" to a tier.
-        return {code: tier for tier, code in self.paystack_plan_by_tier.items() if code}
+        # Reverse map for webhook plan_code -> tier, across BOTH intervals (a subscription.create
+        # carries whichever plan was charged). Empty (unconfigured) codes are skipped so a blank
+        # dev config never maps "" to a tier.
+        return {code: tier for tier, _interval, code in self._plan_codes() if code}
 
 
 @lru_cache

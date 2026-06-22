@@ -7,7 +7,10 @@ import { z } from 'zod'
 import { getUser } from '@/lib/session'
 import { passthrough, workerFetch } from '@/lib/worker'
 
-const initSchema = z.object({ tier: z.enum(['starter', 'growth', 'scale']) })
+const initSchema = z.object({
+  tier: z.enum(['starter', 'growth', 'scale']),
+  interval: z.enum(['monthly', 'annual']).default('monthly'),
+})
 
 // Start a Paystack subscription checkout. owner + email come from the session; the worker
 // holds the Paystack secret and returns the inline-checkout params we hand back to the client.
@@ -29,6 +32,7 @@ export async function POST(request: Request) {
         owner: user.id,
         email: user.email,
         tier: parsed.data.tier,
+        interval: parsed.data.interval,
         callback_url,
       }),
     }),

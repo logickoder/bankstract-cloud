@@ -37,6 +37,7 @@ DEMO_KEY = "bsk_test_demo_anonymous_key"
 ADMIN_TOKEN = "admin-secret-token"
 PAYSTACK_SECRET = "sk_test_paystack_dummy"  # signs webhook fixtures; never a real key
 PAYSTACK_PLAN_STARTER = "PLN_starter_test"
+PAYSTACK_PLAN_STARTER_ANNUAL = "PLN_starter_annual_test"
 MAX_BYTES = 2000
 
 
@@ -67,6 +68,7 @@ def _make_harness(
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "")  # disabled in tests
     monkeypatch.setenv("PAYSTACK_SECRET_KEY", PAYSTACK_SECRET)
     monkeypatch.setenv("PAYSTACK_PLAN_STARTER", PAYSTACK_PLAN_STARTER)
+    monkeypatch.setenv("PAYSTACK_PLAN_STARTER_ANNUAL", PAYSTACK_PLAN_STARTER_ANNUAL)
     monkeypatch.setenv("DEMO_RATE_LIMIT_MAX", "5")
 
     from bankstract_cloud.config import get_settings

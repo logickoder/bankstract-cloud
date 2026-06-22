@@ -40,9 +40,11 @@ async def admin_subscribe(
     _: None = Depends(require_admin),
     state: AppState = Depends(get_state),
 ) -> SubscribeResponse:
-    plan_code = state.settings.paystack_plan_by_tier.get(body.tier, "")
+    plan_code = state.settings.plan_for(body.tier, body.interval)
     if not plan_code:
-        raise HTTPException(status_code=503, detail=f"tier {body.tier} not configured")
+        raise HTTPException(
+            status_code=503, detail=f"tier {body.tier} ({body.interval}) not configured"
+        )
     try:
         params = await state.paystack.init_subscription(
             email=body.email,
