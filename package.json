@@ -6,7 +6,7 @@
   "description": "Hosted statement parsing API for Nigerian banks. AGPL-3.0 SaaS layer over the bankstract MIT engine.",
   "homepage": "https://github.com/logickoder/bankstract-cloud",
   "author": "Jeffery Orazulike (https://github.com/logickoder)",
-  "packageManager": "pnpm@11.2.2",
+  "packageManager": "pnpm@11.8.0",
   "engines": {
     "node": ">=20"
   },
