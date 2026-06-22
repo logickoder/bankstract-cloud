@@ -59,7 +59,7 @@ jobs:
       - run: pnpm build
 
   e2e:
-    name: demo e2e (playwright)
+    name: e2e (playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -71,5 +71,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Browser binaries + their system deps. Cached by the action via the pnpm store
       # is not enough. Playwright browsers live elsewhere, so install them explicitly.
+      # One install serves every workspace; both apps reuse the same chromium.
       - run: pnpm --filter demo exec playwright install --with-deps chromium
       - run: pnpm --filter demo test:e2e
+      # apps/app spins up its own dev server (drizzle push + next dev :3002) per its
+      # playwright.config; the worker is stubbed (WORKER_URL points at a dead port).
+      - run: pnpm --filter app test:e2e
