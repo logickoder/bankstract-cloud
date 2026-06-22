@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { readFile, writeFile } from 'node:fs/promises'
-
 import { expect, test } from '@playwright/test'
 
-const LOG = './data/magic-e2e.log'
+import { signInWithMagicLink } from './helpers'
 
 test('unauthenticated dashboard redirects to sign-in', async ({ page }) => {
   await page.goto('/dashboard')
@@ -20,29 +18,7 @@ test('sign-in shows OAuth options + magic-link', async ({ page }) => {
 })
 
 test('magic-link sign-in lands on the dashboard, then signs out', async ({ page }) => {
-  await writeFile(LOG, '')
-  await page.goto('/sign-in')
-  await page.getByPlaceholder('you@company.com').fill('e2e@example.com')
-  await page.getByRole('button', { name: 'Email me a magic link' }).click()
-  await expect(page.getByText('Check your inbox')).toBeVisible()
-
-  let url = ''
-  for (let i = 0; i < 25; i++) {
-    const line = (await readFile(LOG, 'utf8').catch(() => ''))
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .pop()
-    if (line) {
-      url = line
-      break
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  expect(url).toContain('/api/auth/magic-link/verify')
-
-  await page.goto(url)
-  await expect(page).toHaveURL(/\/dashboard/)
+  await signInWithMagicLink(page, 'e2e@example.com')
   await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()

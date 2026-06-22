@@ -50,7 +50,8 @@ export const auth = betterAuth({
           const file = process.env.MAGIC_LINK_LOG_FILE
           if (file) {
             const { appendFile } = await import('node:fs/promises')
-            await appendFile(file, `${url}\n`)
+            // Prefix the email so parallel e2e workers can each pick out their own link.
+            await appendFile(file, `${email} ${url}\n`)
           }
           return
         }
