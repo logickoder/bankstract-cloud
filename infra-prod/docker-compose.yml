@@ -85,6 +85,11 @@ services:
     environment:
       # The Cloudflare Pages host Caddy proxies /docs/* to (e.g. bankstract-docs.pages.dev).
       DOCS_UPSTREAM: ${DOCS_UPSTREAM:-}
+    # Labels read by the outer caddy-docker-proxy: route this hostname to this container's :80 and
+    # auto-provision TLS. Ignored if you front the stack a different way (Coolify/NPM/manual).
+    labels:
+      caddy: ${PROXY_HOST:-bankstract.logickoder.dev}
+      caddy.reverse_proxy: "{{upstreams 80}}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     networks:
