@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2026 Jeffery Orazulike
+#
+# Deploys apps/docs (a static export) to Cloudflare Pages. The product surfaces docs at /docs:
+# Caddy proxies /docs/* to the Pages host (DOCS_UPSTREAM). next.config sets basePath '/docs', so
+# the exported HTML references /docs/_next/* and the static search index lives at /docs/api/search,
+# but Next still writes the files at the top of out/. So we stage out/ UNDER dist/docs/ and deploy
+# dist/ - then the Pages host serves /docs/index.html, /docs/_next/*, /docs/api/search and the
+# asset + search urls resolve.
+#
+# Owner sets two repo secrets: CLOUDFLARE_API_TOKEN (a token with Pages:Edit) and
+# CLOUDFLARE_ACCOUNT_ID. First run auto-creates the `bankstract-docs` project; set DOCS_UPSTREAM in
+# infra-prod/.env to the resulting bankstract-docs.pages.dev host.
+name: docs deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/docs/**
+      - packages/seo/**
+      - pnpm-lock.yaml
+  workflow_dispatch:
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: build + deploy (cloudflare pages)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter docs build
+      # Next exports to apps/docs/out/ at the top level, but the HTML references /docs/* (basePath).
+      # Stage it under docs/ so the Pages host serves everything beneath /docs and the urls resolve.
+      - run: mkdir -p dist/docs && cp -r apps/docs/out/. dist/docs/
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=bankstract-docs --branch=main

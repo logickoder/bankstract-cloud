@@ -93,7 +93,18 @@ First deploy: fill **Tier 1 + Resend**, leave the rest empty, get it live, then 
 ## DNS
 
 1. `A` record: `bankstract.logickoder.dev` -> the box IP (Namecheap; DNS-only, no proxy). Caddy provisions TLS once `SITE_ADDRESS` is that hostname.
-2. Docs: no DNS record needed. Deploy the docs app to a Cloudflare Pages project and set `DOCS_UPSTREAM` to its host (e.g. `bankstract-docs.pages.dev`); Caddy proxies `/docs/*` to it on the product domain.
+2. Docs: no DNS record needed. The docs ship to a Cloudflare Pages project (see below) and Caddy proxies `/docs/*` to its host on the product domain.
+
+## Docs deploy
+
+Docs are a static export (`apps/docs`, Next `output: 'export'`) hosted free on Cloudflare Pages. The [`docs deploy`](../.github/workflows/docs-deploy.yml) workflow builds + deploys on every push to `main` that touches `apps/docs/**` (or runs manually via `workflow_dispatch`). Search is a build-time index the browser queries client-side, so there is no server runtime.
+
+One-time setup:
+
+1. Cloudflare -> My Profile -> API Tokens -> create a token with **Account · Cloudflare Pages · Edit**.
+2. Add two repo secrets (Settings -> Secrets -> Actions): `CLOUDFLARE_API_TOKEN` (that token) and `CLOUDFLARE_ACCOUNT_ID` (Cloudflare dashboard -> any domain -> Account ID).
+3. Push to `main` (or run the workflow manually). The first run auto-creates the `bankstract-docs` Pages project.
+4. Set `DOCS_UPSTREAM` in `.env` to the resulting host (e.g. `bankstract-docs.pages.dev`). Caddy proxies `/docs/*` there; `basePath '/docs'` keeps assets + the search index under that one prefix.
 
 ## OAuth callbacks (important)
 

@@ -6,6 +6,9 @@ import type { MetadataRoute } from 'next'
 
 import { source } from '@/lib/source'
 
+// output:'export' prerenders metadata routes to static files; mark it fully static.
+export const dynamic = 'force-static'
+
 // Every doc + generated API page, so search engines find the whole reference.
 export default function sitemap(): MetadataRoute.Sitemap {
   return source.getPages().map((page) => ({

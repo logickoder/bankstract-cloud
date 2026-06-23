@@ -21,10 +21,13 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col font-sans">
-        {/* The search route lives at /docs/api/search (basePath prefixes it). The client fetches
-            its api URL verbatim - a relative fetch does NOT get basePath auto-prepended the way
-            <Link> does - so point it at the prefixed path explicitly or search 404s. */}
-        <RootProvider search={{ options: { api: '/docs/api/search' } }}>{children}</RootProvider>
+        {/* Static search: type 'static' makes the dialog download the prebuilt Orama index from
+            `api` and search in-browser (no server). The url is fetched verbatim - a relative fetch
+            does NOT get basePath auto-prepended the way <Link> does - so it carries the /docs prefix
+            or the index 404s. */}
+        <RootProvider search={{ options: { type: 'static', api: '/docs/api/search' } }}>
+          {children}
+        </RootProvider>
       </body>
     </html>
   )

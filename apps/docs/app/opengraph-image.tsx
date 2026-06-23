@@ -7,6 +7,9 @@ export const alt = 'bankstract API docs'
 export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 
+// output:'export' prerenders this to a static image file; mark it fully static.
+export const dynamic = 'force-static'
+
 export default function OpengraphImage() {
   return ogImage({
     line1: 'API',
