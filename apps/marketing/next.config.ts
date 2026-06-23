@@ -14,7 +14,7 @@ const config: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
   // Workspace packages ship TS source (no build step). Next must transpile them.
-  transpilePackages: ['@bankstract/seo', '@bankstract/ui'],
+  transpilePackages: ['@bankstract/marketing', '@bankstract/seo', '@bankstract/ui'],
   turbopack: {},
 }
 

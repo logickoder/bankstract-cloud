@@ -1,66 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { buildMetadata, SITE_URL } from '@bankstract/seo'
+import { JsonLd, metadata } from '@bankstract/marketing'
 import { GrainFilter } from '@bankstract/ui'
 import { fraunces, inter, jetbrains } from '@bankstract/ui/fonts'
 
 import './globals.css'
 
-const TITLE = 'bankstract: bank statement parsing API for Nigerian banks'
-const DESCRIPTION =
-  'Parse Nigerian bank statement PDFs into clean transactions and account metadata over one API call. NDPR-compliant redaction. Open source, AGPL-3.0. Built for fintechs.'
-
-export const metadata = buildMetadata({
-  title: TITLE,
-  description: DESCRIPTION,
-  keywords: [
-    'bank statement parsing',
-    'Nigerian banks',
-    'statement API',
-    'PDF parsing',
-    'fintech',
-    'NDPR',
-    'transactions API',
-    'bank statement to CSV',
-  ],
-})
-
-// Organization + SoftwareApplication for rich results. The OSS engine is the trust signal.
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'Organization',
-      name: 'bankstract',
-      url: SITE_URL,
-      sameAs: ['https://github.com/logickoder/bankstract-cloud', 'https://logickoder.dev'],
-    },
-    {
-      '@type': 'SoftwareApplication',
-      name: 'bankstract',
-      applicationCategory: 'FinanceApplication',
-      operatingSystem: 'Web',
-      description: DESCRIPTION,
-      url: SITE_URL,
-      offers: {
-        '@type': 'Offer',
-        price: '9500',
-        priceCurrency: 'NGN',
-        description: 'Starter tier, monthly. Free demo + self-host available.',
-      },
-    },
-  ],
-}
+export { metadata }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}>
       <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <JsonLd />
         <GrainFilter />
         {children}
       </body>

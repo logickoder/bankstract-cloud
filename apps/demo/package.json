@@ -14,6 +14,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@bankstract/demo": "workspace:*",
     "@bankstract/seo": "workspace:*",
     "@bankstract/types": "workspace:*",
     "@bankstract/ui": "workspace:*",

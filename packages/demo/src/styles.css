@@ -1,0 +1,6 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* Copyright (C) 2026 Jeffery Orazulike */
+
+/* Make Tailwind generate utilities for this package's components (relative to this file).
+   Any shell that renders @bankstract/demo imports this after `@import "tailwindcss"`. */
+@source './**/*.tsx';

@@ -6,3 +6,6 @@
    viewport) live in @bankstract/ui/theme.css (shared); importing it also generates
    utilities for the shared components. Fonts come from @bankstract/ui/fonts. */
 @import "@bankstract/ui/theme.css";
+
+/* The demo feature components now live in @bankstract/demo; scan them for utilities. */
+@import "@bankstract/demo/styles.css";
