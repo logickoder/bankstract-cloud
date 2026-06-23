@@ -3,25 +3,29 @@
 
 # infra-prod
 
-The owner's full production stack: **worker + app (dashboard) + demo** behind Caddy, plus a nightly R2 backup. This is distinct from [`infra/`](../infra), which is the public worker+demo self-host bundle (the AGPL claim). Marketing and docs are hosted on Cloudflare Pages, not on this box.
+The owner's full production stack: **worker + web** behind Caddy, plus a nightly R2 backup. `web` is one Next runtime serving marketing `/`, the demo `/demo`, and the dashboard (`/dashboard`, `/sign-in`, `/api/*`) - one process to keep RAM low on a 4GB box. This is distinct from [`infra/`](../infra), the public worker+demo self-host bundle (the AGPL claim). Docs are hosted on Cloudflare Pages (a `docs.*` subdomain), not on this box.
 
 ## Topology
 
 ```
-Cloudflare (TLS, CDN, Turnstile)
+DNS (Namecheap A record) -> box IP
         │
-        ▼  proxied A record -> box IP
-   Caddy :80
+        ▼
+   Caddy :443  (own Let's Encrypt cert)
         ├── /v1/*  /healthz  /readyz   -> worker:8000
-        ├── /app/*                     -> app:3000   (built with basePath /app)
-        └── /  (everything else)       -> demo:3000
+        └── /  (everything else)       -> web:3000
+              ├── /            marketing
+              ├── /demo        consumer demo
+              └── /dashboard   dashboard + /sign-in + /api/*
+
+docs.<domain>  -> Cloudflare Pages (off-box, CNAME)
 ```
 
-Cloudflare terminates TLS (use SSL mode **Full**); Caddy serves plain `:80`. Marketing + docs go on Cloudflare Pages (separate setup; e.g. the apex or a Pages project).
+Caddy terminates TLS itself: DNS points straight at the box (no Cloudflare proxy), so `SITE_ADDRESS=<hostname>` makes Caddy auto-provision a Let's Encrypt cert on `:443`. Docs deploy to a Cloudflare Pages project reached by a `docs.` CNAME.
 
 ## Hosting
 
-Recommended: a **Hetzner Cloud CAX21** (Arm, 4 vCPU / 8GB, ~EUR 6.5/mo) + Cloudflare in front. Any Docker host works; the compose is portable.
+Recommended: a **Hetzner Cloud CAX21** (Arm, 4 vCPU / 8GB, ~EUR 6.5/mo). Any Docker host works; the compose is portable.
 
 Create the server:
 
@@ -40,9 +44,9 @@ ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw --force enable
 curl -fsSL https://get.docker.com | sh
 ```
 
-**Build RAM**: the app image runs a full `pnpm install` + `next build`, which can spike past 4GB. CAX21 (8GB) builds on-box comfortably. On a 4GB CAX11, build the images in CI and have the box pull them instead of building on-box.
+**Build RAM**: the web image runs a full `pnpm install` + `next build`, which can spike past 4GB. CAX21 (8GB) builds on-box comfortably. On a 4GB CAX11, build the image in CI and have the box pull it instead of building on-box.
 
-**Coolify (optional) vs the Caddy in this stack**: Coolify runs its own reverse proxy on :80/:443 and is shaped for "one service = one subdomain". This stack does single-domain **path** routing via its own Caddy, which fights that model. Simplest: run this stack as plain `docker compose` (below) behind Cloudflare, and use Coolify only for other per-subdomain projects. If Coolify must own :80, give this stack's Caddy an internal port and route the domain to it from Coolify.
+**Coolify (optional) vs the Caddy in this stack**: Coolify runs its own reverse proxy on :80/:443 and is shaped for "one service = one subdomain". This stack does single-domain **path** routing via its own Caddy, which fights that model. Simplest: run this stack as plain `docker compose` (below), and use Coolify only for other per-subdomain projects. If Coolify must own :80, give this stack's Caddy an internal port and route the domain to it from Coolify.
 
 **No-passport fallbacks** (if a host's KYC blocks you), all run this compose unchanged: Oracle Cloud Always-Free Arm (`$0`, card-only), Hostinger VPS (~`$5`, card-only), or a home machine + Cloudflare Tunnel (`$0`, no public IP/ports).
 
@@ -54,7 +58,7 @@ cp .env.example .env        # fill the REQUIRED values (see below)
 docker compose up --build -d
 ```
 
-On first boot the app runs `drizzle-kit push` to create the Better Auth schema in the `auth` volume, then serves. The worker runs its Alembic migrations the same way.
+On first boot `web` runs `drizzle-kit push` to create the Better Auth schema in the `auth` volume, then serves. The worker runs its Alembic migrations the same way.
 
 ## Filling `.env`
 
@@ -66,17 +70,17 @@ openssl rand -hex 32                      # -> BETTER_AUTH_SECRET
 echo "bsk_test_$(openssl rand -hex 16)"   # -> DEMO_API_KEY
 ```
 
-**Tier 1 - required to boot.** With only these, the stack comes up: worker parses (test keys, free), demo works, dashboard loads. But nobody can sign in yet (Tier 2).
+**Tier 1 - required to boot.** With only these, the stack comes up: worker parses (test keys, free), the demo works, the dashboard loads. But nobody can sign in yet (Tier 2).
 
 - `PUBLIC_ORIGIN` - the product domain, e.g. `https://bankstract.logickoder.dev`.
-- `ADMIN_API_TOKEN` - shared app <-> worker admin token (the `openssl` output).
+- `ADMIN_API_TOKEN` - shared web <-> worker admin token (the `openssl` output).
 - `BETTER_AUTH_SECRET` - session signing key (the `openssl` output).
-- `DEMO_API_KEY` - shared demo <-> worker key (a `bsk_test_` value).
+- `DEMO_API_KEY` - shared web <-> worker demo key (a `bsk_test_` value).
 
-**Tier 2 - so users can sign in (pick at least one).** Without one, sign-in does not work in prod (magic links only print to the app's server log).
+**Tier 2 - so users can sign in (pick at least one).** Without one, sign-in does not work in prod (magic links only print to the web server log).
 
-- **Resend** (magic-link email, easiest): `resend.com` -> API Keys -> `RESEND_API_KEY=re_...`. Free tier; verify a sending domain in Cloudflare DNS first (until then you can only email yourself).
-- **Google / GitHub OAuth**: create an OAuth app, set the callback to `<PUBLIC_ORIGIN>/app/api/auth/callback/<provider>` (see below), fill the client id + secret.
+- **Resend** (magic-link email, easiest): `resend.com` -> API Keys -> `RESEND_API_KEY=re_...`. Free tier; verify a sending domain in your DNS first (until then you can only email yourself).
+- **Google / GitHub OAuth**: create an OAuth app, set the callback to `<PUBLIC_ORIGIN>/api/auth/callback/<provider>` (see below), fill the client id + secret.
 
 **Tier 3 - defer until ready (empty = feature off).**
 
@@ -87,28 +91,27 @@ echo "bsk_test_$(openssl rand -hex 16)"   # -> DEMO_API_KEY
 
 First deploy: fill **Tier 1 + Resend**, leave the rest empty, get it live, then add the others incrementally.
 
-## Cloudflare + DNS
+## DNS
 
-1. Proxied `A` record: `bankstract.logickoder.dev` -> the box IP.
-2. SSL/TLS mode: **Full**.
-3. Marketing + docs: a Cloudflare Pages project (the box does not serve them).
+1. `A` record: `bankstract.logickoder.dev` -> the box IP (Namecheap; DNS-only, no proxy). Caddy provisions TLS once `SITE_ADDRESS` is that hostname.
+2. Docs: a `CNAME` `docs.bankstract.logickoder.dev` -> the Cloudflare Pages project. Set `DOCS_URL` to match so in-app docs links resolve.
 
 ## OAuth callbacks (important)
 
-The app is path-routed under `/app`, so Better Auth lives at `<PUBLIC_ORIGIN>/app/api/auth`. Register the OAuth callbacks accordingly:
+Auth is origin-based (the dashboard is a route group, not an `/app` path), so Better Auth lives at `<PUBLIC_ORIGIN>/api/auth`. Register the OAuth callbacks accordingly:
 
-- Google: `<PUBLIC_ORIGIN>/app/api/auth/callback/google`
-- GitHub: `<PUBLIC_ORIGIN>/app/api/auth/callback/github`
+- Google: `<PUBLIC_ORIGIN>/api/auth/callback/google`
+- GitHub: `<PUBLIC_ORIGIN>/api/auth/callback/github`
 
 ## Post-deploy verification
 
-The `basePath: /app` routing is only exercisable in this prod topology (dev/e2e run at root). After the first deploy, **verify the auth flow under `/app`**:
+After the first deploy, verify the surfaces + auth flow:
 
-- `GET <PUBLIC_ORIGIN>/app/sign-in` renders.
-- Magic-link or OAuth sign-in completes and lands on `<PUBLIC_ORIGIN>/app/dashboard`.
-- The dashboard reads usage/billing (confirms the app -> worker admin proxy + `ADMIN_API_TOKEN` match).
+- `GET <PUBLIC_ORIGIN>/` renders marketing; `/demo` renders the demo; `docs.<domain>` serves docs.
+- `GET <PUBLIC_ORIGIN>/sign-in` renders, and magic-link or OAuth sign-in lands on `<PUBLIC_ORIGIN>/dashboard`.
+- The dashboard reads usage/billing (confirms the web -> worker admin proxy + `ADMIN_API_TOKEN` match).
 
-If sign-in misbehaves, check `BETTER_AUTH_URL` ends with `/app` and the OAuth callbacks include `/app`.
+If sign-in misbehaves, check `BETTER_AUTH_URL` is the bare `<PUBLIC_ORIGIN>` (no `/app`) and the OAuth callbacks have no `/app`.
 
 ## Backups
 
@@ -116,4 +119,4 @@ The `backup` sidecar snapshots both SQLite DBs nightly via `sqlite3 .backup` (WA
 
 ## Volumes
 
-`audit` (worker DB), `auth` (app DB), `caddy_data` + `caddy_config`. Back up the two DB volumes; the rest is reproducible.
+`audit` (worker DB), `auth` (web's Better Auth DB), `caddy_data` + `caddy_config`. Back up the two DB volumes; the rest is reproducible.

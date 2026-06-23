@@ -1,13 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 #
-# Behind Cloudflare (TLS terminated upstream), so plain :80. Marketing + docs live on Cloudflare
-# Pages and never reach this box. For a standalone box with its own TLS, replace ":80" with your
-# hostname and Caddy auto-provisions a Let's Encrypt cert.
+# DNS points straight at this box (Namecheap, no Cloudflare proxy). Set SITE_ADDRESS to the
+# hostname (e.g. bankstract.logickoder.dev) and Caddy auto-provisions a free Let's Encrypt cert
+# on :443. Docs live on a Cloudflare Pages subdomain (docs.*) and never reach this box.
 
-# SITE_ADDRESS empty -> ":80" (plain HTTP, correct behind Cloudflare which terminates TLS).
-# Set it to your hostname (e.g. bankstract.logickoder.dev) and Caddy auto-provisions a free
-# Let's Encrypt cert on :443 - the path when DNS points straight at the box (no Cloudflare).
+# SITE_ADDRESS empty -> ":80" (plain HTTP, e.g. local smoke). A hostname -> Caddy-managed TLS.
 {$SITE_ADDRESS::80} {
 	# Match the worker's 50 MB cap, with headroom for multipart overhead.
 	request_body {
@@ -20,13 +18,8 @@
 		reverse_proxy worker:8000
 	}
 
-	# Dashboard. The app image is built with basePath /app, so it owns this prefix end to end.
-	handle /app/* {
-		reverse_proxy app:3000
-	}
-
-	# Everything else -> the consumer demo (served at root; doubles as the product showcase).
+	# Everything else -> the one web runtime (marketing /, demo /demo, dashboard /dashboard, /api/*).
 	handle {
-		reverse_proxy demo:3000
+		reverse_proxy web:3000
 	}
 }

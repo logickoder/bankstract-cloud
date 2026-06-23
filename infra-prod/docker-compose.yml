@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 #
-# Production stack: worker + app (dashboard) + demo behind Caddy, plus a nightly R2 backup.
-# Distinct from infra/ (the worker+demo self-host bundle). Marketing + docs are hosted on
-# Cloudflare Pages, not on this box. TLS is terminated by Cloudflare, so Caddy serves plain :80.
+# Production stack: worker + web + Caddy, plus a nightly R2 backup. One Next runtime (web) serves
+# marketing /, the demo /demo, and the dashboard (/dashboard, /sign-in, /api/*) in a single image
+# to keep RAM low on the 4GB box. Distinct from infra/ (the lean worker+demo self-host bundle).
+# Docs live on Cloudflare Pages (a docs.* subdomain), off this box. Caddy terminates TLS itself
+# (Let's Encrypt) when SITE_ADDRESS is a hostname - DNS points straight at the box, no Cloudflare.
 #   cp .env.example .env   # fill the secrets
 #   docker compose up --build -d
 #
-# Routing (see Caddyfile): /v1,/healthz,/readyz -> worker; /app/* -> dashboard; / -> demo.
+# Routing (see Caddyfile): /v1,/healthz,/readyz -> worker; everything else -> web.
 
 services:
   worker:
@@ -33,20 +35,28 @@ services:
       - audit:/data
     restart: unless-stopped
 
-  app:
+  # One Next runtime: marketing /, demo /demo, dashboard /dashboard + /sign-in + /api/*. The
+  # dashboard is a route group, NOT an /app path segment, so auth is origin-based - BETTER_AUTH_URL
+  # is the bare PUBLIC_ORIGIN (no /app suffix) and the browser auth client base is empty (= origin).
+  # NEXT_PUBLIC_* are inlined at build, so they are passed as build args, not runtime env.
+  web:
     build:
       context: ..
-      dockerfile: apps/app/Dockerfile
+      dockerfile: apps/web/Dockerfile
       args:
-        APP_BASE_PATH: /app
-        NEXT_PUBLIC_BETTER_AUTH_URL: ${PUBLIC_ORIGIN:-http://localhost}/app
+        # Empty = window origin (single-origin shell). Do not set unless auth runs on another host.
+        NEXT_PUBLIC_BETTER_AUTH_URL: ""
+        NEXT_PUBLIC_SITE_URL: ${PUBLIC_ORIGIN:-http://localhost}
+        NEXT_PUBLIC_DOCS_URL: ${DOCS_URL:-https://docs.bankstract.logickoder.dev}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-1x00000000000000000000AA}
     environment:
       AUTH_DB_PATH: /data/auth.db
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
-      # Includes the /app prefix so Better Auth builds correct absolute callback URLs.
-      BETTER_AUTH_URL: ${PUBLIC_ORIGIN:-http://localhost}/app
+      BETTER_AUTH_URL: ${PUBLIC_ORIGIN:-http://localhost}
       WORKER_URL: http://worker:8000
       ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
+      # Must match the worker's DEMO_API_KEY so the anonymous /demo tier authenticates.
+      DEMO_API_KEY: ${DEMO_API_KEY:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
@@ -55,19 +65,6 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
     volumes:
       - auth:/data
-    depends_on:
-      - worker
-    restart: unless-stopped
-
-  demo:
-    build:
-      context: ..
-      dockerfile: apps/demo/Dockerfile
-      args:
-        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-1x00000000000000000000AA}
-    environment:
-      WORKER_URL: http://worker:8000
-      DEMO_API_KEY: ${DEMO_API_KEY:-}
     depends_on:
       - worker
     restart: unless-stopped
@@ -86,8 +83,7 @@ services:
       - caddy_config:/config
     depends_on:
       - worker
-      - app
-      - demo
+      - web
     restart: unless-stopped
 
   # Nightly SQLite snapshot of both DBs to Cloudflare R2. No R2 creds => snapshots locally only.

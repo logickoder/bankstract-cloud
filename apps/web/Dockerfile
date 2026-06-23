@@ -18,9 +18,20 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/web ./apps/web
 
-# The browser auth client base, baked at build. Empty = window origin (single-origin shell);
+# Public env baked into the client bundle at build (NEXT_PUBLIC_* are inlined by `next build`,
+# so they MUST be present here, not just at runtime). Empty BETTER_AUTH_URL = window origin
+# (single-origin shell). TURNSTILE_SITE_KEY drives the /demo widget; without it the bundle ships
+# the test key. DOCS_URL points at the docs Cloudflare Pages subdomain (docs is NOT on this box).
 ARG NEXT_PUBLIC_BETTER_AUTH_URL=
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+# Non-empty defaults: the surface code reads `env ?? fallback`, and an empty string is NOT caught
+# by ?? (only null/undefined is), so an empty ENV would inline as a broken "" canonical/docs URL.
+ARG NEXT_PUBLIC_SITE_URL=https://bankstract.logickoder.dev
+ARG NEXT_PUBLIC_DOCS_URL=https://docs.bankstract.logickoder.dev
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY \
+    NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
     NEXT_TELEMETRY_DISABLED=1 \
     # Build-only placeholder so Better Auth init during prerender doesn't error; the runtime value
     # is supplied by compose (and MUST be a real secret) and overrides this.

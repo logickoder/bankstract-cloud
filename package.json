@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:worker": "cd apps/worker && uv run uvicorn bankstract_cloud.main:app --reload --port 8000",
-    "dev:all": "(kill -9 $(lsof -ti:8000) $(lsof -ti:3000) 2>/dev/null || true) && pnpm --filter app db:push && concurrently -k -n worker,app -c blue,green \"pnpm dev:worker\" \"pnpm --filter app dev\"",
+    "dev:all": "(kill -9 $(lsof -ti:8000) $(lsof -ti:3000) 2>/dev/null || true) && pnpm --filter web db:push && concurrently -k -n worker,web -c blue,green \"pnpm dev:worker\" \"pnpm --filter web dev\"",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
