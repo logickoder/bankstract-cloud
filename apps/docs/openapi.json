@@ -485,6 +485,245 @@
         }
       }
     },
+    "/v1/admin/billing/subscribe": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Start a subscription checkout (admin)",
+        "description": "Admin-only. Initializes a Paystack transaction for the tier's plan and returns inline-checkout params. apps/app proxies this; the Paystack secret stays worker-side.",
+        "operationId": "admin_subscribe_v1_admin_billing_subscribe_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscribeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/billing/status": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Owner subscription status (admin)",
+        "operationId": "admin_subscription_status_v1_admin_billing_status_get",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Owner"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/billing/charge-overage": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Bill the owner's current overage (admin, manual)",
+        "description": "Admin-only. Computes this cycle's overage from audit success counts and raises a Paystack invoice for it. Manual trigger until an end-of-cycle cron lands.",
+        "operationId": "admin_charge_overage_v1_admin_billing_charge_overage_post",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Owner"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverageChargeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/parse": {
       "post": {
         "tags": [
@@ -555,6 +794,16 @@
               }
             },
             "description": "Unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Payment Required"
           },
           "413": {
             "content": {
@@ -913,11 +1162,52 @@
         ],
         "title": "KeyListResponse"
       },
+      "OverageChargeResponse": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "overage_parses": {
+            "type": "integer",
+            "title": "Overage Parses"
+          },
+          "request_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "owner",
+          "overage_parses",
+          "request_code"
+        ],
+        "title": "OverageChargeResponse"
+      },
       "OwnerUsageResponse": {
         "properties": {
           "owner": {
             "type": "string",
             "title": "Owner"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
           },
           "period_parses": {
             "type": "integer",
@@ -926,6 +1216,25 @@
           "success_rate": {
             "type": "number",
             "title": "Success Rate"
+          },
+          "monthly_cap": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Cap"
+          },
+          "overage_parses": {
+            "type": "integer",
+            "title": "Overage Parses"
+          },
+          "projected_overage_naira": {
+            "type": "string",
+            "title": "Projected Overage Naira"
           },
           "daily": {
             "items": {
@@ -938,8 +1247,12 @@
         "type": "object",
         "required": [
           "owner",
+          "tier",
           "period_parses",
           "success_rate",
+          "monthly_cap",
+          "overage_parses",
+          "projected_overage_naira",
           "daily"
         ],
         "title": "OwnerUsageResponse"
@@ -1137,6 +1450,119 @@
         ],
         "title": "StatusResponse"
       },
+      "SubscribeRequest": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "starter",
+              "growth",
+              "scale"
+            ],
+            "title": "Tier"
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "annual"
+            ],
+            "title": "Interval",
+            "default": "monthly"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "owner",
+          "email",
+          "tier"
+        ],
+        "title": "SubscribeRequest"
+      },
+      "SubscribeResponse": {
+        "properties": {
+          "authorization_url": {
+            "type": "string",
+            "title": "Authorization Url"
+          },
+          "access_code": {
+            "type": "string",
+            "title": "Access Code"
+          },
+          "reference": {
+            "type": "string",
+            "title": "Reference"
+          }
+        },
+        "type": "object",
+        "required": [
+          "authorization_url",
+          "access_code",
+          "reference"
+        ],
+        "title": "SubscribeResponse"
+      },
+      "SubscriptionStatusResponse": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "owner",
+          "tier",
+          "status",
+          "current_period_end"
+        ],
+        "title": "SubscriptionStatusResponse"
+      },
       "TotalsOut": {
         "properties": {
           "credit": {
@@ -1233,20 +1659,49 @@
             "type": "string",
             "title": "Api Key Id"
           },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          },
           "period_parses": {
             "type": "integer",
             "title": "Period Parses"
           },
-          "projected_invoice_usd": {
+          "monthly_cap": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Cap"
+          },
+          "overage_parses": {
+            "type": "integer",
+            "title": "Overage Parses"
+          },
+          "projected_overage_naira": {
             "type": "string",
-            "title": "Projected Invoice Usd"
+            "title": "Projected Overage Naira"
           }
         },
         "type": "object",
         "required": [
           "api_key_id",
+          "tier",
           "period_parses",
-          "projected_invoice_usd"
+          "monthly_cap",
+          "overage_parses",
+          "projected_overage_naira"
         ],
         "title": "UsageResponse"
       },
@@ -1300,6 +1755,10 @@
     {
       "name": "Keys",
       "description": "Issue, list, and revoke API keys (admin-only)."
+    },
+    {
+      "name": "Billing",
+      "description": "Paystack subscription checkout, status, and webhook."
     },
     {
       "name": "Account",

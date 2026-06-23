@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 3,
   use: { baseURL: 'http://localhost:3002' },
   webServer: {
-    command: 'pnpm exec drizzle-kit push --force && pnpm dev --port 3002',
+    command: 'mkdir -p data && pnpm exec drizzle-kit push --force && pnpm dev --port 3002',
     url: 'http://localhost:3002',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
