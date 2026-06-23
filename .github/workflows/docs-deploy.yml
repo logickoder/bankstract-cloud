@@ -11,7 +11,7 @@
 # Owner sets two repo secrets: CLOUDFLARE_API_TOKEN (a token with Pages:Edit) and
 # CLOUDFLARE_ACCOUNT_ID. First run auto-creates the `bankstract-docs` project; set DOCS_UPSTREAM in
 # infra-prod/.env to the resulting bankstract-docs.pages.dev host.
-name: docs deploy
+name: Docs deploy
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
       # Run wrangler via pnpm dlx, not cloudflare/wrangler-action: the action installs wrangler with
       # the detected package manager, and `pnpm add wrangler` in this workspace root trips pnpm's
       # ERR_PNPM_ADDING_TO_ROOT guard. dlx runs it in a throwaway env, no root install.
-      - run: pnpm dlx wrangler@3 pages deploy dist --project-name=bankstract-docs --branch=main
+      - run: pnpm dlx wrangler@latest pages deploy dist --project-name=bankstract-docs --branch=main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
