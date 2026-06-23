@@ -24,12 +24,22 @@ from ..usage import compute_overage, kobo_to_naira_str, overage_report_for_owner
 router = APIRouter(tags=["Account"])
 
 
-@router.get("/v1/status", response_model=StatusResponse, summary="Worker and engine version")
+@router.get(
+    "/v1/status",
+    response_model=StatusResponse,
+    summary="Worker and engine version",
+    description="Returns the running worker version and the bundled bankstract engine version.",
+)
 async def status() -> StatusResponse:
     return StatusResponse(status="ok", worker_version=__version__, engine_version=ENGINE_VERSION)
 
 
-@router.get("/v1/banks", response_model=BanksResponse, summary="List supported banks")
+@router.get(
+    "/v1/banks",
+    response_model=BanksResponse,
+    summary="List supported banks",
+    description="The bank ids the engine can auto-detect, for the optional `bank` parse override.",
+)
 async def banks(_: AuthContext = Depends(require_auth)) -> BanksResponse:
     return BanksResponse(
         banks=[BankInfo(id=b) for b in list_supported_banks()],
@@ -41,6 +51,8 @@ async def banks(_: AuthContext = Depends(require_auth)) -> BanksResponse:
     "/v1/usage",
     response_model=UsageResponse,
     summary="Current billing-period usage",
+    description="Successful parses across the key owner's keys this cycle, the tier cap, and the "
+    "projected overage in NGN. Failed parses never count.",
 )
 async def usage(
     ctx: AuthContext = Depends(require_auth),

@@ -16,6 +16,7 @@
           "Health"
         ],
         "summary": "Liveness probe",
+        "description": "Returns 200 once the process is up. No auth, no dependencies checked.",
         "operationId": "healthz_healthz_get",
         "responses": {
           "200": {
@@ -37,6 +38,7 @@
           "Health"
         ],
         "summary": "Readiness probe",
+        "description": "Reports whether the audit DB and the parsing engine are reachable. `degraded` means one is down and the worker should not take traffic.",
         "operationId": "readyz_readyz_get",
         "responses": {
           "200": {
@@ -58,6 +60,7 @@
           "Account"
         ],
         "summary": "Worker and engine version",
+        "description": "Returns the running worker version and the bundled bankstract engine version.",
         "operationId": "status_v1_status_get",
         "responses": {
           "200": {
@@ -79,6 +82,7 @@
           "Account"
         ],
         "summary": "List supported banks",
+        "description": "The bank ids the engine can auto-detect, for the optional `bank` parse override.",
         "operationId": "banks_v1_banks_get",
         "parameters": [
           {
@@ -128,6 +132,7 @@
           "Account"
         ],
         "summary": "Current billing-period usage",
+        "description": "Successful parses across the key owner's keys this cycle, the tier cap, and the projected overage in NGN. Failed parses never count.",
         "operationId": "usage_v1_usage_get",
         "parameters": [
           {
@@ -335,6 +340,7 @@
           "Keys"
         ],
         "summary": "List API keys",
+        "description": "Admin-only. Lists key metadata (never the raw key) for an owner, including revoked keys for the audit trail.",
         "operationId": "list_keys_v1_keys_get",
         "parameters": [
           {
@@ -420,6 +426,7 @@
           "Keys"
         ],
         "summary": "Revoke an API key",
+        "description": "Admin-only. Marks the key revoked (never deletes it, for the audit trail). A revoked key stops parsing immediately.",
         "operationId": "revoke_key_v1_keys__key_id__delete",
         "parameters": [
           {
@@ -571,6 +578,7 @@
           "Billing"
         ],
         "summary": "Owner subscription status (admin)",
+        "description": "Admin-only. The owner's tier, status (active/inactive/none), and current period end. The dashboard reads this; the worker is the source of truth.",
         "operationId": "admin_subscription_status_v1_admin_billing_status_get",
         "parameters": [
           {

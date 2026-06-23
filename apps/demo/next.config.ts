@@ -14,7 +14,7 @@ const config: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
   // @bankstract/types + @bankstract/ui ship TS source (no build step). Next transpiles them.
-  transpilePackages: ['@bankstract/types', '@bankstract/ui'],
+  transpilePackages: ['@bankstract/seo', '@bankstract/types', '@bankstract/ui'],
   turbopack: {},
 }
 

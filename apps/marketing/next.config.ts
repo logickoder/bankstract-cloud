@@ -13,8 +13,8 @@ const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..
 const config: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
-  // @bankstract/ui ships TS source (no build step). Next must transpile it.
-  transpilePackages: ['@bankstract/ui'],
+  // Workspace packages ship TS source (no build step). Next must transpile them.
+  transpilePackages: ['@bankstract/seo', '@bankstract/ui'],
   turbopack: {},
 }
 

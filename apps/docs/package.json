@@ -17,6 +17,7 @@
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
+    "@bankstract/seo": "workspace:*",
     "@scalar/api-client-react": "^2.0.26",
     "fumadocs-core": "16.10.5",
     "fumadocs-mdx": "15.0.12",

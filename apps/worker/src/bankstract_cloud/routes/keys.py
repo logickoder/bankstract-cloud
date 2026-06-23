@@ -44,6 +44,8 @@ async def create_key(
     response_model=KeyListResponse,
     responses=ADMIN_ERRORS,
     summary="List API keys",
+    description="Admin-only. Lists key metadata (never the raw key) for an owner, including "
+    "revoked keys for the audit trail.",
 )
 async def list_keys(
     owner: str | None = Query(default=None),
@@ -73,6 +75,8 @@ async def list_keys(
     status_code=204,
     responses=ADMIN_ERRORS,
     summary="Revoke an API key",
+    description="Admin-only. Marks the key revoked (never deletes it, for the audit trail). "
+    "A revoked key stops parsing immediately.",
 )
 async def revoke_key(
     key_id: str,

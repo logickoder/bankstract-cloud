@@ -67,6 +67,8 @@ async def admin_subscribe(
     response_model=SubscriptionStatusResponse,
     responses=ADMIN_ERRORS,
     summary="Owner subscription status (admin)",
+    description="Admin-only. The owner's tier, status (active/inactive/none), and current period "
+    "end. The dashboard reads this; the worker is the source of truth.",
 )
 async def admin_subscription_status(
     owner: str = Query(..., min_length=1),

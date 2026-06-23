@@ -8,6 +8,7 @@ const withMDX = createMDX()
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  transpilePackages: ['@bankstract/seo'],
 }
 
 export default withMDX(config)

@@ -12,12 +12,23 @@ from ..state import AppState, get_state
 router = APIRouter(tags=["Health"])
 
 
-@router.get("/healthz", response_model=HealthResponse, summary="Liveness probe")
+@router.get(
+    "/healthz",
+    response_model=HealthResponse,
+    summary="Liveness probe",
+    description="Returns 200 once the process is up. No auth, no dependencies checked.",
+)
 async def healthz() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
-@router.get("/readyz", response_model=ReadyResponse, summary="Readiness probe")
+@router.get(
+    "/readyz",
+    response_model=ReadyResponse,
+    summary="Readiness probe",
+    description="Reports whether the audit DB and the parsing engine are reachable. "
+    "`degraded` means one is down and the worker should not take traffic.",
+)
 async def readyz(state: AppState = Depends(get_state)) -> ReadyResponse:
     db_ok = True
     try:
