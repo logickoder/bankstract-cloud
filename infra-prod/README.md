@@ -11,7 +11,10 @@ The owner's full production stack: **worker + web** behind Caddy, plus a nightly
 DNS (Namecheap A record) -> box IP
         │
         ▼
-   Caddy :443  (own Let's Encrypt cert)
+   Shared proxy :443  (owns 80/443 + TLS; Coolify / NPM / Traefik)
+        │  routes the product hostname ->
+        ▼
+   caddy:80  (internal path-router, this stack, on the `proxy` network)
         ├── /v1/*  /healthz  /readyz   -> worker:8000
         ├── /docs  /docs/*             -> Cloudflare Pages (DOCS_UPSTREAM, off-box)
         └── /  (everything else)       -> web:3000
@@ -20,7 +23,7 @@ DNS (Namecheap A record) -> box IP
               └── /dashboard   dashboard + /sign-in + /api/*
 ```
 
-Caddy terminates TLS itself: DNS points straight at the box (no Cloudflare proxy), so `SITE_ADDRESS=<hostname>` makes Caddy auto-provision a Let's Encrypt cert on `:443`. Docs deploy to a Cloudflare Pages project; Caddy reverse-proxies `/docs/*` to it (`DOCS_UPSTREAM` = the Pages host), so docs share the product domain at `/docs` instead of a subdomain. The docs app's Next basePath `/docs` namespaces its assets (`/docs/_next/*`) and search (`/docs/api/search`) under that one matcher.
+A **shared reverse proxy** on the box (Coolify / Nginx Proxy Manager / Traefik) owns ports 80/443, terminates TLS, and routes the product hostname to this stack's `caddy` on an external `proxy` network. So you can host other apps on the same box, each with its own A record + its own setup, all fronted by that one proxy. This stack's Caddy is internal-only (plain HTTP on `:80`, no cert): it keeps bankstract's path split self-contained, so the outer proxy needs just one rule, `<hostname> -> caddy:80`. Docs deploy to a Cloudflare Pages project; Caddy reverse-proxies `/docs/*` to it (`DOCS_UPSTREAM` = the Pages host), so docs share the product domain at `/docs`. The docs app's Next basePath `/docs` namespaces its assets (`/docs/_next/*`) and search (`/docs/api/search`) under that one matcher.
 
 ## Hosting
 
@@ -45,7 +48,12 @@ curl -fsSL https://get.docker.com | sh
 
 **Build RAM**: the web image runs a full `pnpm install` + `next build`, which can spike past 4GB. CAX21 (8GB) builds on-box comfortably. On a 4GB CAX11, build the image in CI and have the box pull it instead of building on-box.
 
-**Coolify (optional) vs the Caddy in this stack**: Coolify runs its own reverse proxy on :80/:443 and is shaped for "one service = one subdomain". This stack does single-domain **path** routing via its own Caddy, which fights that model. Simplest: run this stack as plain `docker compose` (below), and use Coolify only for other per-subdomain projects. If Coolify must own :80, give this stack's Caddy an internal port and route the domain to it from Coolify.
+**The shared proxy.** This stack expects an outer proxy to own 80/443 so the box can host multiple independent apps. Pick one and create its network once:
+
+- **Coolify**: it ships its own proxy + a `coolify` docker network. Deploy this stack as a Docker Compose resource, set `PROXY_NETWORK=coolify`, and point the domain at `caddy` (port 80) in the UI; Coolify provisions TLS.
+- **Nginx Proxy Manager / Traefik**: `docker network create proxy`, attach the proxy to it, then `PROXY_NETWORK=proxy`. Add a proxy host `bankstract.logickoder.dev -> caddy:80` and request a Let's Encrypt cert there.
+
+Either way this stack's Caddy stays internal; the outer proxy does TLS + hostname routing. Other apps get their own A record + compose, fronted by the same proxy.
 
 **No-passport fallbacks** (if a host's KYC blocks you), all run this compose unchanged: Oracle Cloud Always-Free Arm (`$0`, card-only), Hostinger VPS (~`$5`, card-only), or a home machine + Cloudflare Tunnel (`$0`, no public IP/ports).
 
@@ -54,10 +62,12 @@ curl -fsSL https://get.docker.com | sh
 ```bash
 cd infra-prod
 cp .env.example .env        # fill the REQUIRED values (see below)
+# Ensure the shared proxy's network exists (skip if your proxy already made it, e.g. Coolify):
+docker network create proxy 2>/dev/null || true
 docker compose up --build -d
 ```
 
-On first boot `web` runs `drizzle-kit push` to create the Better Auth schema in the `auth` volume, then serves. The worker runs its Alembic migrations the same way.
+Then register the route in your proxy: hostname `<PUBLIC_ORIGIN host>` -> `caddy:80`, TLS on. On first boot `web` runs `drizzle-kit push` to create the Better Auth schema in the `auth` volume, then serves. The worker runs its Alembic migrations the same way.
 
 ## Filling `.env`
 
@@ -92,7 +102,7 @@ First deploy: fill **Tier 1 + Resend**, leave the rest empty, get it live, then 
 
 ## DNS
 
-1. `A` record: `bankstract.logickoder.dev` -> the box IP (Namecheap; DNS-only, no proxy). Caddy provisions TLS once `SITE_ADDRESS` is that hostname.
+1. `A` record: `bankstract.logickoder.dev` -> the box IP (Namecheap; DNS-only, no Cloudflare proxy). It hits the shared proxy, which routes the hostname to `caddy:80` and provisions TLS. Other apps on the box get their own A records pointed at the same IP, each routed by the proxy.
 2. Docs: no DNS record needed. The docs ship to a Cloudflare Pages project (see below) and Caddy proxies `/docs/*` to its host on the product domain.
 
 ## Docs deploy
@@ -129,4 +139,4 @@ The `backup` sidecar snapshots both SQLite DBs nightly via `sqlite3 .backup` (WA
 
 ## Volumes
 
-`audit` (worker DB), `auth` (web's Better Auth DB), `caddy_data` + `caddy_config`. Back up the two DB volumes; the rest is reproducible.
+`audit` (worker DB) and `auth` (web's Better Auth DB). Back these two up; everything else is reproducible. (No Caddy cert volumes - TLS lives on the outer proxy now.)

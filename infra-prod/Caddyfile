@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 #
-# DNS points straight at this box (Namecheap, no Cloudflare proxy). Set SITE_ADDRESS to the
-# hostname (e.g. bankstract.logickoder.dev) and Caddy auto-provisions a free Let's Encrypt cert
-# on :443. Docs live on a Cloudflare Pages subdomain (docs.*) and never reach this box.
-
-# SITE_ADDRESS empty -> ":80" (plain HTTP, e.g. local smoke). A hostname -> Caddy-managed TLS.
-{$SITE_ADDRESS::80} {
+# Internal path-router only. A shared reverse proxy on the box (Coolify / Nginx Proxy Manager /
+# Traefik / ...) owns 80/443, terminates TLS, and routes the product hostname to this container on
+# the shared proxy network. So this Caddy serves plain HTTP on :80 and never provisions its own
+# cert. It exists to keep bankstract's path split (/v1 + health -> worker, /docs -> Pages, else ->
+# web) self-contained, so the outer proxy only needs one rule: hostname -> caddy:80.
+:80 {
 	# Match the worker's 50 MB cap, with headroom for multipart overhead.
 	request_body {
 		max_size 52MB

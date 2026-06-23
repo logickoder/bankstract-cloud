@@ -1,15 +1,17 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 #
-# Production stack: worker + web + Caddy, plus a nightly R2 backup. One Next runtime (web) serves
-# marketing /, the demo /demo, and the dashboard (/dashboard, /sign-in, /api/*) in a single image
-# to keep RAM low on the 4GB box. Distinct from infra/ (the lean worker+demo self-host bundle).
-# Docs live on Cloudflare Pages (a docs.* subdomain), off this box. Caddy terminates TLS itself
-# (Let's Encrypt) when SITE_ADDRESS is a hostname - DNS points straight at the box, no Cloudflare.
-#   cp .env.example .env   # fill the secrets
+# Production stack: worker + web + an internal Caddy, plus a nightly R2 backup. One Next runtime
+# (web) serves marketing /, the demo /demo, and the dashboard (/dashboard, /sign-in, /api/*) in a
+# single image to keep RAM low on the 4GB box. Distinct from infra/ (the lean worker+demo self-host
+# bundle). A shared reverse proxy on the box (Coolify / Nginx Proxy Manager / Traefik) owns 80/443
+# + TLS and routes the product hostname to caddy:80 over the external PROXY_NETWORK, so the box can
+# host other independent apps. Docs live on Cloudflare Pages (off-box), surfaced at /docs.
+#   docker network create proxy   # once, unless your proxy already made it (Coolify: coolify)
+#   cp .env.example .env          # fill the secrets, set PROXY_NETWORK
 #   docker compose up --build -d
 #
-# Routing (see Caddyfile): /v1,/healthz,/readyz -> worker; everything else -> web.
+# Routing (see Caddyfile): /v1,/healthz,/readyz -> worker; /docs -> Pages; everything else -> web.
 
 services:
   worker:
@@ -71,20 +73,23 @@ services:
       - worker
     restart: unless-stopped
 
+  # Internal path-router. No host ports: a shared reverse proxy on the box (Coolify / Nginx Proxy
+  # Manager / Traefik) owns 80/443 + TLS and routes the product hostname to this container over the
+  # external `proxy` network. So this Caddy is plain HTTP on :80 and keeps no cert volumes. It only
+  # splits paths (/v1 + health -> worker, /docs -> Pages, else -> web), so the outer proxy needs one
+  # rule: <PUBLIC_ORIGIN host> -> caddy:80. Set PROXY_NETWORK to your proxy's docker network name.
   caddy:
     image: caddy:2-alpine
-    ports:
-      - "80:80"
-      - "443:443"
+    expose:
+      - "80"
     environment:
-      # Empty -> ":80" (behind Cloudflare). Set to your hostname for Caddy's own Let's Encrypt TLS.
-      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
       # The Cloudflare Pages host Caddy proxies /docs/* to (e.g. bankstract-docs.pages.dev).
       DOCS_UPSTREAM: ${DOCS_UPSTREAM:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+    networks:
+      - default
+      - proxy
     depends_on:
       - worker
       - web
@@ -108,5 +113,11 @@ services:
 volumes:
   audit:
   auth:
-  caddy_data:
-  caddy_config:
+
+# The shared reverse proxy's network, created outside this stack (Coolify makes `coolify`; for
+# Nginx Proxy Manager / Traefik, `docker network create proxy` once and attach the proxy to it).
+# caddy joins it so the outer proxy can reach caddy:80 by name. Set PROXY_NETWORK to match.
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}
