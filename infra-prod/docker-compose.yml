@@ -1,15 +1,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 #
-# Production stack: worker + web + an internal Caddy, plus a nightly R2 backup. One Next runtime
-# (web) serves marketing /, the demo /demo, and the dashboard (/dashboard, /sign-in, /api/*) in a
-# single image to keep RAM low on the 4GB box. Distinct from infra/ (the lean worker+demo self-host
-# bundle). A shared reverse proxy on the box (Coolify / Nginx Proxy Manager / Traefik) owns 80/443
-# + TLS and routes the product hostname to caddy:80 over the external PROXY_NETWORK, so the box can
-# host other independent apps. Docs live on Cloudflare Pages (off-box), surfaced at /docs.
-#   docker network create proxy   # once, unless your proxy already made it (Coolify: coolify)
-#   cp .env.example .env          # fill the secrets, set PROXY_NETWORK
-#   docker compose up --build -d
+# Production stack: worker + web + an internal Caddy + a nightly R2 backup. web is one Next runtime
+# (marketing /, demo /demo, dashboard) on the 4GB box. Fronted by a shared proxy, deployed by CI
+# (GHCR pull). Topology, deploy, env: see README. Distinct from infra/ (the lean self-host bundle).
+#   docker compose up --build -d   # local; the box pulls prebuilt images instead (README § CD)
 #
 # Routing (see Caddyfile): /v1,/healthz,/readyz -> worker; /docs -> Pages; everything else -> web.
 
@@ -79,11 +74,8 @@ services:
       - worker
     restart: unless-stopped
 
-  # Internal path-router. No host ports: a shared reverse proxy on the box (Coolify / Nginx Proxy
-  # Manager / Traefik) owns 80/443 + TLS and routes the product hostname to this container over the
-  # external `proxy` network. So this Caddy is plain HTTP on :80 and keeps no cert volumes. It only
-  # splits paths (/v1 + health -> worker, /docs -> Pages, else -> web), so the outer proxy needs one
-  # rule: <PUBLIC_ORIGIN host> -> caddy:80. Set PROXY_NETWORK to your proxy's docker network name.
+  # Internal path-router: no host ports, plain HTTP on :80, no cert volumes. The shared proxy on the
+  # `proxy` network does TLS + hostname routing to caddy:80 (README § Topology).
   caddy:
     image: caddy:2-alpine
     expose:
