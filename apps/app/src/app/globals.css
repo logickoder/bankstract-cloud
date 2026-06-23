@@ -1,6 +1,0 @@
-/* SPDX-License-Identifier: AGPL-3.0-only */
-/* Copyright (C) 2026 Jeffery Orazulike */
-@import "tailwindcss";
-
-/* Design tokens + html/body baseline (DESIGN.md) live in @bankstract/ui/theme.css. */
-@import "@bankstract/ui/theme.css";

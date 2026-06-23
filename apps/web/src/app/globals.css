@@ -1,0 +1,11 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* Copyright (C) 2026 Jeffery Orazulike */
+@import "tailwindcss";
+
+/* Design tokens, html/body baseline, grain helpers (DESIGN.md) live in the shared theme. */
+@import "@bankstract/ui/theme.css";
+
+/* The marketing + demo features live in their packages; scan their components for utilities
+   (and pull the marketing keyframes). Without these the moved classes silently drop. */
+@import "@bankstract/marketing/styles.css";
+@import "@bankstract/demo/styles.css";

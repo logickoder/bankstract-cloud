@@ -49,9 +49,9 @@ __pycache__/
 .idea/
 .vscode/
 
-# apps/app Better Auth local DB (self-host stores sessions here; never commit)
-apps/app/data/
-apps/app/drizzle/
+# apps/web Better Auth local DB (sessions live here in dev/e2e; never commit)
+apps/web/data/
+apps/web/drizzle/
 
 # Local planning/handoff docs (not shipped)
 _handoff/
