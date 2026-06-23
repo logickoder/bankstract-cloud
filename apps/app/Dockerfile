@@ -28,7 +28,10 @@ ENV APP_BASE_PATH=$APP_BASE_PATH \
     NEXT_TELEMETRY_DISABLED=1 \
     # Build-only placeholder so Better Auth init during prerender doesn't error; the runtime
     # value is supplied by compose (and MUST be a real secret) and overrides this.
-    BETTER_AUTH_SECRET=build-only-placeholder-not-used-at-runtime
+    BETTER_AUTH_SECRET=build-only-placeholder-not-used-at-runtime \
+    # Next's "collect page data" eagerly opens the libSQL client. Point it at a writable
+    # throwaway during the build; the runtime AUTH_DB_PATH (the volume) overrides it.
+    AUTH_DB_PATH=/tmp/build-auth.db
 RUN pnpm --filter app build
 
 WORKDIR /repo/apps/app
