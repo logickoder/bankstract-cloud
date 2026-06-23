@@ -21,7 +21,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col font-sans">
-        <RootProvider>{children}</RootProvider>
+        {/* The search route lives at /docs/api/search (basePath prefixes it). The client fetches
+            its api URL verbatim - a relative fetch does NOT get basePath auto-prepended the way
+            <Link> does - so point it at the prefixed path explicitly or search 404s. */}
+        <RootProvider search={{ options: { api: '/docs/api/search' } }}>{children}</RootProvider>
       </body>
     </html>
   )

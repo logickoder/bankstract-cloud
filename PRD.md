@@ -110,9 +110,9 @@ Honest copy:
 | Auth (B2B/app) | Better Auth (self-hosted; users + sessions in our own SQLite, not an external auth provider) |
 | Auth (consumer demo) | Anonymous + Cloudflare Turnstile + per-IP rate limit |
 | Worker | FastAPI + uvicorn, imports `bankstract` directly |
-| Hosting | Hetzner CAX11 (ARM, 2 vCPU, 4GB) + Coolify + Cloudflare in front |
+| Hosting | One Hetzner Arm box (4GB) running worker + a single `web` Next runtime + Caddy via `docker compose` (`infra-prod/`). Caddy terminates TLS (Namecheap DNS straight at the box). Docs off-box on Cloudflare Pages at `/docs`. |
 | Domain | `bankstract.logickoder.dev` (subdomain, free, inherits SSL from owned `logickoder.dev`). Pivot to standalone TLD when first B2B contract revenue justifies. |
-| Payments | Paystack (NGN subscriptions, see § Pricing). Worker holds the secret; `apps/app` proxies checkout |
+| Payments | Paystack (NGN subscriptions, see § Pricing). Worker holds the secret; `apps/web` proxies checkout |
 | Audit log | SQLite on worker box, backed up nightly to Hetzner Storage Box |
 | Email transactional | Resend |
 | Error tracking | Sentry free tier |

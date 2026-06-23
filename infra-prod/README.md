@@ -3,7 +3,7 @@
 
 # infra-prod
 
-The owner's full production stack: **worker + web** behind Caddy, plus a nightly R2 backup. `web` is one Next runtime serving marketing `/`, the demo `/demo`, and the dashboard (`/dashboard`, `/sign-in`, `/api/*`) - one process to keep RAM low on a 4GB box. This is distinct from [`infra/`](../infra), the public worker+demo self-host bundle (the AGPL claim). Docs are hosted on Cloudflare Pages (a `docs.*` subdomain), not on this box.
+The owner's full production stack: **worker + web** behind Caddy, plus a nightly R2 backup. `web` is one Next runtime serving marketing `/`, the demo `/demo`, and the dashboard (`/dashboard`, `/sign-in`, `/api/*`) - one process to keep RAM low on a 4GB box. This is distinct from [`infra/`](../infra), the public worker+demo self-host bundle (the AGPL claim). Docs are a Cloudflare Pages project (off this box) surfaced at the same-domain `/docs` path: Caddy proxies `/docs/*` to the Pages host, and the docs app sets Next basePath `/docs` so its assets + search live under that prefix.
 
 ## Topology
 
@@ -13,15 +13,14 @@ DNS (Namecheap A record) -> box IP
         ▼
    Caddy :443  (own Let's Encrypt cert)
         ├── /v1/*  /healthz  /readyz   -> worker:8000
+        ├── /docs  /docs/*             -> Cloudflare Pages (DOCS_UPSTREAM, off-box)
         └── /  (everything else)       -> web:3000
               ├── /            marketing
               ├── /demo        consumer demo
               └── /dashboard   dashboard + /sign-in + /api/*
-
-docs.<domain>  -> Cloudflare Pages (off-box, CNAME)
 ```
 
-Caddy terminates TLS itself: DNS points straight at the box (no Cloudflare proxy), so `SITE_ADDRESS=<hostname>` makes Caddy auto-provision a Let's Encrypt cert on `:443`. Docs deploy to a Cloudflare Pages project reached by a `docs.` CNAME.
+Caddy terminates TLS itself: DNS points straight at the box (no Cloudflare proxy), so `SITE_ADDRESS=<hostname>` makes Caddy auto-provision a Let's Encrypt cert on `:443`. Docs deploy to a Cloudflare Pages project; Caddy reverse-proxies `/docs/*` to it (`DOCS_UPSTREAM` = the Pages host), so docs share the product domain at `/docs` instead of a subdomain. The docs app's Next basePath `/docs` namespaces its assets (`/docs/_next/*`) and search (`/docs/api/search`) under that one matcher.
 
 ## Hosting
 
@@ -94,7 +93,7 @@ First deploy: fill **Tier 1 + Resend**, leave the rest empty, get it live, then 
 ## DNS
 
 1. `A` record: `bankstract.logickoder.dev` -> the box IP (Namecheap; DNS-only, no proxy). Caddy provisions TLS once `SITE_ADDRESS` is that hostname.
-2. Docs: a `CNAME` `docs.bankstract.logickoder.dev` -> the Cloudflare Pages project. Set `DOCS_URL` to match so in-app docs links resolve.
+2. Docs: no DNS record needed. Deploy the docs app to a Cloudflare Pages project and set `DOCS_UPSTREAM` to its host (e.g. `bankstract-docs.pages.dev`); Caddy proxies `/docs/*` to it on the product domain.
 
 ## OAuth callbacks (important)
 
@@ -107,7 +106,7 @@ Auth is origin-based (the dashboard is a route group, not an `/app` path), so Be
 
 After the first deploy, verify the surfaces + auth flow:
 
-- `GET <PUBLIC_ORIGIN>/` renders marketing; `/demo` renders the demo; `docs.<domain>` serves docs.
+- `GET <PUBLIC_ORIGIN>/` renders marketing; `/demo` renders the demo; `/docs` serves docs and search returns hits (confirms the `DOCS_UPSTREAM` proxy + basePath).
 - `GET <PUBLIC_ORIGIN>/sign-in` renders, and magic-link or OAuth sign-in lands on `<PUBLIC_ORIGIN>/dashboard`.
 - The dashboard reads usage/billing (confirms the web -> worker admin proxy + `ADMIN_API_TOKEN` match).
 

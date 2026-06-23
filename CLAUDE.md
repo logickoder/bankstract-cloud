@@ -46,7 +46,7 @@ Do not run `git commit`, `git push`, `git tag`, `gh pr create`, `gh release crea
 
 ### 5. SURGICAL EDITS
 
-Touch the specific app / package under request. Don't refactor across `apps/marketing`, `apps/app`, `apps/worker` in one pass unless explicitly tasked. Each app is independently deployable. Touching one to "fix" another is forbidden.
+Touch the specific app / package under request. Don't refactor across `apps/web`, `apps/worker`, and the surface packages (`packages/marketing`, `packages/demo`) in one pass unless explicitly tasked. The web surfaces live in separate packages + route groups precisely so they stay decoupled; touching one to "fix" another is forbidden.
 
 ### 6. ZERO HALLUCINATION ON BUSINESS LOGIC
 
@@ -95,40 +95,46 @@ bankstract-cloud/
 ├── .env.example                  documented env vars
 ├── .gitignore                    .env.production, .env.local, _local/, etc
 ├── apps/
-│   ├── marketing/                Next.js 16: landing, pricing, OSS callout
-│   ├── app/                      Next.js 16: developer dashboard (Better Auth, API keys, usage, billing)
-│   ├── docs/                     Mintlify or Fumadocs: OpenAPI spec + integration guides
-│   ├── demo/                     Next.js 16: consumer drag-drop showcase (anonymous + Turnstile)
+│   ├── web/                      Next.js 16: THE prod runtime. One process serving marketing /,
+│   │                              demo /demo, dashboard /dashboard + /sign-in + /api/* (route
+│   │                              groups, no URL prefix). Consumes packages/{marketing,demo,seo}.
+│   ├── marketing/                Next.js 16: thin shell over packages/marketing. Extractable
+│   │                              standalone marketing deploy; NOT the prod path (web serves /).
+│   ├── demo/                     Next.js 16: thin shell over packages/demo. The deployable demo in
+│   │                              the public infra/ self-host bundle (anonymous + Turnstile).
+│   ├── docs/                     Fumadocs: OpenAPI spec + guides. Cloudflare Pages, surfaced at the
+│   │                              product's /docs path (Next basePath /docs; Caddy proxies /docs/*).
 │   └── worker/                   FastAPI (Python): wraps bankstract engine, parse endpoint, B2B auth
 ├── packages/
+│   ├── seo/                      shared Next SEO: buildMetadata, robots, OG card (one source)
+│   ├── marketing/                marketing surface (home, sections, metadata) - consumed by web + shell
+│   ├── demo/                     demo surface (home, components, API handlers) - consumed by web + shell
 │   ├── ui/                       shadcn components shared across Next.js apps
 │   ├── types/                    TS types (ParseResult, StatementMetadata mirror of engine schema)
 │   ├── tsconfig/                 shared tsconfig presets
 │   └── eslint-config/            shared ESLint config
-└── infra/
-    ├── docker-compose.yml        self-host bundle: verifiable AGPL self-host claim
-    ├── Caddyfile                 reverse proxy (Hetzner + Coolify default)
-    └── README.md                 self-host setup walkthrough
+├── infra/                        public self-host bundle (worker + thin demo): the AGPL claim
+└── infra-prod/                   owner prod stack (worker + web + Caddy + R2 backup)
 ```
 
-App separation logic:
-- `marketing/` vs `app/` separate because: different audience (visitor vs auth'd dev), different deploy cadence, different SEO posture
-- `docs/` separate because: ships an OpenAPI spec + interactive playground; tooling (Mintlify/Fumadocs) is opinionated
-- `demo/` vs `app/` separate because: demo = anonymous + Turnstile + no auth; app = Better Auth + key management. Different rate-limit + state stories
-- `worker/` separate because: Python (not TS); deployed as a container alongside Coolify-managed Next.js services
+App architecture (merged 2026-06, supersedes the original "separate independently-deployable apps"):
+- One `apps/web` runtime serves marketing / + demo /demo + dashboard, because: a single Next process on the 4GB box keeps RAM ~300MB instead of 3x. Surfaces stay logically separate as route groups + per-surface packages (`packages/{marketing,demo}`), so any one extracts back to a standalone shell almost drag-and-drop.
+- `packages/marketing` + `packages/demo` hold the actual surface code; `apps/marketing` + `apps/demo` are thin shells re-exporting them. `apps/demo` is the second deploy target (the public `infra/` bundle); `apps/marketing` is kept extractable but is not on the prod path.
+- `docs/` stays a separate app (Fumadocs is app-root-bound: `createMDX` reads `source.config.ts` from the app root, generates `.source/` in-app, so it cannot be packaged). It deploys to Cloudflare Pages and is surfaced at same-domain `/docs` via Next basePath + a Caddy `/docs/*` proxy (subdomain avoided; basePath also keeps Fumadocs search working under the prefix).
+- `worker/` separate because: Python (not TS); its own container alongside web.
 
 ---
 
 ## STACK + CONVENTIONS
 
-### Frontend (apps/marketing, apps/app, apps/docs, apps/demo)
+### Frontend (apps/web, apps/marketing, apps/docs, apps/demo + packages/{marketing,demo,seo})
 - Next.js 16 (App Router)
 - React 19
 - TypeScript strict
 - Tailwind v4
 - shadcn/ui + Magic UI components
-- Better Auth for auth (apps/app only; self-hosted, users + sessions in the app's own SQLite via Drizzle + libSQL; OAuth Google/GitHub + email magic-link via Resend, no password; demo is anonymous). Retired Clerk 2026-06-21: a proprietary SaaS on the login path contradicts the AGPL self-host pitch, and own-DB user records strengthen the NDPR/procurement posture + keep the self-host bundle self-contained.
-- Paystack for billing (apps/app only; NGN subscriptions, see PRD.md § Pricing)
+- Better Auth for auth (apps/web dashboard route group only; self-hosted, users + sessions in the app's own SQLite via Drizzle + libSQL; OAuth Google/GitHub + email magic-link via Resend, no password; demo is anonymous). Retired Clerk 2026-06-21: a proprietary SaaS on the login path contradicts the AGPL self-host pitch, and own-DB user records strengthen the NDPR/procurement posture + keep the self-host bundle self-contained.
+- Paystack for billing (apps/web dashboard only; NGN subscriptions, see PRD.md § Pricing)
 - Cloudflare Turnstile (apps/demo + apps/marketing forms)
 
 ### Worker (apps/worker)
@@ -148,9 +154,10 @@ App separation logic:
 See [`DESIGN.md`](./DESIGN.md): single source of truth for tokens, components, page structure, references, anti-patterns. Do not duplicate design rules here.
 
 ### Hosting
-- All Next.js apps + FastAPI worker run on single Hetzner CAX11 (ARM, 2 vCPU, 4GB RAM) via Coolify
-- Cloudflare in front (CDN, DDoS, SSL termination, Turnstile)
-- SQLite on worker box for audit log + Better Auth SQLite on the app box for users/sessions
+- One Hetzner box (Arm, 4GB RAM) runs the whole prod stack as plain `docker compose` (see `infra-prod/`): worker + the single `web` runtime + Caddy + nightly backup. One Next process keeps RAM low.
+- Caddy terminates TLS itself (Let's Encrypt): Namecheap A record points straight at the box, no Cloudflare proxy. Caddy path-routes /v1 -> worker, /docs/* -> the Pages project, everything else -> web.
+- Docs deploy off-box to Cloudflare Pages, surfaced at same-domain /docs (Caddy proxy + Next basePath).
+- SQLite on the box: `audit.sqlite` (worker) + `auth.db` (web's Better Auth), each in its own volume.
 - Backups: nightly to Cloudflare R2 (free tier: 10GB egress + storage)
 - Domain: `bankstract.logickoder.dev` (subdomain on owner-controlled `logickoder.dev`, ₦0). Pivot to standalone TLD post-revenue.
 - **Fixed cost: ~₦5–6k/mo (~$4–5/mo). Locked indie-cheap.**
@@ -164,12 +171,15 @@ See [`DESIGN.md`](./DESIGN.md): single source of truth for tokens, components, p
 pnpm install
 cd apps/worker && uv sync --all-extras && cd ../..
 
-# dev: runs all apps concurrently via Turbo
+# dev: the prod-shaped local stack (web + worker, two processes)
+pnpm dev:all
+
+# dev: runs every app concurrently via Turbo (includes the thin marketing/demo shells)
 pnpm dev
 
 # dev: single app
+pnpm --filter web dev
 pnpm --filter marketing dev
-pnpm --filter app dev
 pnpm --filter docs dev
 pnpm --filter demo dev
 cd apps/worker && uv run uvicorn bankstract_cloud.main:app --reload
@@ -181,7 +191,7 @@ cd apps/worker && uv run ruff check . && uv run pyright .
 
 # test
 pnpm test                              # all TS tests
-pnpm --filter app test                 # single app
+pnpm --filter web test                 # single app
 cd apps/worker && uv run pytest
 
 # build
@@ -294,7 +304,7 @@ Billing is monthly subscription tiers in NGN via Paystack, NOT per-parse USD met
 
 API key state is bound to subscription state: an active subscription → key parses; an inactive/suspended subscription → key returns `402` with `error_class: subscription_inactive`. Webhook events (`charge.success`, `subscription.create`, `subscription.disable`, `subscription.not_renew`, `invoice.payment_failed`) are verified with HMAC-SHA512 against the Paystack secret key and deduped by event reference.
 
-Implemented: `paystack.py` (HMAC-SHA512 webhook verify + subscription init + overage invoice), `subscriptions.py` (owner-keyed state store + webhook dispatch), `usage.py` (overage metering), and the `routes/billing.py` endpoints. The live-key `402 subscription_inactive` gate lives in `routes/parse.py`. The worker is the source of truth; `apps/app` proxies billing through it and never holds the Paystack secret.
+Implemented: `paystack.py` (HMAC-SHA512 webhook verify + subscription init + overage invoice), `subscriptions.py` (owner-keyed state store + webhook dispatch), `usage.py` (overage metering), and the `routes/billing.py` endpoints. The live-key `402 subscription_inactive` gate lives in `routes/parse.py`. The worker is the source of truth; `apps/web` proxies billing through it and never holds the Paystack secret.
 
 ---
 

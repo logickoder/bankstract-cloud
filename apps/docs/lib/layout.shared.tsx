@@ -9,7 +9,8 @@ export function baseOptions(): BaseLayoutProps {
       title: 'bankstract',
     },
     links: [
-      { text: 'API', url: '/docs/api' },
+      // Root-relative: Next basePath ('/docs') prepends the prefix, so this renders /docs/api.
+      { text: 'API', url: '/api' },
       { text: 'GitHub', url: 'https://github.com/logickoder/bankstract-cloud' },
     ],
   }

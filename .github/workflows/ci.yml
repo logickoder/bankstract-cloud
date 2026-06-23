@@ -74,6 +74,6 @@ jobs:
       # One install serves every workspace; both apps reuse the same chromium.
       - run: pnpm --filter demo exec playwright install --with-deps chromium
       - run: pnpm --filter demo test:e2e
-      # apps/app spins up its own dev server (drizzle push + next dev :3002) per its
+      # apps/web spins up its own dev server (drizzle push + next dev :3002) per its
       # playwright.config; the worker is stubbed (WORKER_URL points at a dead port).
-      - run: pnpm --filter app test:e2e
+      - run: pnpm --filter web test:e2e

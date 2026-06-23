@@ -25,7 +25,7 @@ const result = await client.parse(pdf)
 console.log(result.metadata?.bank, result.transactions.length)
 ```
 
-`parse` accepts `Uint8Array | ArrayBuffer | Blob`. See [Authentication](/docs/authentication) for keys and [the parse endpoint](/docs/api/parse_v1_parse_post) for the response shape.
+`parse` accepts `Uint8Array | ArrayBuffer | Blob`. See [Authentication](/authentication) for keys and [the parse endpoint](/api/parse_v1_parse_post) for the response shape.
 
 ## Redaction
 
@@ -57,7 +57,7 @@ Per-call, `parse` and `redact` take `{ bank?, filename?, signal? }`.
 
 ## Errors
 
-Every non-2xx response throws a typed `BankstractError` subclass. The API key never appears in the error. The thrown error mirrors the [error envelope](/docs/errors): `status`, `errorClass`, and `markerCoverage` where relevant.
+Every non-2xx response throws a typed `BankstractError` subclass. The API key never appears in the error. The thrown error mirrors the [error envelope](/errors): `status`, `errorClass`, and `markerCoverage` where relevant.
 
 ```typescript
 import { RateLimitError, UnsupportedStatementError, BankstractError } from '@logickoder/bankstract'

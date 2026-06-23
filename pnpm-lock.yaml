@@ -17,9 +17,6 @@ importers:
       concurrently:
         specifier: ^9.1.2
         version: 9.2.3
-      prettier:
-        specifier: ^3.4.2
-        version: 3.8.4
       turbo:
         specifier: ^2.3.3
         version: 2.9.18

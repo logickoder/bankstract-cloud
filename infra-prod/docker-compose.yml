@@ -47,7 +47,9 @@ services:
         # Empty = window origin (single-origin shell). Do not set unless auth runs on another host.
         NEXT_PUBLIC_BETTER_AUTH_URL: ""
         NEXT_PUBLIC_SITE_URL: ${PUBLIC_ORIGIN:-http://localhost}
-        NEXT_PUBLIC_DOCS_URL: ${DOCS_URL:-https://docs.bankstract.logickoder.dev}
+        # Docs are surfaced at the same-domain /docs path (Caddy proxies /docs/* to the Pages
+        # project), so in-app docs links are root-relative. Not a separate origin.
+        NEXT_PUBLIC_DOCS_URL: /docs
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-1x00000000000000000000AA}
     environment:
       AUTH_DB_PATH: /data/auth.db
@@ -77,6 +79,8 @@ services:
     environment:
       # Empty -> ":80" (behind Cloudflare). Set to your hostname for Caddy's own Let's Encrypt TLS.
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      # The Cloudflare Pages host Caddy proxies /docs/* to (e.g. bankstract-docs.pages.dev).
+      DOCS_UPSTREAM: ${DOCS_UPSTREAM:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

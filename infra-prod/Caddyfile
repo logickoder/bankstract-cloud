@@ -18,6 +18,18 @@
 		reverse_proxy worker:8000
 	}
 
+	# Docs: a Cloudflare Pages project (off this box), surfaced at the same-domain /docs path. The
+	# docs app sets Next basePath /docs, so every route + asset is namespaced under /docs
+	# (/docs/_next/*, /docs/api/search) and this one matcher covers it without colliding with the
+	# web app's own /_next/*. DOCS_UPSTREAM is the Pages host (e.g. bankstract-docs.pages.dev);
+	# header_up Host makes Pages serve the right project + its TLS SNI resolve.
+	@docs path /docs /docs/*
+	handle @docs {
+		reverse_proxy https://{$DOCS_UPSTREAM} {
+			header_up Host {$DOCS_UPSTREAM}
+		}
+	}
+
 	# Everything else -> the one web runtime (marketing /, demo /demo, dashboard /dashboard, /api/*).
 	handle {
 		reverse_proxy web:3000
