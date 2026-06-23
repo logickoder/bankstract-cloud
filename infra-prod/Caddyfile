@@ -5,7 +5,10 @@
 # Pages and never reach this box. For a standalone box with its own TLS, replace ":80" with your
 # hostname and Caddy auto-provisions a Let's Encrypt cert.
 
-:80 {
+# SITE_ADDRESS empty -> ":80" (plain HTTP, correct behind Cloudflare which terminates TLS).
+# Set it to your hostname (e.g. bankstract.logickoder.dev) and Caddy auto-provisions a free
+# Let's Encrypt cert on :443 - the path when DNS points straight at the box (no Cloudflare).
+{$SITE_ADDRESS::80} {
 	# Match the worker's 50 MB cap, with headroom for multipart overhead.
 	request_body {
 		max_size 52MB
