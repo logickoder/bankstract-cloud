@@ -69,6 +69,24 @@ docker compose up --build -d
 
 Then register the route in your proxy: hostname `<PUBLIC_ORIGIN host>` -> `caddy:80`, TLS on. On first boot `web` runs `drizzle-kit push` to create the Better Auth schema in the `auth` volume, then serves. The worker runs its Alembic migrations the same way.
 
+## Continuous deploy
+
+Push to `main` deploys itself - no SSH by hand. The [`Deploy infra-prod`](../.github/workflows/infra-prod-deploy.yml) workflow builds the `web` + `worker` images for `linux/amd64` (the box is x86), pushes them to GHCR, then SSHes the box to `git pull && docker compose pull && up -d`. The 4GB box only runs containers; it never builds (that would OOM on `next build`).
+
+One-time setup:
+
+1. **Bootstrap the box** (once): clone the repo to a path, create `infra-prod/.env` (see below), `docker network create proxy`, bring up the shared proxy + this stack manually the first time.
+2. **GHCR packages public**: after the first workflow run creates `bankstract-cloud-web` + `bankstract-cloud-worker`, set both packages to **public** (GitHub -> your profile -> Packages -> each -> Package settings -> Change visibility). Then the box pulls without auth. (Alternative: `docker login ghcr.io` on the box with a read PAT.)
+3. **Repo secrets** (Settings -> Secrets and variables -> Actions):
+   - `DEPLOY_HOST` - box IP/hostname
+   - `DEPLOY_USER` - ssh user
+   - `DEPLOY_SSH_KEY` - a private key whose public half is in the box's `~/.ssh/authorized_keys`
+   - `DEPLOY_PATH` - absolute path to the cloned repo on the box
+   - `DEPLOY_PORT` - optional, defaults to 22
+4. Optional repo **variable** `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (else the bundle bakes the test key).
+
+After that, every push touching `apps/web`, `apps/worker`, `packages`, or `infra-prod` ships automatically. `workflow_dispatch` runs it manually. Pin `IMAGE_TAG` in `.env` to a commit SHA to freeze a release; `latest` tracks main.
+
 ## Filling `.env`
 
 Three tiers. Generate the random secrets with `openssl`:

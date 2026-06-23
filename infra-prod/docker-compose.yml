@@ -15,6 +15,10 @@
 
 services:
   worker:
+    # CI builds + pushes this to GHCR; the box pulls it (never builds - protects the 4GB box). The
+    # build: block stays for local dev (docker compose up --build). IMAGE_TAG pins a release; latest
+    # tracks main. See ../.github/workflows/infra-prod-deploy.yml.
+    image: ghcr.io/logickoder/bankstract-cloud-worker:${IMAGE_TAG:-latest}
     build:
       context: ../apps/worker
     environment:
@@ -42,6 +46,8 @@ services:
   # is the bare PUBLIC_ORIGIN (no /app suffix) and the browser auth client base is empty (= origin).
   # NEXT_PUBLIC_* are inlined at build, so they are passed as build args, not runtime env.
   web:
+    # CI builds + pushes this to GHCR; the box pulls it (never builds). build: stays for local dev.
+    image: ghcr.io/logickoder/bankstract-cloud-web:${IMAGE_TAG:-latest}
     build:
       context: ..
       dockerfile: apps/web/Dockerfile

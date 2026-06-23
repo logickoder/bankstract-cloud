@@ -1,0 +1,102 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (C) 2026 Jeffery Orazulike
+#
+# Continuous deploy for the infra-prod stack (worker + web). On push to main, GitHub Actions builds
+# both images for linux/amd64 (the box is x86) and pushes them to GHCR, then SSHes the box to pull +
+# restart. The 4GB box never builds - it only runs containers. The internal Caddy, backup sidecar,
+# and Cloudflare Pages docs are unaffected (docs have their own workflow).
+#
+# Owner sets these repo secrets (Settings -> Secrets and variables -> Actions):
+#   DEPLOY_HOST      box IP or hostname
+#   DEPLOY_USER      ssh user (e.g. deploy or root)
+#   DEPLOY_SSH_KEY   private key whose public half is in the box's authorized_keys
+#   DEPLOY_PATH      absolute path to the cloned repo on the box (compose runs from infra-prod under it)
+#   DEPLOY_PORT      optional, defaults to 22
+# Optional repo variable: NEXT_PUBLIC_TURNSTILE_SITE_KEY (else the test key is baked).
+# Make the two GHCR packages public once (or `docker login ghcr.io` on the box) so the pull needs no auth.
+name: Deploy infra-prod
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/web/**
+      - apps/worker/**
+      - packages/**
+      - infra-prod/**
+      - .github/workflows/infra-prod-deploy.yml
+  workflow_dispatch:
+
+concurrency:
+  group: infra-prod-deploy
+  cancel-in-progress: false
+
+env:
+  WEB_IMAGE: ghcr.io/logickoder/bankstract-cloud-web
+  WORKER_IMAGE: ghcr.io/logickoder/bankstract-cloud-worker
+
+jobs:
+  build:
+    name: build + push images (ghcr)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.WEB_IMAGE }}:latest
+            ${{ env.WEB_IMAGE }}:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_BETTER_AUTH_URL=
+            NEXT_PUBLIC_SITE_URL=https://bankstract.logickoder.dev
+            NEXT_PUBLIC_DOCS_URL=/docs
+            NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: worker
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/worker
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.WORKER_IMAGE }}:latest
+            ${{ env.WORKER_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: pull + restart on the box
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: ssh pull + up
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            git pull --ff-only
+            docker compose -f infra-prod/docker-compose.yml pull worker web
+            docker compose -f infra-prod/docker-compose.yml up -d
+            docker image prune -f
