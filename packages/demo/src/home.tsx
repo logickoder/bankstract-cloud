@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Anchor, linkClass } from '@bankstract/ui'
+import { Anchor, BrandMark, linkClass } from '@bankstract/ui'
 
 import { DemoClient } from './components/DemoClient'
 
@@ -12,6 +12,14 @@ const navLink =
 export function DemoHome() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-10 px-6 py-20">
+      <a
+        href="/"
+        className="flex items-center gap-2 rounded-sm text-fg transition-colors hover:text-fg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        aria-label="bankstract home"
+      >
+        <BrandMark className="h-3 w-auto" />
+        <span className="font-display text-base font-bold tracking-tight">bankstract</span>
+      </a>
       <header className="text-center">
         <h1 className="font-display text-4xl font-bold tracking-tight text-fg sm:text-5xl">
           Drop your bank statement

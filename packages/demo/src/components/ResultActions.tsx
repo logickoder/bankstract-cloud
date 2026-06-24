@@ -4,12 +4,16 @@
 'use client'
 
 import type { ParseResponse } from '@bankstract/types'
-import { Button } from '@bankstract/ui'
+import { Button, linkClass } from '@bankstract/ui'
 import { type RefObject, useState } from 'react'
 
 import { downloadCsv, triggerBlobDownload } from '../lib/parse-client'
 
 import type { TurnstileHandle } from './TurnstileGate'
+
+// Set only on the hosted product (the merged web sets it to /sign-up); unset in the standalone
+// self-host bundle, where there is no signup, so the conversion CTA stays hidden there.
+const SIGNUP_URL = process.env.NEXT_PUBLIC_APP_URL
 
 interface ResultActionsProps {
   data: ParseResponse
@@ -60,6 +64,15 @@ export function ResultActions({ data, file, turnstile, onReset }: ResultActionsP
         <code className="font-mono">_demo</code> field. The transaction data is complete and
         unchanged.
       </p>
+      {SIGNUP_URL ? (
+        <p className="text-sm text-fg-secondary">
+          Need this in production?{' '}
+          <a href={SIGNUP_URL} className={linkClass}>
+            Get an API key
+          </a>
+          .
+        </p>
+      ) : null}
     </div>
   )
 }

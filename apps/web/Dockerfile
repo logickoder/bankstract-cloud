@@ -29,10 +29,14 @@ ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
 # by ?? (only null/undefined is), so an empty ENV would inline as a broken "" canonical/docs URL.
 ARG NEXT_PUBLIC_SITE_URL=https://bankstract.logickoder.dev
 ARG NEXT_PUBLIC_DOCS_URL=/docs
+# Same-origin signup in the merged web. Drives the marketing signup CTA + the demo "get a key"
+# conversion link. Unset in the standalone demo bundle, where that CTA stays hidden.
+ARG NEXT_PUBLIC_APP_URL=/sign-up
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_TELEMETRY_DISABLED=1 \
     # Build-only placeholder so Better Auth init during prerender doesn't error; the runtime value
     # is supplied by compose (and MUST be a real secret) and overrides this.

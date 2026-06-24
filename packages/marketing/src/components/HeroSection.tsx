@@ -37,6 +37,9 @@ export function HeroSection() {
             <a href={links.docs}>
               <Button variant="secondary">Read the docs</Button>
             </a>
+            <a href={links.signin}>
+              <Button variant="ghost">Sign in</Button>
+            </a>
           </div>
           <p className="mt-6 text-sm text-fg-tertiary">Open source. Self-host. Cloud-hosted.</p>
         </div>
