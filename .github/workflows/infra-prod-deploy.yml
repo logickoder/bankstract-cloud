@@ -97,6 +97,11 @@ jobs:
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
             git pull --ff-only
-            docker compose -f infra-prod/docker-compose.yml pull worker web
-            docker compose -f infra-prod/docker-compose.yml up -d
+            COMPOSE="docker compose -f infra-prod/docker-compose.yml"
+            $COMPOSE pull worker web
+            $COMPOSE up -d
+            # The Caddyfile is bind-mounted, so `up -d` does not recreate caddy when only the file
+            # changed. Reload it in place (zero-downtime; a bad config keeps the running one).
+            $COMPOSE exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+            $COMPOSE exec -T worker python -c "import bankstract; print('engine', bankstract.__version__)"
             docker image prune -f
