@@ -81,7 +81,7 @@ Pro-rated refund within the first 7 days of any paid tier. After 7 days the curr
 
 Prices are VAT-inclusive. The owner's business entity issues FIRS-compliant tax invoices on request via the dashboard `Download invoice` action.
 
-> **Implementation status (2026-06-22):** the pricing decision is canonical and the Paystack migration has landed. Worker billing lives in `paystack.py` / `subscriptions.py` / `usage.py` / `routes/billing.py`, with the live-key `402 subscription_inactive` gate in `routes/parse.py`. The dashboard checkout (`apps/app` Billing page → `/api/billing/init` → worker) is in place. Overage auto-invoicing is landed: an in-process daily scheduler (`billing_cron.py`) bills each closed cycle, idempotent per `(owner, cycle)` and self-healing across restarts, with per-cycle tier economics frozen in `cycle_tiers`. The overage metering window is the UTC calendar month (cap resets on the 1st, not the subscription anchor); the overage invoice is a separate Paystack charge from the base-fee renewal. Both `/v1/usage` and the cron read that one window definition (`audit.py`). Annual prepay (15% off) is wired: `subscribe` takes an `interval`, `config.plan_for(tier, interval)` picks the plan, and the dashboard has a monthly/annual toggle. Tier (not interval) drives all enforcement, so no schema change.
+> **Implementation status (2026-06-22):** the pricing decision is canonical and the Paystack migration has landed. Worker billing lives in `paystack.py` / `subscriptions.py` / `usage.py` / `routes/billing.py`, with the live-key `402 subscription_inactive` gate in `routes/parse.py`. The dashboard checkout (`apps/web` Billing page → `/api/billing/init` → worker) is in place. Overage auto-invoicing is landed: an in-process daily scheduler (`billing_cron.py`) bills each closed cycle, idempotent per `(owner, cycle)` and self-healing across restarts, with per-cycle tier economics frozen in `cycle_tiers`. The overage metering window is the UTC calendar month (cap resets on the 1st, not the subscription anchor); the overage invoice is a separate Paystack charge from the base-fee renewal. Both `/v1/usage` and the cron read that one window definition (`audit.py`). Annual prepay (15% off) is wired: `subscribe` takes an `interval`, `config.plan_for(tier, interval)` picks the plan, and the dashboard has a monthly/annual toggle. Tier (not interval) drives all enforcement, so no schema change.
 
 ## Privacy posture (LOCKED)
 
@@ -180,20 +180,24 @@ bankstract-cloud/
 ├── turbo.json
 ├── .env.example                  documented env vars
 ├── apps/
-│   ├── marketing/                Next.js 16: landing, pricing, OSS callout
-│   ├── app/                      Next.js 16: developer dashboard (Better Auth, API keys, usage, billing)
-│   ├── docs/                     Mintlify or Fumadocs: OpenAPI spec + integration guides
-│   ├── demo/                     Next.js 16: consumer drag-drop showcase
+│   ├── web/                      Next.js 16: ONE runtime - marketing /, demo /demo, dashboard (/dashboard, /sign-in, /sign-up, /api/*)
+│   ├── marketing/                Next.js 16: thin extractable shell over packages/marketing
+│   ├── demo/                     Next.js 16: thin shell over packages/demo (the demo in the infra/ bundle)
+│   ├── docs/                     Fumadocs: OpenAPI spec + guides; deploys to Cloudflare Pages at /docs
 │   └── worker/                   FastAPI: wraps bankstract engine
 ├── packages/
+│   ├── marketing/                marketing surface, consumed by apps/web + the shell
+│   ├── demo/                     demo surface, consumed by apps/web + the shell
 │   ├── ui/                       shadcn components shared across Next.js apps
+│   ├── seo/                      shared metadata + OG + favicon helpers
 │   ├── types/                    TS types mirroring engine ParseResult
 │   ├── tsconfig/                 shared tsconfig presets
 │   └── eslint-config/            shared ESLint config
-└── infra/
-    ├── docker-compose.yml        self-host bundle: verifiable AGPL self-host claim
-    ├── Caddyfile                 reverse proxy
-    └── README.md                 self-host walkthrough
+├── infra/
+│   ├── docker-compose.yml        public self-host bundle: verifiable AGPL self-host claim
+│   ├── Caddyfile                 reverse proxy
+│   └── README.md                 self-host walkthrough
+└── infra-prod/                   owner's prod stack (worker + web behind an internal Caddy + a shared proxy)
 ```
 
 ## API surface
@@ -235,6 +239,22 @@ Response 422  no parser/redactor detected (unsupported bank or wrong format)
 Response 429  rate limit exceeded
 Response 500  internal parse error (response body includes format_version)
 ```
+
+### Async parse jobs (`/v1/parse/jobs`)
+
+For long statements, submit an async job and stream engine progress (engine 0.15.0 progress hooks). The synchronous `POST /v1/parse` is unchanged.
+
+```
+POST /v1/parse/jobs              202 { job_id, stream_url, poll_url }   (same body + options as /v1/parse)
+GET  /v1/parse/jobs/{id}/stream  text/event-stream: progress {stage,current,total}, then a final
+                                 `result` event (the ParseResponse, for json). No auth header: the
+                                 unguessable job_id is the capability.
+GET  /v1/parse/jobs/{id}         JSON snapshot (poll fallback)
+GET  /v1/parse/jobs/{id}/result  the ParseResponse JSON, or the CSV / redacted bytes (csv/redact
+                                 results are not inlined in the SSE event)
+```
+
+Bytes stay in memory and are dropped on completion / TTL eviction (Directive 1); the worker stays single-process (the job store is in-memory).
 
 **Wire format ≠ engine internals.** Engine `ParseResult` + `StatementMetadata` are Python dataclasses (only `Transaction` is pydantic). Worker defines its own `ParseResponse` pydantic model in `apps/worker/src/bankstract_cloud/models.py` and serializes via `ParseResponse.from_engine(result)`. Decouples API surface from engine internals. Engine can rev internal types without breaking `/v1/*` clients.
 

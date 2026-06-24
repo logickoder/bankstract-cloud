@@ -14,7 +14,7 @@ In scope:
 - The hosted API (`/v1/parse` and other `/v1/*` endpoints)
 - Authentication and API key handling (`apps/worker`)
 - Billing and rate-limit bypasses
-- The Next.js apps (`apps/marketing`, `apps/app`, `apps/demo`)
+- The Next.js apps (`apps/web`, `apps/marketing`, `apps/demo`, `apps/docs`)
 - The self-host bundle (`infra/`)
 
 Out of scope (report upstream):

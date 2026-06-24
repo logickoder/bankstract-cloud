@@ -26,6 +26,10 @@ uv run pytest
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
 | POST | `/v1/parse` | Bearer | multipart `pdf`; optional `bank`. `?format=json` (default) returns ParseResponse JSON; `?format=csv` returns engine-serialized CSV (`text/csv` + `Content-Disposition`). `redact=true` returns the redacted document bytes (PDF or XLSX) with the matching `Content-Type`. |
+| POST | `/v1/parse/jobs` | Bearer | async job for long statements; same body + `format`/`redact` options as `/v1/parse`. `202` with `job_id` + `stream_url` + `poll_url`. |
+| GET | `/v1/parse/jobs/{id}/stream` | job_id (no header) | SSE: `{stage,current,total}` progress, then a `result` event (the ParseResponse for json) |
+| GET | `/v1/parse/jobs/{id}` | Bearer | JSON snapshot (poll fallback) |
+| GET | `/v1/parse/jobs/{id}/result` | Bearer | the ParseResponse JSON, or the CSV / redacted bytes (csv/redact results are not inlined in the SSE event) |
 | GET | `/v1/banks` | Bearer | engine-reported supported parsers |
 | GET | `/v1/usage` | Bearer | current-month parses + projected invoice |
 | GET | `/v1/status` | none | worker + engine version |

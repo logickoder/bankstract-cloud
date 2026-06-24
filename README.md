@@ -32,22 +32,26 @@ API consumers interact over HTTP and do **not** inherit AGPL. A SaaS-hosted fork
 
 ```
 apps/
-  marketing/   Next.js 16: landing
-  app/         Next.js 16: dev dashboard (Better Auth + Paystack)
-  docs/        Fumadocs: API docs
-  demo/        Next.js 16: anonymous drag-drop (Turnstile)
-  worker/      FastAPI: wraps the bankstract engine, exposes /v1/parse
+  web/         Next.js 16: one runtime - marketing /, demo /demo, dashboard (/dashboard, /sign-in, /sign-up, /api/*)
+  marketing/   Next.js 16: thin extractable shell over packages/marketing
+  demo/        Next.js 16: thin shell over packages/demo (the demo in the infra/ self-host bundle)
+  docs/        Fumadocs: API docs; deploys to Cloudflare Pages, surfaced at /docs
+  worker/      FastAPI: wraps the bankstract engine, exposes /v1/parse (+ async /v1/parse/jobs)
 packages/
+  marketing/   marketing surface, consumed by apps/web + the shell
+  demo/        demo surface, consumed by apps/web + the shell
   ui/          shared shadcn components
+  seo/         shared metadata + OG + favicon helpers
   types/       TS types mirroring the engine ParseResult
   tsconfig/    shared tsconfig presets
   eslint-config/ shared ESLint config
 infra/
-  docker-compose.yml   self-host bundle
+  docker-compose.yml   public self-host bundle (worker + thin demo)
   Caddyfile            reverse proxy
+infra-prod/            owner's prod stack (worker + web behind an internal Caddy + a shared proxy)
 ```
 
-> Scaffold status: root config + `apps/worker` are live. Other apps/packages land in subsequent passes.
+> The Next surfaces run as one `web` runtime (route-group shell over `packages/marketing` + `packages/demo`) to keep RAM low on a small box; the thin `apps/marketing` / `apps/demo` shells stay extractable. `docs` ships separately to Cloudflare Pages at `/docs`.
 
 ## Develop
 

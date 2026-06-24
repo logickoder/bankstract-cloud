@@ -16,19 +16,23 @@ Owner: Jeffery Orazulike (github.com/logickoder).
 
 ```
 apps/
-  marketing/    Next.js 16: landing page
-  app/          Next.js 16: auth'd dev dashboard (Better Auth + Paystack)
-  docs/         Mintlify or Fumadocs: API docs
-  demo/         Next.js 16: anonymous drag-drop showcase (Turnstile)
-  worker/       FastAPI: imports `bankstract` engine, exposes /v1/parse
+  web/          Next.js 16: ONE runtime - marketing /, demo /demo, dashboard /dashboard + /sign-in + /sign-up + /api/*
+  marketing/    Next.js 16: thin extractable shell over packages/marketing
+  demo/         Next.js 16: thin shell over packages/demo (the deployable demo in the infra/ self-host bundle)
+  docs/         Fumadocs: API docs; deploys to Cloudflare Pages, surfaced at /docs (Caddy proxy + Next basePath /docs)
+  worker/       FastAPI: imports `bankstract` engine, exposes /v1/parse (+ async /v1/parse/jobs)
 packages/
+  marketing/    marketing surface (home, sections, metadata) - consumed by apps/web + the thin shell
+  demo/         demo surface (home, components, API handlers) - consumed by apps/web + the thin shell
   ui/           shadcn components shared across Next.js apps
+  seo/          shared metadata + OG image + favicon helpers
   types/        shared TS types mirroring engine ParseResult
   tsconfig/     shared tsconfig presets
-  eslint-config/ shared ESLint config
+  eslint-config/ shared ESLint config (incl. the @stylistic quote/semi guard; no prettier)
 infra/
-  docker-compose.yml   self-host bundle (verifies AGPL claim)
+  docker-compose.yml   public self-host bundle (worker + thin demo; verifies AGPL claim)
   Caddyfile            reverse proxy config
+infra-prod/            owner's prod stack (worker + web behind an internal Caddy + a shared proxy)
 ```
 
 ## Hard rules (non-negotiable)
@@ -103,10 +107,8 @@ cd apps/worker && uv sync --all-extras && cd ../..
 pnpm dev
 
 # dev single app
-pnpm --filter marketing dev
-pnpm --filter app dev
+pnpm --filter web dev     # the one runtime: marketing /, demo /demo, dashboard
 pnpm --filter docs dev
-pnpm --filter demo dev
 cd apps/worker && uv run uvicorn bankstract_cloud.main:app --reload
 
 # lint + types
@@ -155,8 +157,8 @@ If a request matches any of the above, state which item, refer to PRD.md § Out 
 | Why does this product exist? | `PRD.md` § What + Why |
 | What's the API shape? | `PRD.md` § API surface |
 | How do I add an export format? | `apps/worker/src/bankstract_cloud/writers/` |
-| How is auth wired? | `apps/app/src/lib/auth.ts` + `proxy.ts` (Better Auth; sessions in `apps/app/data/auth.db`, gitignored, self-host bundle intact) + `apps/worker/src/bankstract_cloud/auth.py` (separate API-key bearer path) |
-| How is billing wired? | Paystack NGN subscriptions (PRD § Pricing). Worker: `paystack.py` (client + HMAC webhook verify), `subscriptions.py` (state store + webhook dispatch), `usage.py` (overage), `routes/billing.py` (endpoints). 402 gate in `routes/parse.py`. `apps/app` proxies via `/api/billing/init`; worker holds the secret. |
+| How is auth wired? | `apps/web/src/lib/auth.ts` + `proxy.ts` (Better Auth; sessions in `apps/web/data/auth.db`, gitignored, self-host bundle intact) + `apps/worker/src/bankstract_cloud/auth.py` (separate API-key bearer path) |
+| How is billing wired? | Paystack NGN subscriptions (PRD § Pricing). Worker: `paystack.py` (client + HMAC webhook verify), `subscriptions.py` (state store + webhook dispatch), `usage.py` (overage), `routes/billing.py` (endpoints). 402 gate in `routes/parse.py`. `apps/web` proxies via `/api/billing/init`; worker holds the secret. |
 | What's the privacy posture? | `CLAUDE.md` § Directive 1 + `PRD.md` § Privacy posture |
 | Why AGPL not MIT? | `CLAUDE.md` § Directive 3 + `PRD.md` § License |
 | How do I add a new bank? | NOT here. Engine repo: `github.com/logickoder/bankstract` § CONTRIBUTING |

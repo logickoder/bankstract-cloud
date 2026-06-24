@@ -461,7 +461,7 @@ landing-sections:
       bottom-microcopy: "Open source statement parsing API for Nigerian banks"
 ```
 
-### Dashboard (apps/app)
+### Dashboard (apps/web)
 
 ```yaml
 dashboard-sections:
@@ -753,7 +753,7 @@ Lock these in `package.json` workspace root. Don't introduce styling alternative
 ```yaml
 status:
   draft: true
-  applies-to: ["apps/marketing", "apps/app", "apps/demo", "packages/ui"]
+  applies-to: ["apps/web", "apps/marketing", "apps/demo", "packages/ui"]
   defers-to: ["apps/docs (Mintlify default theme, accent + font only)"]
   reviewer: "Jeffery Orazulike"
   open-issues:

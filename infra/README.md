@@ -18,7 +18,7 @@ curl -X POST http://localhost/v1/parse \
   -F "pdf=@statement.pdf"
 ```
 
-(`DEMO_API_KEY` defaults to `bsk_test_demo_selfhost`. Issue your own keys with the worker's `KeyStore`. A self-serve dashboard ships in `apps/app`.)
+(`DEMO_API_KEY` defaults to `bsk_test_demo_selfhost`. Issue your own keys with the worker's `KeyStore`. A self-serve dashboard ships in `apps/web`.)
 
 ## What runs
 
