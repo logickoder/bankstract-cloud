@@ -3,6 +3,7 @@
 
 export { Anchor, linkClass } from './anchor'
 export { Badge, type BadgeProps } from './badge'
+export { BrandMark } from './brand'
 export { Button, type ButtonProps } from './button'
 export { Card } from './card'
 export { GrainFilter } from './grain'

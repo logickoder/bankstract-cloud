@@ -1,24 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import type { ReactNode } from "react";
+import { BrandMark } from '@bankstract/ui'
+import type { ReactNode } from 'react'
 
-import { SidebarNav } from "@/components/SidebarNav";
-import { SignOutButton } from "@/components/sign-out-button";
-import { getUser } from "@/lib/session";
+import { SidebarNav } from '@/components/SidebarNav'
+import { SignOutButton } from '@/components/sign-out-button'
+import { getUser } from '@/lib/session'
 
 export default async function DashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const user = await getUser();
+  const user = await getUser()
   return (
     <div className="flex min-h-screen w-full flex-col lg:flex-row">
       <aside className="relative flex shrink-0 flex-col gap-6 overflow-hidden border-b border-border bg-bg-secondary px-6 py-6 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:gap-8 lg:border-r lg:border-b-0 lg:py-8">
         <div className="grain-section" aria-hidden="true" />
         <div className="relative flex items-center justify-between">
-          <span className="font-display text-lg font-bold text-fg">
+          <span className="flex items-center gap-2 font-display text-lg font-bold text-fg">
+            <BrandMark className="h-2.5 w-auto" />
             bankstract
           </span>
           <span className="lg:hidden">
@@ -46,5 +48,5 @@ export default async function DashboardLayout({
         </div>
       </main>
     </div>
-  );
+  )
 }
