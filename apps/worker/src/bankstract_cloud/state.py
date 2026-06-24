@@ -11,6 +11,7 @@ from fastapi import Depends, Header, HTTPException, Request
 from .audit import AuditLog
 from .auth import AuthContext, KeyStore
 from .config import Settings
+from .jobs import JobStore
 from .overage_ledger import CycleTierStore, OverageLedger
 from .paystack import PaystackClient
 from .rate_limit import RateLimiter
@@ -27,6 +28,7 @@ class AppState:
     subscriptions: SubscriptionStore
     cycle_tiers: CycleTierStore
     overage_ledger: OverageLedger
+    jobs: JobStore
 
 
 def get_state(request: Request) -> AppState:

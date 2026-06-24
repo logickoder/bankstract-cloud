@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     # 50 MB hard cap (PRD open-question B, locked). Enforced before the engine runs.
     max_upload_bytes: int = 52_428_800
 
+    # Async parse jobs (/v1/parse/jobs). max_concurrent gates simultaneous engine threads:
+    # pdfplumber peaks ~150-300MB per large statement, so keep this low on the shared 4GB box
+    # (web coexists). job_ttl retains a terminal job + its result in RAM for the poll fallback.
+    parse_max_concurrent: int = 2
+    job_ttl_seconds: int = 300
+    sse_throttle_ms: int = 150  # min interval between progress events streamed to a client
+
     # Free demo: 50 parses/month per IP (PRD § Pricing). 30-day rolling window.
     demo_rate_limit_max: int = 50
     demo_rate_limit_window_seconds: int = 2_592_000

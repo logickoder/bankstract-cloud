@@ -3,11 +3,17 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
+import time
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Literal
 
+import bankstract
+from bankstract import ProgressCallback, ProgressEvent
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..audit import AuditEntry
 from ..auth import AuthContext
@@ -18,7 +24,8 @@ from ..engine import (
     parse_pdf,
     redact_pdf,
 )
-from ..models import ErrorResponse, ParseResponse
+from ..jobs import TERMINAL_STAGE, Job
+from ..models import ErrorResponse, JobAccepted, JobSnapshot, ParseResponse, ProgressSnapshot
 from ..responses import error_response
 from ..state import AppState, client_ip, get_state, require_auth
 from ..turnstile import verify_turnstile
@@ -56,22 +63,10 @@ async def parse(
     fmt: Literal["json", "csv"] = Query(default="json", alias="format"),
     state: AppState = Depends(get_state),
 ) -> ParseResponse | Response:
-    settings = state.settings
-
-    _enforce_size_header(request, settings.max_upload_bytes)
-
-    if ctx.is_anonymous:
-        await _check_anonymous_access(request, state, turnstile_token)
-
-    # Live keys parse only under an active subscription (charter §5). Test keys parse free.
-    # Fail before reading the upload so an inactive account never moves PDF bytes.
-    if ctx.is_billable and not (ctx.owner and state.subscriptions.is_active(ctx.owner)):
-        return error_response(402, "subscription inactive", "subscription_inactive")
-
-    data = await pdf.read()
-    byte_count = len(data)
-    if byte_count > settings.max_upload_bytes:
-        raise HTTPException(status_code=413, detail="file too large")
+    admitted = await _admit_upload(request, pdf, ctx, state, turnstile_token)
+    if isinstance(admitted, JSONResponse):
+        return admitted
+    data, byte_count = admitted
 
     try:
         if redact:
@@ -123,6 +118,213 @@ async def parse(
         )
         return JSONResponse(content=enveloped)
     return outcome.response
+
+
+@router.post(
+    "/v1/parse/jobs",
+    status_code=202,
+    response_model=JobAccepted,
+    responses={
+        401: {"model": ErrorResponse},
+        402: {"model": ErrorResponse},
+        413: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+    },
+    summary="Submit a long parse as an async job",
+    description=(
+        "Queue a statement parse and stream engine progress over Server-Sent Events. Returns 202 "
+        "with a job_id, an SSE stream_url, and a poll_url fallback. Use this for large statements; "
+        "small ones are faster on the synchronous /v1/parse. JSON parse only."
+    ),
+)
+async def submit_job(
+    request: Request,
+    pdf: UploadFile,
+    ctx: AuthContext = Depends(require_auth),
+    bank: str | None = Form(default=None),
+    turnstile_token: str | None = Form(default=None),
+    state: AppState = Depends(get_state),
+) -> JobAccepted | Response:
+    admitted = await _admit_upload(request, pdf, ctx, state, turnstile_token)
+    if isinstance(admitted, JSONResponse):
+        return admitted
+    data, byte_count = admitted
+
+    job = state.jobs.create(owner_key=ctx.api_key_id, filename=pdf.filename, byte_count=byte_count)
+    # Runs to completion after this 202 returns. _run_job owns the bytes from here and drops them
+    # when done (Directive 1). The task is held on the job so the loop never garbage-collects it.
+    job.task = asyncio.create_task(_run_job(state, ctx, job, data, bank))
+    return JobAccepted(
+        job_id=job.id,
+        stream_url=f"/v1/parse/jobs/{job.id}/stream",
+        poll_url=f"/v1/parse/jobs/{job.id}",
+    )
+
+
+@router.get(
+    "/v1/parse/jobs/{job_id}/stream",
+    summary="Stream parse progress (SSE)",
+    description=(
+        "Server-Sent Events for a job: data lines carry {stage,current,total} progress, then a "
+        "final `event: result` carries the ParseResponse (success) or the error envelope. No "
+        "Authorization header: the unguessable job_id is the capability, since EventSource cannot "
+        "send headers. One consumer per job."
+    ),
+)
+async def stream_job(job_id: str, state: AppState = Depends(get_state)) -> StreamingResponse:
+    job = state.jobs.get_or_404(job_id, owner_key=None)
+    return StreamingResponse(
+        _event_stream(job),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.get(
+    "/v1/parse/jobs/{job_id}",
+    response_model=JobSnapshot,
+    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Poll a parse job",
+    description=(
+        "JSON snapshot of a job, the polling fallback to SSE. result appears once state is done; "
+        "the error fields once failed."
+    ),
+)
+async def poll_job(
+    job_id: str,
+    ctx: AuthContext = Depends(require_auth),
+    state: AppState = Depends(get_state),
+) -> JobSnapshot:
+    job = state.jobs.get_or_404(job_id, owner_key=ctx.api_key_id)
+    return _snapshot(job)
+
+
+async def _run_job(
+    state: AppState, ctx: AuthContext, job: Job, data: bytes, bank: str | None
+) -> None:
+    loop = asyncio.get_running_loop()
+    # Throttle the stream so the browser sees start + end of each phase, not every page event.
+    callback = bankstract.throttle(
+        _progress_relay(job, loop), min_interval_ms=state.settings.sse_throttle_ms
+    )
+    try:
+        async with state.jobs.semaphore:
+            job.state = "running"
+            outcome = await asyncio.to_thread(
+                parse_pdf, data, bank=bank, progress_callback=callback
+            )
+        job.result = outcome
+        job.state = "done"
+        _record_success(state, ctx, job.filename, job.byte_count, outcome.parser_detected)
+    except UnsupportedStatementError as exc:
+        _fail_job(job, exc.error_class, str(exc), exc.format_version, exc.marker_coverage)
+        _audit(state, ctx, job.filename, job.byte_count, None, False, exc.error_class)
+    except EngineError as exc:
+        _fail_job(job, exc.error_class, str(exc), exc.format_version, None)
+        _audit(state, ctx, job.filename, job.byte_count, None, False, exc.error_class)
+    except Exception as exc:  # never leave a job stuck "running"
+        _fail_job(job, type(exc).__name__, str(exc), None, None)
+        _audit(state, ctx, job.filename, job.byte_count, None, False, type(exc).__name__)
+    finally:
+        del data  # drop PDF bytes promptly (Directive 1)
+        job.terminal_at = time.monotonic()
+        await job.queue.put({"stage": TERMINAL_STAGE, "state": job.state})
+
+
+def _progress_relay(job: Job, loop: asyncio.AbstractEventLoop) -> ProgressCallback:
+    # Engine fires events from the worker thread; marshal each onto the job queue on the event loop.
+    # last_event is the replay value a late SSE subscriber receives first.
+    def relay(event: ProgressEvent) -> None:
+        payload = {"stage": event.stage, "current": event.current, "total": event.total}
+        job.last_event = payload
+        loop.call_soon_threadsafe(job.queue.put_nowait, payload)
+
+    return relay
+
+
+def _fail_job(
+    job: Job,
+    error_class: str,
+    message: str,
+    format_version: str | None,
+    marker_coverage: float | None,
+) -> None:
+    job.state = "failed"
+    job.error_class = error_class
+    job.error_message = message
+    job.format_version = format_version
+    job.marker_coverage = marker_coverage
+
+
+async def _event_stream(job: Job) -> AsyncIterator[str]:
+    # Replay the latest progress so a late subscriber sees current state, then drain until terminal.
+    if job.last_event is not None:
+        yield _sse(job.last_event)
+    while job.state in ("queued", "running"):
+        event = await job.queue.get()
+        if event.get("stage") == TERMINAL_STAGE:
+            break
+        yield _sse(event)
+    yield _sse_result(job)
+
+
+def _sse(data: dict[str, object]) -> str:
+    return f"data: {json.dumps(data)}\n\n"
+
+
+def _sse_result(job: Job) -> str:
+    final: dict[str, object] = {"state": job.state, "error_class": job.error_class}
+    if job.error_message is not None:
+        final["error"] = job.error_message
+    if job.state == "done" and job.result is not None:
+        final["result"] = job.result.response.model_dump(mode="json")
+    return f"event: result\ndata: {json.dumps(final)}\n\n"
+
+
+def _snapshot(job: Job) -> JobSnapshot:
+    last = job.last_event
+    progress = (
+        ProgressSnapshot(stage=last["stage"], current=last["current"], total=last["total"])
+        if last is not None
+        else None
+    )
+    result = job.result.response if (job.state == "done" and job.result is not None) else None
+    return JobSnapshot(
+        job_id=job.id,
+        state=job.state,
+        progress=progress,
+        result=result,
+        error=job.error_message,
+        error_class=job.error_class,
+    )
+
+
+async def _admit_upload(
+    request: Request,
+    pdf: UploadFile,
+    ctx: AuthContext,
+    state: AppState,
+    turnstile_token: str | None,
+) -> tuple[bytes, int] | JSONResponse:
+    """Shared admission for the sync and async parse paths. Enforces the charter ordering: the size
+    limit, the human check (anonymous), and an active subscription are all verified BEFORE the PDF
+    is read, so an over-quota or inactive caller never moves payload. Returns (data, byte_count), or
+    the 402 envelope when the subscription is inactive."""
+    max_bytes = state.settings.max_upload_bytes
+    _enforce_size_header(request, max_bytes)
+
+    if ctx.is_anonymous:
+        await _check_anonymous_access(request, state, turnstile_token)
+
+    # Live keys parse only under an active subscription (charter §5); test keys parse free.
+    if ctx.is_billable and not (ctx.owner and state.subscriptions.is_active(ctx.owner)):
+        return error_response(402, "subscription inactive", "subscription_inactive")
+
+    data = await pdf.read()
+    byte_count = len(data)
+    if byte_count > max_bytes:
+        raise HTTPException(status_code=413, detail="file too large")
+    return data, byte_count
 
 
 async def _check_anonymous_access(

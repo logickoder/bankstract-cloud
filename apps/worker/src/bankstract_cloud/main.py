@@ -19,6 +19,7 @@ from .auth import KeyStore
 from .billing_cron import billing_scheduler
 from .config import get_settings
 from .db import connect, run_migrations
+from .jobs import JobStore
 from .observability import init_sentry
 from .overage_ledger import CycleTierStore, OverageLedger
 from .paystack import PaystackClient
@@ -49,16 +50,31 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         subscriptions=SubscriptionStore(conn),
         cycle_tiers=CycleTierStore(conn),
         overage_ledger=OverageLedger(conn),
+        jobs=JobStore(
+            max_concurrent=settings.parse_max_concurrent,
+            ttl_seconds=settings.job_ttl_seconds,
+        ),
     )
     scheduler = asyncio.create_task(billing_scheduler(app.state.app_state))
+    sweeper = asyncio.create_task(_job_sweeper(app.state.app_state))
     try:
         yield
     finally:
-        # Stop the ticker before closing the shared connection it would otherwise use.
+        # Stop the background tasks before closing the shared connection they would otherwise use.
         scheduler.cancel()
+        sweeper.cancel()
         with suppress(asyncio.CancelledError):
             await scheduler
+        with suppress(asyncio.CancelledError):
+            await sweeper
         conn.close()
+
+
+async def _job_sweeper(state: AppState) -> None:
+    # Evict terminal parse jobs (and their in-RAM results) once past their TTL.
+    while True:
+        await asyncio.sleep(state.settings.job_ttl_seconds)
+        state.jobs.sweep()
 
 
 app = FastAPI(

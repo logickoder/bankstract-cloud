@@ -81,6 +81,33 @@ class ErrorResponse(BaseModel):
     marker_coverage: float | None = None
 
 
+class JobAccepted(BaseModel):
+    """202 response from POST /v1/parse/jobs. Open the SSE `stream_url` for live progress, or fall
+    back to polling `poll_url`."""
+
+    job_id: str
+    stream_url: str
+    poll_url: str
+
+
+class ProgressSnapshot(BaseModel):
+    stage: str  # detect | open | extract_page | walk_page | reconcile | done (engine stage strings)
+    current: int
+    total: int
+
+
+class JobSnapshot(BaseModel):
+    """Poll fallback for an async parse job. `result` is present once `state` is `done`; the error
+    fields are populated once `failed`."""
+
+    job_id: str
+    state: Literal["queued", "running", "done", "failed"]
+    progress: ProgressSnapshot | None = None
+    result: ParseResponse | None = None
+    error: str | None = None
+    error_class: str | None = None
+
+
 class BankInfo(BaseModel):
     id: str
 

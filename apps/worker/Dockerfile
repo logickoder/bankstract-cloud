@@ -31,4 +31,6 @@ VOLUME ["/data"]
 
 EXPOSE 8000
 
+# Single process only (no --workers). The async parse-job store (jobs.py) is in-memory, so multiple
+# workers would not share jobs and a stream/poll could land on a process that never saw the job.
 CMD ["uvicorn", "bankstract_cloud.main:app", "--host", "0.0.0.0", "--port", "8000"]
