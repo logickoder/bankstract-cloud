@@ -72,25 +72,18 @@ async def parse(
         if redact:
             redacted = redact_pdf(data, bank=bank)
             _record_success(state, ctx, pdf.filename, byte_count, redacted.bank)
-            # Stream redacted bytes straight to the response: no disk, no payload log.
-            return Response(
-                content=redacted.data,
+            return _redact_response(
+                redacted.data,
                 media_type=redacted.media_type,
-                headers={
-                    "X-Bankstract-Redactions": str(redacted.redactions),
-                    "X-Bankstract-Format-Version": redacted.format_version,
-                },
+                redactions=redacted.redactions,
+                format_version=redacted.format_version,
             )
         # Free-demo (anonymous tier) outputs are watermarked; paid/test pass through.
         wm_tier = DEMO_TIER if ctx.is_anonymous else ctx.tier
         if fmt == "csv":
             csv_outcome = parse_csv(data, bank=bank)
             _record_success(state, ctx, pdf.filename, byte_count, csv_outcome.parser_detected)
-            return Response(
-                content=watermark_csv(csv_outcome.data, tier=wm_tier),
-                media_type="text/csv",
-                headers={"Content-Disposition": "attachment; filename=statement.csv"},
-            )
+            return _csv_response(watermark_csv(csv_outcome.data, tier=wm_tier))
         outcome = parse_pdf(data, bank=bank)
     except UnsupportedStatementError as exc:
         _audit(state, ctx, pdf.filename, byte_count, None, False, exc.error_class)
@@ -133,8 +126,10 @@ async def parse(
     summary="Submit a long parse as an async job",
     description=(
         "Queue a statement parse and stream engine progress over Server-Sent Events. Returns 202 "
-        "with a job_id, an SSE stream_url, and a poll_url fallback. Use this for large statements; "
-        "small ones are faster on the synchronous /v1/parse. JSON parse only."
+        "with a job_id, an SSE stream_url, and a poll_url fallback. Mirrors /v1/parse: "
+        "`?format=csv` and `redact=true` are supported. json rides the SSE result event; csv and "
+        "redact bytes are fetched from /v1/parse/jobs/{id}/result. Use this for large statements; "
+        "small ones are faster on the synchronous /v1/parse."
     ),
 )
 async def submit_job(
@@ -142,7 +137,9 @@ async def submit_job(
     pdf: UploadFile,
     ctx: AuthContext = Depends(require_auth),
     bank: str | None = Form(default=None),
+    redact: bool = Form(default=False),
     turnstile_token: str | None = Form(default=None),
+    fmt: Literal["json", "csv"] = Query(default="json", alias="format"),
     state: AppState = Depends(get_state),
 ) -> JobAccepted | Response:
     admitted = await _admit_upload(request, pdf, ctx, state, turnstile_token)
@@ -153,7 +150,7 @@ async def submit_job(
     job = state.jobs.create(owner_key=ctx.api_key_id, filename=pdf.filename, byte_count=byte_count)
     # Runs to completion after this 202 returns. _run_job owns the bytes from here and drops them
     # when done (Directive 1). The task is held on the job so the loop never garbage-collects it.
-    job.task = asyncio.create_task(_run_job(state, ctx, job, data, bank))
+    job.task = asyncio.create_task(_run_job(state, ctx, job, data, bank, redact, fmt))
     return JobAccepted(
         job_id=job.id,
         stream_url=f"/v1/parse/jobs/{job.id}/stream",
@@ -199,8 +196,44 @@ async def poll_job(
     return _snapshot(job)
 
 
+@router.get(
+    "/v1/parse/jobs/{job_id}/result",
+    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Download a finished job's result",
+    description=(
+        "The byte channel for csv/redact jobs (the SSE result event carries JSON only). Returns "
+        "the ParseResponse JSON for a json job, or the CSV / redacted bytes for csv / redact. "
+        "404 until the job is done, or after its result is swept."
+    ),
+)
+async def job_result(
+    job_id: str,
+    ctx: AuthContext = Depends(require_auth),
+    state: AppState = Depends(get_state),
+) -> Response:
+    job = state.jobs.get_or_404(job_id, owner_key=ctx.api_key_id)
+    if job.state != "done" or job.result is None:
+        raise HTTPException(status_code=404, detail="job result not available")
+    if job.result_kind == "json":
+        return JSONResponse(content=job.result.response.model_dump(mode="json"))
+    if job.result_kind == "csv":
+        return _csv_response(job.result.data)
+    return _redact_response(
+        job.result.data,
+        media_type=job.media_type or "application/octet-stream",
+        redactions=job.redactions or 0,
+        format_version=job.format_version or "",
+    )
+
+
 async def _run_job(
-    state: AppState, ctx: AuthContext, job: Job, data: bytes, bank: str | None
+    state: AppState,
+    ctx: AuthContext,
+    job: Job,
+    data: bytes,
+    bank: str | None,
+    redact: bool,
+    fmt: Literal["json", "csv"],
 ) -> None:
     loop = asyncio.get_running_loop()
     # Throttle the stream so the browser sees start + end of each phase, not every page event.
@@ -210,12 +243,35 @@ async def _run_job(
     try:
         async with state.jobs.semaphore:
             job.state = "running"
-            outcome = await asyncio.to_thread(
-                parse_pdf, data, bank=bank, progress_callback=callback
-            )
-        job.result = outcome
+            # Same branch order as the sync /v1/parse. No watermarking here: jobs are the
+            # authenticated B2B surface, while the sync path keeps the demo watermark.
+            if redact:
+                redacted = await asyncio.to_thread(
+                    redact_pdf, data, bank=bank, progress_callback=callback
+                )
+                job.result = redacted
+                job.result_kind = "redact"
+                job.media_type = redacted.media_type
+                job.format_version = redacted.format_version
+                job.redactions = redacted.redactions
+                parser_detected = redacted.bank
+            elif fmt == "csv":
+                csv_outcome = await asyncio.to_thread(
+                    parse_csv, data, bank=bank, progress_callback=callback
+                )
+                job.result = csv_outcome
+                job.result_kind = "csv"
+                job.media_type = "text/csv"
+                parser_detected = csv_outcome.parser_detected
+            else:
+                parsed = await asyncio.to_thread(
+                    parse_pdf, data, bank=bank, progress_callback=callback
+                )
+                job.result = parsed
+                job.result_kind = "json"
+                parser_detected = parsed.parser_detected
         job.state = "done"
-        _record_success(state, ctx, job.filename, job.byte_count, outcome.parser_detected)
+        _record_success(state, ctx, job.filename, job.byte_count, parser_detected)
     except UnsupportedStatementError as exc:
         _fail_job(job, exc.error_class, str(exc), exc.format_version, exc.marker_coverage)
         _audit(state, ctx, job.filename, job.byte_count, None, False, exc.error_class)
@@ -272,12 +328,25 @@ def _sse(data: dict[str, object]) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
+def _result_url(job: Job) -> str:
+    return f"/v1/parse/jobs/{job.id}/result"
+
+
 def _sse_result(job: Job) -> str:
     final: dict[str, object] = {"state": job.state, "error_class": job.error_class}
     if job.error_message is not None:
         final["error"] = job.error_message
     if job.state == "done" and job.result is not None:
-        final["result"] = job.result.response.model_dump(mode="json")
+        final["kind"] = job.result_kind
+        if job.result_kind == "json":
+            # json rides the event; csv/redact bytes are fetched from result_url.
+            final["result"] = job.result.response.model_dump(mode="json")
+        else:
+            final["result_url"] = _result_url(job)
+            if job.format_version is not None:
+                final["format_version"] = job.format_version
+            if job.result_kind == "redact" and job.redactions is not None:
+                final["redactions"] = job.redactions
     return f"event: result\ndata: {json.dumps(final)}\n\n"
 
 
@@ -288,12 +357,20 @@ def _snapshot(job: Job) -> JobSnapshot:
         if last is not None
         else None
     )
-    result = job.result.response if (job.state == "done" and job.result is not None) else None
+    is_done = job.state == "done" and job.result is not None
     return JobSnapshot(
         job_id=job.id,
         state=job.state,
+        result_kind=job.result_kind,
         progress=progress,
-        result=result,
+        result=(
+            job.result.response
+            if (job.state == "done" and job.result is not None and job.result_kind == "json")
+            else None
+        ),
+        result_url=_result_url(job) if is_done else None,
+        format_version=job.format_version if (is_done and job.result_kind == "redact") else None,
+        redactions=job.redactions if (is_done and job.result_kind == "redact") else None,
         error=job.error_message,
         error_class=job.error_class,
     )
@@ -348,7 +425,14 @@ async def _check_anonymous_access(
         window_seconds=settings.demo_rate_limit_window_seconds,
     )
     if not allowed:
-        raise HTTPException(status_code=429, detail="rate limit exceeded")
+        retry_after = state.rate_limiter.seconds_until_reset(
+            settings.demo_rate_limit_window_seconds
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="rate limit exceeded",
+            headers={"Retry-After": str(retry_after)},
+        )
 
 
 def _record_success(
@@ -361,6 +445,30 @@ def _record_success(
     # Subscription model: a successful parse is audited (and counts toward the cap via the
     # audit success count). No per-parse charge; overage is metered + invoiced separately.
     _audit(state, ctx, filename, byte_count, parser_detected, True, None)
+
+
+def _csv_response(content: bytes) -> Response:
+    # Shared CSV wire response (sync /v1/parse?format=csv + the job /result download).
+    return Response(
+        content=content,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=statement.csv"},
+    )
+
+
+def _redact_response(
+    content: bytes, *, media_type: str, redactions: int, format_version: str
+) -> Response:
+    # Shared redacted-document wire response (sync redact + the job /result download). Bytes stream
+    # straight out: no disk, no payload log.
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            "X-Bankstract-Redactions": str(redactions),
+            "X-Bankstract-Format-Version": format_version,
+        },
+    )
 
 
 def _enforce_size_header(request: Request, max_bytes: int) -> None:

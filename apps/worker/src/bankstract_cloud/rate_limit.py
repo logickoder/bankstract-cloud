@@ -14,6 +14,13 @@ class RateLimiter:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
+    @staticmethod
+    def seconds_until_reset(window_seconds: int) -> int:
+        """Seconds until the current fixed window rolls over (the Retry-After value on a 429)."""
+        now = int(time.time())
+        window_start = now - (now % window_seconds)
+        return window_start + window_seconds - now
+
     def check(self, bucket: str, *, max_count: int, window_seconds: int) -> bool:
         now = int(time.time())
         window_start = now - (now % window_seconds)

@@ -99,8 +99,12 @@ app = FastAPI(
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
-    # Every non-2xx shares the ErrorResponse envelope (engine + framework errors alike).
-    return error_response(exc.status_code, str(exc.detail), class_for_status(exc.status_code))
+    # Every non-2xx shares the ErrorResponse envelope. error_response builds a fresh response, so
+    # forward any headers the raiser set (e.g. Retry-After on a 429).
+    response = error_response(exc.status_code, str(exc.detail), class_for_status(exc.status_code))
+    for key, value in (exc.headers or {}).items():
+        response.headers[key] = value
+    return response
 
 
 for _router in (health.router, account.router, keys.router, billing.router, parse.router):

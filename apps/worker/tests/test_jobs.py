@@ -160,3 +160,125 @@ def test_demo_jobs_rate_limited(harness: Harness, monkeypatch: pytest.MonkeyPatc
             break
         assert resp.status_code == 202
     assert seen_429
+
+
+def _redact_mock(
+    data: bytes = b"%PDF-redacted", redactions: int = 5
+) -> Callable[..., SimpleNamespace]:
+    def _impl(
+        source: object,
+        *,
+        bank: str | None = None,
+        progress_callback: ProgressCallback | None = None,
+    ) -> SimpleNamespace:
+        if progress_callback is not None:
+            progress_callback(ProgressEvent(stage="redact_page", current=1, total=1))
+        return SimpleNamespace(
+            data=data,
+            bank="fbn",
+            format="pdf",
+            format_version="fbn-2026-01",
+            report=SimpleNamespace(redactions=redactions),
+        )
+
+    return _impl
+
+
+def _csv_mock(payload: bytes = b"date,amount\n2026-01-01,100\n") -> Callable[..., bytes]:
+    def _impl(
+        source: object,
+        *,
+        format: str = "csv",
+        bank: str | None = None,
+        reconcile: bool = True,
+        progress_callback: ProgressCallback | None = None,
+    ) -> bytes:
+        if progress_callback is not None:
+            progress_callback(ProgressEvent(stage="walk_page", current=1, total=1))
+        return payload
+
+    return _impl
+
+
+def test_redact_job_streams_url_then_serves_bytes(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("bankstract.redact", _redact_mock())
+    sub = harness.client.post(
+        "/v1/parse/jobs",
+        files=pdf_upload(),
+        data={"redact": "true"},
+        headers=auth_header(harness.test_key),
+    )
+    assert sub.status_code == 202
+
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        text = "".join(resp.iter_text())
+    result = _result_event(text)
+    assert result["state"] == "done"
+    assert result["kind"] == "redact"
+    assert "result" not in result  # bytes are not inlined in the SSE event
+    assert result["redactions"] == 5
+
+    got = harness.client.get(result["result_url"], headers=auth_header(harness.test_key))
+    assert got.status_code == 200
+    assert got.headers["content-type"].startswith("application/pdf")
+    assert got.headers["X-Bankstract-Redactions"] == "5"
+    assert got.content == b"%PDF-redacted"
+
+
+def test_csv_job_serves_csv_bytes(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("bankstract.parse_to", _csv_mock())
+    sub = harness.client.post(
+        "/v1/parse/jobs?format=csv", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        text = "".join(resp.iter_text())
+    result = _result_event(text)
+    assert result["kind"] == "csv"
+    assert "result" not in result
+
+    got = harness.client.get(result["result_url"], headers=auth_header(harness.test_key))
+    assert got.status_code == 200
+    assert got.headers["content-type"].startswith("text/csv")
+    assert got.content == b"date,amount\n2026-01-01,100\n"
+
+
+def test_json_job_result_endpoint_returns_parse_response(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    sub = harness.client.post(
+        "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        "".join(resp.iter_text())
+
+    snap = harness.client.get(sub.json()["poll_url"], headers=auth_header(harness.test_key)).json()
+    assert snap["result_kind"] == "json"
+    got = harness.client.get(snap["result_url"], headers=auth_header(harness.test_key))
+    assert got.status_code == 200
+    assert got.json()["transactions"] == []
+
+
+def test_result_endpoint_404_unknown_and_401_without_auth(harness: Harness) -> None:
+    assert (
+        harness.client.get(
+            "/v1/parse/jobs/nope/result", headers=auth_header(harness.test_key)
+        ).status_code
+        == 404
+    )
+    assert harness.client.get("/v1/parse/jobs/nope/result").status_code == 401
+
+
+def test_failed_job_result_is_404(harness: Harness) -> None:
+    # Real engine on the minimal stub fails -> job failed -> no downloadable result.
+    sub = harness.client.post(
+        "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        "".join(resp.iter_text())
+    got = harness.client.get(
+        f"{sub.json()['poll_url']}/result", headers=auth_header(harness.test_key)
+    )
+    assert got.status_code == 404

@@ -45,6 +45,8 @@ def test_anonymous_demo_key_rate_limited(harness: Harness) -> None:
         )
         if resp.status_code == 429:
             seen_429 = True
+            # The 429 advertises when to retry (seconds until the fixed window rolls over).
+            assert int(resp.headers["Retry-After"]) > 0
             break
         assert resp.status_code == 422  # unsupported pdf, but auth + limit passed
     assert seen_429

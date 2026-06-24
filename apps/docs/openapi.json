@@ -862,9 +862,23 @@
           "Parse"
         ],
         "summary": "Submit a long parse as an async job",
-        "description": "Queue a statement parse and stream engine progress over Server-Sent Events. Returns 202 with a job_id, an SSE stream_url, and a poll_url fallback. Use this for large statements; small ones are faster on the synchronous /v1/parse. JSON parse only.",
+        "description": "Queue a statement parse and stream engine progress over Server-Sent Events. Returns 202 with a job_id, an SSE stream_url, and a poll_url fallback. Mirrors /v1/parse: `?format=csv` and `redact=true` are supported. json rides the SSE result event; csv and redact bytes are fetched from /v1/parse/jobs/{id}/result. Use this for large statements; small ones are faster on the synchronous /v1/parse.",
         "operationId": "submit_job_v1_parse_jobs_post",
         "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "type": "string",
+              "default": "json",
+              "title": "Format"
+            }
+          },
           {
             "name": "authorization",
             "in": "header",
@@ -1075,6 +1089,83 @@
           }
         }
       }
+    },
+    "/v1/parse/jobs/{job_id}/result": {
+      "get": {
+        "tags": [
+          "Parse"
+        ],
+        "summary": "Download a finished job's result",
+        "description": "The byte channel for csv/redact jobs (the SSE result event carries JSON only). Returns the ParseResponse JSON for a json job, or the CSV / redacted bytes for csv / redact. 404 until the job is done, or after its result is swept.",
+        "operationId": "job_result_v1_parse_jobs__job_id__result_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1171,6 +1262,11 @@
               }
             ],
             "title": "Bank"
+          },
+          "redact": {
+            "type": "boolean",
+            "title": "Redact",
+            "default": false
           },
           "turnstile_token": {
             "anyOf": [
@@ -1316,6 +1412,16 @@
             ],
             "title": "State"
           },
+          "result_kind": {
+            "type": "string",
+            "enum": [
+              "json",
+              "csv",
+              "redact"
+            ],
+            "title": "Result Kind",
+            "default": "json"
+          },
           "progress": {
             "anyOf": [
               {
@@ -1335,6 +1441,39 @@
                 "type": "null"
               }
             ]
+          },
+          "result_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Url"
+          },
+          "format_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format Version"
+          },
+          "redactions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redactions"
           },
           "error": {
             "anyOf": [
@@ -1365,7 +1504,7 @@
           "state"
         ],
         "title": "JobSnapshot",
-        "description": "Poll fallback for an async parse job. `result` is present once `state` is `done`; the error\nfields are populated once `failed`."
+        "description": "Poll fallback for an async parse job. For a `json` job, `result` is the ParseResponse once\n`done`. For `csv`/`redact`, the bytes are not inlined: fetch them from `result_url`. The error\nfields are populated once `failed`."
       },
       "KeyCreateRequest": {
         "properties": {

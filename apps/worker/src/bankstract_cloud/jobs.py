@@ -13,6 +13,7 @@ from typing import Any, Literal
 from fastapi import HTTPException
 
 JobState = Literal["queued", "running", "done", "failed"]
+ResultKind = Literal["json", "csv", "redact"]
 
 # Stage marker enqueued once a job reaches a terminal state, so a stream consumer knows to stop
 # draining and emit the final result event.
@@ -33,7 +34,10 @@ class Job:
         default_factory=lambda: asyncio.Queue[dict[str, Any]]()
     )
     state: JobState = "queued"
-    result: Any = None  # ParseOutcome while alive; None once swept
+    result: Any = None  # ParseOutcome | CsvOutcome | RedactOutcome while alive; None once swept
+    result_kind: ResultKind = "json"
+    media_type: str | None = None  # Content-Type for a bytes result (csv/redact); None for json
+    redactions: int | None = None  # redact only
     last_event: dict[str, Any] | None = None
     error_class: str | None = None
     error_message: str | None = None

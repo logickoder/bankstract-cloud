@@ -97,13 +97,18 @@ class ProgressSnapshot(BaseModel):
 
 
 class JobSnapshot(BaseModel):
-    """Poll fallback for an async parse job. `result` is present once `state` is `done`; the error
+    """Poll fallback for an async parse job. For a `json` job, `result` is the ParseResponse once
+    `done`. For `csv`/`redact`, the bytes are not inlined: fetch them from `result_url`. The error
     fields are populated once `failed`."""
 
     job_id: str
     state: Literal["queued", "running", "done", "failed"]
+    result_kind: Literal["json", "csv", "redact"] = "json"
     progress: ProgressSnapshot | None = None
-    result: ParseResponse | None = None
+    result: ParseResponse | None = None  # json only
+    result_url: str | None = None  # download URL for the bytes (csv/redact), present once done
+    format_version: str | None = None
+    redactions: int | None = None  # redact only
     error: str | None = None
     error_class: str | None = None
 
