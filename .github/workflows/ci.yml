@@ -8,6 +8,10 @@ name: CI
 on:
   push:
     branches: [main]
+    # Skip the post-merge re-run when a push touches only markdown (the PR already ran CI).
+    # PRs stay unconditional below, so the required check never goes missing on a docs PR.
+    paths-ignore:
+      - '**/*.md'
   pull_request:
 
 # A new push to the same branch cancels the in-progress run. Don't waste minutes on

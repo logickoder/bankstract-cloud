@@ -125,12 +125,11 @@ Total fixed cost: **~₦5–6k/mo (~$4–5/mo)**. Domain: ₦0 (subdomain on own
 
 ```
                                     ┌──────────────────┐
-                                    │  Next.js 16 apps │
-   Browser ──── HTTPS ──── CF ──────┤  (Hetzner+Coolify│
-                                    │   marketing /    │
-                                    │   app /          │
-                                    │   docs /         │
-                                    │   demo)          │
+                                    │  web (Next 16)   │
+   Browser ── HTTPS ── proxy ───────┤  marketing /     │
+   (Namecheap A -> box;             │  demo /demo      │
+    caddy-docker-proxy TLS;         │  dashboard       │
+    docs at /docs -> CF Pages)      │  /sign-in /api/* │
                                     └────────┬─────────┘
                                              │
                                              │ POST /v1/parse
@@ -344,7 +343,7 @@ If a customer wants a "cloud-aware" CLI (uploads to hosted API), the SDK approac
 
 ### v1.0 (target: Q3 2026)
 
-- [ ] Pre-decisions resolved: domain + Hetzner provisioned (Coolify) + Cloudflare zone + AGPL repo init
+- [ ] Pre-decisions resolved: domain + Hetzner provisioned (shared caddy-docker-proxy) + Cloudflare zone + AGPL repo init
 - [ ] Marketing landing (B2B hero w/ curl snippet, OSS callout, free-demo CTA, dual-CTA outro)
 - [ ] FastAPI worker + `/v1/parse` endpoint w/ API key bearer auth + rate limit
 - [ ] Paystack usage billing + self-serve API key issuance + dashboard (Better Auth, usage charts)
