@@ -71,7 +71,7 @@ export function PricingSection() {
           <h3 className="font-medium text-fg">{ENTERPRISE.name}</h3>
           <p className="mt-1 text-sm text-fg-secondary">{ENTERPRISE.detail}</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1 md:gap-4">
           <span className="font-mono text-sm text-fg">{ENTERPRISE.band}</span>
           <a href={links.sales}>
             <Button variant="ghost">Talk to sales</Button>

@@ -39,7 +39,7 @@ export function CodeFeatureSection() {
   return (
     <Section surface="raised">
       <SectionHeading>Fails noisy</SectionHeading>
-      <div className="mt-10 flex flex-col gap-12">
+      <div className="mt-10 flex flex-col gap-8 sm:gap-12">
         {FEATURES.map((f) => (
           <div key={f.title} className="grid items-center gap-6 lg:grid-cols-2">
             <CodeBlock code={f.code} lang={f.lang} />

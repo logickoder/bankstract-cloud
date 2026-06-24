@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+import { cn } from '@bankstract/ui'
+
 import { links } from '../lib/links'
+
+import { PAGE_CONTAINER } from './Section'
 
 interface FooterCol {
   title: string
@@ -43,7 +47,7 @@ const COLS: readonly FooterCol[] = [
 export function Footer() {
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto grid w-full max-w-5xl gap-8 px-6 py-12 sm:grid-cols-4">
+      <div className={cn(PAGE_CONTAINER, 'grid gap-8 py-12 sm:grid-cols-4')}>
         {COLS.map((col) => (
           <div key={col.title}>
             <h3 className="text-sm font-medium text-fg">{col.title}</h3>
@@ -62,7 +66,7 @@ export function Footer() {
           </div>
         ))}
       </div>
-      <div className="mx-auto w-full max-w-5xl px-6 pb-10 text-xs text-fg-tertiary">
+      <div className={cn(PAGE_CONTAINER, 'pb-10 text-xs text-fg-tertiary')}>
         <p>Open source statement parsing API for Nigerian banks.</p>
         <p className="mt-1">Built in Lagos. Built by logickoder.</p>
       </div>

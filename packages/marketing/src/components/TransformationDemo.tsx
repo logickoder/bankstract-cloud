@@ -30,7 +30,7 @@ export function TransformationDemo() {
   return (
     <Section>
       <div className="relative overflow-hidden rounded-xl">
-        <div className="grid items-stretch gap-6 lg:grid-cols-[1fr_auto_1fr]">
+        <div className="grid items-stretch gap-4 sm:gap-6 lg:grid-cols-[1fr_auto_1fr]">
           <div className="rounded-lg border border-border bg-bg-secondary p-5 font-mono text-xs text-fg-tertiary">
             <div className="pb-2 text-fg-secondary">fbn statement</div>
             {PDF_LINES.map((line) => (

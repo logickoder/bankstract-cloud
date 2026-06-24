@@ -7,14 +7,32 @@
 
 /* Signature transform animation (TransformationDemo). A scan-line reads the PDF, each
    transaction flies across the gap, and the matching CSV row materializes on arrival
-   (DESIGN hero-transformation). Static by default; motion only when welcome. */
+   (DESIGN hero-transformation). Static by default; motion only when welcome.
+
+   Split by layout dependence: the table-side motion (row materialize + caret) is vertical and
+   layout-agnostic, so it runs at all widths. The scan-line + flyer position by % of the 3-col grid,
+   which only exists at lg (lg:grid-cols-[1fr_auto_1fr]); below that the panes stack and the %
+   positions misfire, so those two are gated to >=1024px. */
 .sweep-bar,
 .flyer,
 .sweep-caret {
   display: none;
 }
 
+/* Table-side: row materialize + caret. Layout-agnostic, all widths. */
 @media (prefers-reduced-motion: no-preference) {
+  .sweep-row {
+    opacity: 0;
+    animation: bs-row 4s ease-in-out infinite;
+  }
+  .sweep-caret {
+    display: inline-block;
+    animation: bs-blink 1s step-end infinite;
+  }
+}
+
+/* Scan-line + flyer: positioned by % of the 3-col grid, so lg only. */
+@media (prefers-reduced-motion: no-preference) and (min-width: 1024px) {
   .sweep-bar {
     display: block;
     left: 4%;
@@ -26,14 +44,6 @@
     display: block;
     opacity: 0;
     animation: bs-fly 4s ease-in-out infinite;
-  }
-  .sweep-row {
-    opacity: 0;
-    animation: bs-row 4s ease-in-out infinite;
-  }
-  .sweep-caret {
-    display: inline-block;
-    animation: bs-blink 1s step-end infinite;
   }
 }
 
