@@ -16,7 +16,7 @@ _ENVELOPE_KEYS = {"error", "error_class", "format_version", "marker_coverage"}
 
 
 def _raise_on_parse(monkeypatch: pytest.MonkeyPatch, exc: Exception) -> None:
-    def _raise(source: object, *, bank: str | None = None):  # type: ignore[no-untyped-def]
+    def _raise(source: object, *, bank: str | None = None, progress_callback: object = None):  # type: ignore[no-untyped-def]
         raise exc
 
     monkeypatch.setattr("bankstract.parse", _raise)
@@ -57,9 +57,9 @@ def test_encrypted_source_surfaces_name(harness: Harness, monkeypatch: pytest.Mo
 
 
 def test_encrypted_real_fixture_auto_detect(harness: Harness, encrypted_pdf: bytes) -> None:
-    # Real engine fixture through the demo's auto-detect path (no bank). The engine
-    # returns "no parser" because it can't read the locked text; the worker upgrades it
-    # to EncryptedSourceError from the bytes so the client shows the password path.
+    # Real engine fixture through the auto-detect path (no bank). Engine 0.14+ raises
+    # EncryptedSourceError during auto-detect itself, so the worker surfaces it directly
+    # (no bytes-sniffing workaround) and the client can show the password path.
     resp = harness.client.post(
         "/v1/parse",
         files={"pdf": ("statement.pdf", encrypted_pdf, "application/pdf")},

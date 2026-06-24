@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 import bankstract
-from bankstract import ParseError, ReconciliationError
+from bankstract import ParseError, ProgressCallback, ReconciliationError
 
 from .models import (
     ParseResponse,
@@ -47,22 +47,8 @@ class EngineError(MappedEngineError):
     """Unexpected engine error. Maps to HTTP 500. format_version is best-effort."""
 
 
-def _looks_encrypted(data: bytes) -> bool:
-    """Heuristic encryption check from the raw bytes.
-
-    The engine raises EncryptedSourceError only once a parser opens the document.
-    On auto-detect it can't read the encrypted text to pick a bank, so an encrypted
-    upload surfaces as the generic "no parser detected". We recognise encryption here
-    so the client can show the password-removal path instead of a generic error.
-    """
-    if data[:5] == b"%PDF-" and b"/Encrypt" in data:
-        return True
-    # Encrypted OOXML (xlsx) is wrapped in an OLE/CFB container, not a zip.
-    return data[:4] == b"\xd0\xcf\x11\xe0"
-
-
 @contextmanager
-def _translate_engine_errors(source: bytes | None = None) -> Generator[None, None, None]:
+def _translate_engine_errors() -> Generator[None, None, None]:
     try:
         yield
     except ReconciliationError as exc:
@@ -73,19 +59,13 @@ def _translate_engine_errors(source: bytes | None = None) -> Generator[None, Non
             format_version=getattr(exc, "format_version", None),
         ) from exc
     except ParseError as exc:
-        # ParseError is the base. type(exc).__name__ surfaces the specific subclass
-        # the engine raised (EncryptedSourceError, EmptyStatementError, LayoutDriftError
-        # in 0.13+) without a hard import. marker_coverage rides along when present.
-        error_class = type(exc).__name__
-        # Upgrade a bare "no parser detected" to EncryptedSourceError when the bytes are
-        # encrypted. On 0.13 the engine can't detect a bank from locked text so it gives
-        # up generically. Engine 0.14 raises EncryptedSourceError during auto-detect, after
-        # which this branch no-ops (error_class is already specific). Kept as a fallback.
-        if error_class == "ParseError" and source is not None and _looks_encrypted(source):
-            error_class = "EncryptedSourceError"
+        # ParseError is the base. type(exc).__name__ surfaces the specific subclass the engine
+        # raised (EncryptedSourceError, EmptyStatementError, LayoutDriftError). Engine 0.14 raises
+        # EncryptedSourceError on the auto-detect path too, so no worker-side reclassification of
+        # encrypted uploads is needed. marker_coverage rides along when present.
         raise UnsupportedStatementError(
             str(exc),
-            error_class=error_class,
+            error_class=type(exc).__name__,
             format_version=getattr(exc, "format_version", None),
             marker_coverage=getattr(exc, "marker_coverage", None),
         ) from exc
@@ -144,15 +124,25 @@ def _buffer_and_detect(data: bytes) -> tuple[io.BytesIO, str | None]:
     return buf, detected
 
 
-def parse_pdf(data: bytes, *, bank: str | None = None) -> ParseOutcome:
+def parse_pdf(
+    data: bytes,
+    *,
+    bank: str | None = None,
+    progress_callback: ProgressCallback | None = None,
+) -> ParseOutcome:
     """Parse PDF bytes entirely in memory. Directive 2: bytes never touch disk."""
     buf, detected = _buffer_and_detect(data)
-    with _translate_engine_errors(source=data):
-        result = bankstract.parse(buf, bank=bank)
+    with _translate_engine_errors():
+        result = bankstract.parse(buf, bank=bank, progress_callback=progress_callback)
     return ParseOutcome(response=_to_response(result), parser_detected=detected)
 
 
-def parse_csv(data: bytes, *, bank: str | None = None) -> CsvOutcome:
+def parse_csv(
+    data: bytes,
+    *,
+    bank: str | None = None,
+    progress_callback: ProgressCallback | None = None,
+) -> CsvOutcome:
     """Parse and serialize to CSV in one engine call.
 
     bankstract.parse_to() parses and writes the chosen format in-memory and returns
@@ -160,12 +150,19 @@ def parse_csv(data: bytes, *, bank: str | None = None) -> CsvOutcome:
     only in the HTTP response; it is never logged or persisted.
     """
     buf, detected = _buffer_and_detect(data)
-    with _translate_engine_errors(source=data):
-        csv_bytes = bankstract.parse_to(buf, format="csv", bank=bank)
+    with _translate_engine_errors():
+        csv_bytes = bankstract.parse_to(
+            buf, format="csv", bank=bank, progress_callback=progress_callback
+        )
     return CsvOutcome(data=csv_bytes, parser_detected=detected)
 
 
-def redact_pdf(data: bytes, *, bank: str | None = None) -> RedactOutcome:
+def redact_pdf(
+    data: bytes,
+    *,
+    bank: str | None = None,
+    progress_callback: ProgressCallback | None = None,
+) -> RedactOutcome:
     """Redact a statement in memory and return the redacted document bytes.
 
     Directive 1/2: bankstract.redact() operates on the BytesIO and returns bytes
@@ -174,8 +171,8 @@ def redact_pdf(data: bytes, *, bank: str | None = None) -> RedactOutcome:
     """
     # No _detect() here. RedactResult already carries the matched bank.
     buf = io.BytesIO(data)
-    with _translate_engine_errors(source=data):
-        result = bankstract.redact(buf, bank=bank)
+    with _translate_engine_errors():
+        result = bankstract.redact(buf, bank=bank, progress_callback=progress_callback)
 
     return RedactOutcome(
         data=result.data,

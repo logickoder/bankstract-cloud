@@ -16,7 +16,7 @@ XLSX_MEDIA = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 def _fake_redact(fmt: Literal["pdf", "xlsx"], data: bytes, *, redactions: int = 3):  # type: ignore[no-untyped-def]
     from bankstract import RedactReport, RedactResult
 
-    def _impl(source: object, *, bank: str | None = None):  # type: ignore[no-untyped-def]
+    def _impl(source: object, *, bank: str | None = None, progress_callback: object = None):  # type: ignore[no-untyped-def]
         report = RedactReport(bank="fbn", pages=1, redactions=redactions, audit=[])
         return RedactResult(
             data=data,

@@ -15,7 +15,12 @@ _FAKE_CSV = (
 
 def _fake_parse_to(payload: bytes):  # type: ignore[no-untyped-def]
     def _impl(
-        source: object, *, format: str = "csv", bank: str | None = None, reconcile: bool = True
+        source: object,
+        *,
+        format: str = "csv",
+        bank: str | None = None,
+        reconcile: bool = True,
+        progress_callback: object = None,
     ):  # type: ignore[no-untyped-def]
         return payload
 
