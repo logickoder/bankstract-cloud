@@ -4,11 +4,12 @@
 import type { ParseResponse } from '@bankstract/types'
 
 import type { DemoErrorCode } from './errors'
+import type { ParseProgress } from './parse-client'
 
 export type DemoState =
   | { status: 'idle' }
   | { status: 'dragover' }
-  | { status: 'parsing'; file: File; sample: boolean }
+  | { status: 'parsing'; file: File; sample: boolean; progress: ParseProgress | null }
   | { status: 'result'; data: ParseResponse; file: File; sample: boolean }
   | { status: 'error'; code: DemoErrorCode; file: File | null }
 
@@ -16,6 +17,7 @@ export type DemoAction =
   | { type: 'DRAG_ENTER' }
   | { type: 'DRAG_LEAVE' }
   | { type: 'PARSE_STARTED'; file: File; sample: boolean }
+  | { type: 'PARSE_PROGRESS'; progress: ParseProgress }
   | { type: 'PARSE_SUCCEEDED'; data: ParseResponse }
   | { type: 'PARSE_FAILED'; code: DemoErrorCode; file: File | null }
   | { type: 'RESET' }
@@ -29,7 +31,9 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
     case 'DRAG_LEAVE':
       return state.status === 'dragover' ? { status: 'idle' } : state
     case 'PARSE_STARTED':
-      return { status: 'parsing', file: action.file, sample: action.sample }
+      return { status: 'parsing', file: action.file, sample: action.sample, progress: null }
+    case 'PARSE_PROGRESS':
+      return state.status === 'parsing' ? { ...state, progress: action.progress } : state
     case 'PARSE_SUCCEEDED':
       return state.status === 'parsing'
         ? { status: 'result', data: action.data, file: state.file, sample: state.sample }

@@ -16,26 +16,83 @@ function parseForm(file: File, turnstileToken: string): FormData {
   return form
 }
 
-// Posts to the same-origin proxy route, which attaches the server-only demo key.
-// The browser never sees DEMO_API_KEY.
-export async function parseStatement(file: File, turnstileToken: string): Promise<ParseResult> {
-  let resp: Response
+export interface ParseProgress {
+  stage: string
+  current: number
+  total: number
+}
+
+// Submits the upload as an async job and streams engine progress over SSE. Both hops go through the
+// same-origin proxy, which attaches the server-only demo key; the browser never sees DEMO_API_KEY.
+// onProgress fires per engine milestone; the promise resolves once the job reaches a terminal state.
+export async function parseStatement(
+  file: File,
+  turnstileToken: string,
+  onProgress?: (progress: ParseProgress) => void,
+): Promise<ParseResult> {
+  let submit: Response
   try {
-    resp = await fetch('/api/parse', { method: 'POST', body: parseForm(file, turnstileToken) })
+    submit = await fetch('/api/parse/jobs', {
+      method: 'POST',
+      body: parseForm(file, turnstileToken),
+    })
   } catch {
     return { ok: false, code: 'network' }
   }
-
-  if (!resp.ok) {
-    const envelope = await readErrorEnvelope(resp)
+  if (!submit.ok) {
+    const envelope = await readErrorEnvelope(submit)
     return {
       ok: false,
-      code: codeForResponse(resp.status, envelope.errorClass, envelope.markerCoverage),
+      code: codeForResponse(submit.status, envelope.errorClass, envelope.markerCoverage),
     }
   }
 
-  const data = (await resp.json()) as ParseResponse
-  return { ok: true, data }
+  const { stream_url: streamUrl } = (await submit.json()) as { stream_url: string }
+  return streamResult(streamUrl, onProgress)
+}
+
+// Drives the EventSource: default `message` frames carry progress, the final `result` event carries
+// the parsed ParseResponse or the error envelope. Resolves (never rejects) so the caller maps one
+// ParseResult. Closes on the result event so EventSource does not auto-reconnect to a finished job.
+function streamResult(
+  streamUrl: string,
+  onProgress?: (progress: ParseProgress) => void,
+): Promise<ParseResult> {
+  return new Promise((resolve) => {
+    const source = new EventSource(streamUrl)
+    let settled = false
+    const finish = (result: ParseResult): void => {
+      if (settled) return
+      settled = true
+      source.close()
+      resolve(result)
+    }
+    source.onmessage = (event) => {
+      try {
+        const progress = JSON.parse(event.data as string) as ParseProgress
+        if (typeof progress.current === 'number') onProgress?.(progress)
+      } catch {
+        // ignore a malformed progress frame
+      }
+    }
+    source.addEventListener('result', (event) => {
+      try {
+        const final = JSON.parse(event.data as string) as {
+          state: string
+          result?: ParseResponse
+          error_class?: string
+        }
+        if (final.state === 'done' && final.result) {
+          finish({ ok: true, data: final.result })
+        } else {
+          finish({ ok: false, code: codeForResponse(422, final.error_class, null) })
+        }
+      } catch {
+        finish({ ok: false, code: 'network' })
+      }
+    })
+    source.onerror = () => finish({ ok: false, code: 'network' })
+  })
 }
 
 // The worker's error envelope carries error_class + (for EmptyStatementError)

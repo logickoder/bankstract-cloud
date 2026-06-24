@@ -9,10 +9,13 @@
 		max_size 52MB
 	}
 
-	# B2B API + health probes -> worker.
+	# B2B API + health probes -> worker. flush_interval -1 keeps the /v1/parse/jobs SSE stream
+	# unbuffered so progress events reach direct API clients immediately.
 	@worker path /v1/* /healthz /readyz
 	handle @worker {
-		reverse_proxy worker:8000
+		reverse_proxy worker:8000 {
+			flush_interval -1
+		}
 	}
 
 	# Docs -> Cloudflare Pages (off-box). The docs app's Next basePath /docs namespaces its assets
@@ -26,7 +29,10 @@
 	}
 
 	# Everything else -> the one web runtime (marketing /, demo /demo, dashboard /dashboard, /api/*).
+	# flush_interval -1 keeps the demo's SSE proxy (/api/parse/jobs/*/stream -> worker) unbuffered.
 	handle {
-		reverse_proxy web:3000
+		reverse_proxy web:3000 {
+			flush_interval -1
+		}
 	}
 }

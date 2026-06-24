@@ -12,14 +12,19 @@
 		max_size 52MB
 	}
 
-	# B2B API + health checks → worker.
+	# B2B API + health checks → worker. flush_interval -1 keeps the /v1/parse/jobs SSE stream
+	# unbuffered so progress events reach the client immediately.
 	@worker path /v1/* /healthz /readyz
 	handle @worker {
-		reverse_proxy worker:8000
+		reverse_proxy worker:8000 {
+			flush_interval -1
+		}
 	}
 
-	# Consumer demo (UI + its server-side /api/parse proxy) → demo.
+	# Consumer demo (UI + its server-side /api proxy, incl. the SSE progress stream) → demo.
 	handle {
-		reverse_proxy demo:3000
+		reverse_proxy demo:3000 {
+			flush_interval -1
+		}
 	}
 }

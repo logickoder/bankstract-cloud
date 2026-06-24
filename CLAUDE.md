@@ -272,6 +272,27 @@ Response:
 
 Versioned URL prefix `/v1/` from day 1. Breaking changes → `/v2/`.
 
+**Async parse jobs (long statements, live progress), engine 0.15.0.** `/v1/parse` stays synchronous
+(small statements return in <2s). For long parses, submit an async job and stream engine progress
+over SSE:
+```
+POST /v1/parse/jobs                 → 202 { job_id, stream_url, poll_url }   (same gates as /v1/parse)
+GET  /v1/parse/jobs/{id}/stream      → text/event-stream: data:{stage,current,total}, then
+                                       `event: result` with the ParseResponse or the error envelope.
+                                       NO Authorization header: the unguessable job_id IS the
+                                       capability (EventSource cannot send headers). One consumer/job.
+GET  /v1/parse/jobs/{id}             → JSON snapshot (poll fallback). Authenticated; result on `done`.
+```
+Implementation: `apps/worker/src/.../jobs.py` (in-memory `JobStore`: `asyncio.Semaphore`-gated
+concurrency, capability lookup, TTL eviction) + the routes in `routes/parse.py`. The engine runs in
+`asyncio.to_thread`; its `progress_callback` (throttled via `bankstract.throttle`) marshals events
+onto the job queue. **Privacy (Directive 1) holds:** bytes are `del`'d when the thread finishes, the
+result is held in RAM only until the TTL sweep clears it (never disk/DB/log), and progress events
+carry `{stage,current,total}` only. **The worker MUST stay single-process** (no uvicorn `--workers`):
+the store is in-memory. NOT Celery: a broker would push bytes off-box (privacy) + add RAM; see
+`_handoff/async-jobs.md` for the rationale. The demo drives this via same-origin `/api/parse/jobs`
+proxies (`packages/demo/src/api/jobs.ts`) so `DEMO_API_KEY` stays server-side.
+
 **Redaction is live as of engine 0.11.0.** `bankstract.redact(buf, bank=bank)` returns `RedactResult(data, bank, format, format_version, report)`. Worker pattern:
 
 ```python

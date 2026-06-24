@@ -38,7 +38,9 @@ export function DemoClient() {
     dispatch({ type: 'PARSE_STARTED', file, sample })
     // Token obtained at submit time, freshest relative to the immediately-following POST.
     const token = (await turnstile.current?.getToken()) ?? ''
-    const result = await parseStatement(file, token)
+    const result = await parseStatement(file, token, (progress) =>
+      dispatch({ type: 'PARSE_PROGRESS', progress }),
+    )
     turnstile.current?.reset()
 
     if (result.ok) {
@@ -82,6 +84,7 @@ export function DemoClient() {
         <IdleView
           status={state.status}
           activeFile={state.status === 'parsing' ? state.file : null}
+          progress={state.status === 'parsing' ? state.progress : null}
           onFile={(file) => void handleFile(file)}
           onDragEnter={() => dispatch({ type: 'DRAG_ENTER' })}
           onDragLeave={() => dispatch({ type: 'DRAG_LEAVE' })}
