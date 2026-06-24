@@ -19,8 +19,14 @@ export default async function OverviewPage() {
   const hasUsage = usage !== null && usage.daily.length > 0
   const recent = keys.slice(0, 3)
 
-  const cards: { icon: LucideIcon; label: string; value: string }[] = [
-    { icon: Activity, label: 'Parses this cycle', value: String(usage?.period_parses ?? 0) },
+  const cap = usage?.monthly_cap ?? null
+  const cards: { icon: LucideIcon; label: string; value: string; sub?: string }[] = [
+    {
+      icon: Activity,
+      label: 'Parses this cycle',
+      value: String(usage?.period_parses ?? 0),
+      sub: cap !== null ? `of ${cap.toLocaleString()} included` : undefined,
+    },
     {
       icon: CircleCheck,
       label: 'Success rate',
@@ -34,16 +40,30 @@ export default async function OverviewPage() {
       <PageHeading title="Overview" subtitle="Usage for the current cycle." />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        {cards.map(({ icon: Icon, label, value }) => (
+        {cards.map(({ icon: Icon, label, value, sub }) => (
           <Card key={label}>
             <div className="flex items-center gap-2 text-sm text-fg-secondary">
               <Icon className="size-4 text-accent" aria-hidden="true" />
               {label}
             </div>
             <div className="mt-3 font-mono text-3xl text-fg">{value}</div>
+            {sub ? <div className="mt-1 text-xs text-fg-tertiary">{sub}</div> : null}
           </Card>
         ))}
       </div>
+
+      {usage && usage.overage_parses > 0 ? (
+        <Card className="mt-4 flex flex-wrap items-center justify-between gap-3 border-accent/40">
+          <p className="text-sm text-fg-secondary">
+            <span className="text-fg">{usage.overage_parses.toLocaleString()}</span> parses over your
+            cap this cycle. Projected overage{' '}
+            <span className="font-mono text-fg">₦{usage.projected_overage_naira}</span>.
+          </p>
+          <Link href="/dashboard/billing" className={`text-sm ${linkClass}`}>
+            Manage plan
+          </Link>
+        </Card>
+      ) : null}
 
       <Card className="mt-4">
         <div className="text-sm text-fg-secondary">Daily parses</div>
