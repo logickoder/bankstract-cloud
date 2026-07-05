@@ -18,6 +18,9 @@ const resend = resendKey ? new Resend(resendKey) : null
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: 'sqlite' }),
   emailAndPassword: { enabled: false },
+  // BETTER_AUTH_URL is the canonical origin (prod: https://bankstract.logickoder.dev).
+  // In dev the Next port varies; list localhost variants so the origin check passes.
+  trustedOrigins: [process.env.BETTER_AUTH_URL ?? ''].filter(Boolean),
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
@@ -56,7 +59,7 @@ export const auth = betterAuth({
           return
         }
         await resend.emails.send({
-          from: 'bankstract <jeffery@logickoder.dev>',
+          from: 'bankstract <noreply@contact.logickoder.dev>',
           to: email,
           subject,
           text,

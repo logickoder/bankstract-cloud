@@ -32,6 +32,10 @@ export function OssPrideSection() {
         </a>
       </div>
       <p className="mt-6 text-sm text-fg-tertiary">
+        Need a bank added?{' '}
+        <Anchor href={links.sponsoredBank}>Sponsor the implementation.</Anchor>
+      </p>
+      <p className="mt-2 text-sm text-fg-tertiary">
         Built by <Anchor href={links.owner}>logickoder</Anchor>.
       </p>
     </Section>

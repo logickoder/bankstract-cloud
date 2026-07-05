@@ -67,8 +67,15 @@ def _make_harness(
     monkeypatch.setenv("MAX_UPLOAD_BYTES", str(MAX_BYTES))
     monkeypatch.setenv("TURNSTILE_SECRET_KEY", "")  # disabled in tests
     monkeypatch.setenv("PAYSTACK_SECRET_KEY", PAYSTACK_SECRET)
+    # Only starter plans are configured in the test harness. Explicitly blank the rest so
+    # the .env file (which may have real plan codes) cannot leak into tests that assert
+    # on unconfigured-tier 503 behaviour.
     monkeypatch.setenv("PAYSTACK_PLAN_STARTER", PAYSTACK_PLAN_STARTER)
     monkeypatch.setenv("PAYSTACK_PLAN_STARTER_ANNUAL", PAYSTACK_PLAN_STARTER_ANNUAL)
+    monkeypatch.setenv("PAYSTACK_PLAN_GROWTH", "")
+    monkeypatch.setenv("PAYSTACK_PLAN_GROWTH_ANNUAL", "")
+    monkeypatch.setenv("PAYSTACK_PLAN_SCALE", "")
+    monkeypatch.setenv("PAYSTACK_PLAN_SCALE_ANNUAL", "")
     monkeypatch.setenv("DEMO_RATE_LIMIT_MAX", "5")
 
     from bankstract_cloud.config import get_settings

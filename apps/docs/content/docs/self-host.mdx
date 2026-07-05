@@ -1,17 +1,57 @@
 ---
 title: Self-host
-description: Run the whole stack yourself.
+description: Two paths. MIT engine for on-prem parsing. Full cloud stack for the complete API.
 ---
 
-The service is AGPL-3.0 and runs anywhere Docker does. The same code powers the hosted API.
+## Two paths
+
+| | MIT engine | Full cloud stack |
+|---|---|---|
+| What you get | Parser library only | API, dashboard, demo, auth, billing |
+| Deployment | Your code, your infra | Docker Compose anywhere |
+| Pays bankstract | Nothing (or sponsorship) | Nothing |
+| Compliance fit | Full on-prem, no outbound PDF traffic | Self-controlled infra |
+
+---
+
+## MIT engine (on-prem parsing)
+
+For teams whose compliance policy prohibits sending PDFs to a third party.
+
+```bash
+pip install bankstract
+```
+
+```python
+import io
+import bankstract
+
+with open("statement.pdf", "rb") as f:
+    buf = io.BytesIO(f.read())
+
+result = bankstract.parse(buf)
+```
+
+The engine runs entirely in process. No network calls, no disk writes. Source and supported banks: [github.com/logickoder/bankstract](https://github.com/logickoder/bankstract).
+
+**Need a bank added?** The engine is MIT-licensed and accepts contributions. If you need a specific bank prioritised, [contact us about sponsoring the implementation](mailto:jeffery@logickoder.dev?subject=bankstract%20sponsored%20bank). Sponsored additions ship to the public MIT engine.
+
+---
+
+## Full cloud stack (self-hosted API)
+
+The same AGPL-3.0 code that powers the hosted service. Brings up the worker, the consumer demo, and a Caddy reverse proxy.
 
 ```bash
 git clone https://github.com/logickoder/bankstract-cloud
 cd bankstract-cloud/infra
 cp .env.example .env
+# fill in TURNSTILE_SECRET_KEY and DEMO_API_KEY at minimum
 docker compose up --build
 ```
 
-That brings up the worker, the consumer demo, and a Caddy reverse proxy. The B2B API is on the same host under `/v1`. See [`infra/README.md`](https://github.com/logickoder/bankstract-cloud/blob/main/infra/README.md) for production notes (domain/TLS, Turnstile, Stripe, backups).
+The B2B API runs on the same host at `/v1`. See [`infra/README.md`](https://github.com/logickoder/bankstract-cloud/blob/main/infra/README.md) for domain, TLS, and backup notes.
 
-Self-hosting means you run your own keys, your own audit log, and pay nothing per parse. The privacy posture is identical: PDFs are parsed in memory, only metadata is stored.
+Self-hosting means you run your own keys, your own audit log, and pay nothing per parse. The privacy posture is identical to the hosted service: PDFs are parsed in memory, only metadata is stored.
+
+**AGPL note:** API consumers call you over HTTP and do not inherit AGPL. If you fork and host this code as a SaaS, you must open-source your modifications.

@@ -3,11 +3,11 @@
 
 import { NextResponse } from 'next/server'
 
-import { getUserId } from '@/lib/session'
+import { requireOwner } from '@/lib/session'
 import { passthrough, workerFetch } from '@/lib/worker'
 
 export async function GET() {
-  const owner = await getUserId()
-  if (!owner) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  const owner = await requireOwner()
+  if (owner instanceof NextResponse) return owner
   return passthrough(await workerFetch(`/v1/admin/usage?owner=${encodeURIComponent(owner)}`))
 }

@@ -16,11 +16,18 @@ Returns clean transactions, account metadata, and totals as JSON. The PDF is par
 
 | Layer | Repo | License | Audience |
 |-------|------|---------|----------|
-| OSS engine | [`bankstract`](https://github.com/logickoder/bankstract) | MIT | Devs who run the CLI / `pip install` |
+| OSS engine | [`bankstract`](https://github.com/logickoder/bankstract) | MIT | On-prem / compliance-constrained teams |
 | Hosted API | `bankstract-cloud` (this repo) | AGPL-3.0 | Fintechs, bookkeeping SaaS, tax-prep startups |
 | Consumer demo | this repo, `apps/demo` | AGPL-3.0 | Individuals doing one-off PDF → CSV |
 
-This repo **consumes** the engine via `pip install bankstract`. It never vendors or forks the engine source. New bank parsers belong in the engine repo, not here.
+**Two paths:**
+
+- **Compliance/on-prem.** `pip install bankstract` and parse in your own process. No outbound network, no auth layer. The MIT engine is the right choice when your policy prohibits sending PDFs off-prem.
+- **Managed API.** POST to `https://bankstract.logickoder.dev/v1/parse`. Handles auth, rate limiting, async jobs, and redaction. The right choice when you don't want to run or maintain the stack.
+
+This repo **consumes** the engine via `pip install bankstract`. It never vendors or forks the engine source. New bank parsers belong in the engine repo.
+
+Need a specific bank added? [Sponsor the implementation](mailto:jeffery@logickoder.dev?subject=bankstract%20sponsored%20bank). Sponsored work ships to the public MIT engine.
 
 ## Privacy posture
 

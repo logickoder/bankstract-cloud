@@ -6,7 +6,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from .. import __version__
-from ..audit import current_period_start_iso
+from ..audit import current_period_start_iso, pad_daily
 from ..auth import AuthContext
 from ..engine import ENGINE_VERSION, list_supported_banks
 from ..models import (
@@ -91,7 +91,8 @@ async def admin_usage(
     _: None = Depends(require_admin),
     state: AppState = Depends(get_state),
 ) -> OwnerUsageResponse:
-    total, ok, daily = state.audit.owner_usage(owner, since_iso=current_period_start_iso())
+    since_iso = current_period_start_iso()
+    total, ok, daily = state.audit.owner_usage(owner, since_iso=since_iso)
     # Same overage math as /v1/usage (compute_overage), so the dashboard figure and the
     # invoice never disagree (Directive 6). Cap comes from the owner's subscription tier.
     tier = state.subscriptions.status_for_owner(owner).tier
@@ -104,5 +105,5 @@ async def admin_usage(
         monthly_cap=report.monthly_cap,
         overage_parses=report.overage_parses,
         projected_overage_naira=kobo_to_naira_str(report.overage_amount_kobo),
-        daily=[DailyCount(date=d, count=c) for d, c in daily],
+        daily=[DailyCount(date=d, count=c) for d, c in pad_daily(daily, since_iso=since_iso)],
     )

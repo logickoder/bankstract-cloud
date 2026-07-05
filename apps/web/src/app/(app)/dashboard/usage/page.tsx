@@ -5,11 +5,11 @@ import { Card } from '@bankstract/ui'
 
 import { PageHeading } from '@/components/PageHeading'
 import { UsageChart, UsageChartSkeleton } from '@/components/UsageChart'
-import { fetchUsage } from '@/lib/dashboard-data'
+import { fetchUsage, hasUsageData } from '@/lib/dashboard-data'
 
 export default async function UsagePage() {
   const usage = await fetchUsage()
-  const hasData = usage && usage.daily.length > 0
+  const hasData = hasUsageData(usage)
 
   return (
     <div>

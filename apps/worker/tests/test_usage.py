@@ -43,8 +43,9 @@ def test_admin_usage_aggregates_by_owner(harness: Harness) -> None:
     assert body["owner"] == "u1"
     assert body["period_parses"] == 1  # one success out of two attempts
     assert body["success_rate"] == 0.5
-    assert len(body["daily"]) == 1
-    assert body["daily"][0]["count"] == 1
+    # pad_daily fills the whole billing cycle; exactly one day has a non-zero count.
+    assert sum(d["count"] for d in body["daily"]) == 1
+    assert any(d["count"] == 1 for d in body["daily"])
 
 
 def test_admin_usage_excludes_other_owners(harness: Harness) -> None:
@@ -52,4 +53,5 @@ def test_admin_usage_excludes_other_owners(harness: Harness) -> None:
         "/v1/admin/usage?owner=nobody", headers=auth_header(harness.admin_token)
     ).json()
     assert body["period_parses"] == 0
-    assert body["daily"] == []
+    # pad_daily fills the full cycle with zeros; no owner = all zeros.
+    assert all(d["count"] == 0 for d in body["daily"])

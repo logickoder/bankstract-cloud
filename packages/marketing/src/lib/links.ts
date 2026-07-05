@@ -26,6 +26,7 @@ export const links = {
   // Brand/person credit goes to the personal site; code/repo links go to GitHub.
   owner: 'https://logickoder.dev',
   sales: 'mailto:jeffery@logickoder.dev?subject=bankstract%20Enterprise',
+  sponsoredBank: 'mailto:jeffery@logickoder.dev?subject=bankstract%20sponsored%20bank',
   // Paid tiers are not live yet: Paystack KYC is still pending (billing is built in the worker
   // but no live charges). Paid-tier CTAs collect interest here; route them to app checkout once
   // KYC approves and the dashboard is deployed.

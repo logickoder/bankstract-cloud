@@ -4,7 +4,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { getUser } from '@/lib/session'
+import { requireUser } from '@/lib/session'
 import { passthrough, workerFetch } from '@/lib/worker'
 
 const initSchema = z.object({
@@ -15,8 +15,8 @@ const initSchema = z.object({
 // Start a Paystack subscription checkout. owner + email come from the session; the worker
 // holds the Paystack secret and returns the inline-checkout params we hand back to the client.
 export async function POST(request: Request) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  const user = await requireUser()
+  if (user instanceof NextResponse) return user
 
   const parsed = initSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'invalid tier' }, { status: 422 })

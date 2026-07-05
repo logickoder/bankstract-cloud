@@ -9,14 +9,14 @@ import Link from 'next/link'
 import { EnvBadge, StatusBadge } from '@/components/KeyBadges'
 import { PageHeading } from '@/components/PageHeading'
 import { UsageChart, UsageChartSkeleton } from '@/components/UsageChart'
-import { fetchKeys, fetchUsage } from '@/lib/dashboard-data'
+import { fetchKeys, fetchUsage, hasUsageData } from '@/lib/dashboard-data'
 
 const ENDPOINT = 'https://bankstract.logickoder.dev/v1/parse'
 
 export default async function OverviewPage() {
   const [usage, keys] = await Promise.all([fetchUsage(), fetchKeys()])
   const activeKeys = keys.filter((k) => !k.revoked_at).length
-  const hasUsage = usage !== null && usage.daily.length > 0
+  const hasUsage = hasUsageData(usage)
   const recent = keys.slice(0, 3)
 
   const cap = usage?.monthly_cap ?? null

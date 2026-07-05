@@ -45,7 +45,14 @@ class PaystackClient:
         # the subscription and fires subscription.create; metadata.owner rides charge.success
         # so the webhook can map customer_code -> owner. callback_url is where Paystack sends
         # the user after payment. Returns inline-checkout params.
-        payload: dict[str, Any] = {"email": email, "plan": plan_code, "metadata": {"owner": owner}}
+        # amount=0 lets the plan's own amount take precedence; omitting it entirely can trigger
+        # "Invalid Amount Sent" on some Paystack plan configurations.
+        payload: dict[str, Any] = {
+            "email": email,
+            "plan": plan_code,
+            "amount": 0,
+            "metadata": {"owner": owner},
+        }
         if callback_url:
             payload["callback_url"] = callback_url
         data = await self._post("/transaction/initialize", payload)
@@ -72,8 +79,10 @@ class PaystackClient:
         async with httpx.AsyncClient(timeout=15.0, base_url=_API_BASE) as client:
             resp = await client.post(path, json=payload, headers=self._headers())
         if resp.status_code >= 300:
-            # Body may carry card/account details we do not want in logs; log status only.
-            raise PaystackError(f"paystack {path} returned {resp.status_code}")
+            # Log the Paystack message field only (never the full body; may carry card details).
+            ct = resp.headers.get("content-type", "")
+            _msg = resp.json().get("message", "") if "application/json" in ct else ""
+            raise PaystackError(f"paystack {path} returned {resp.status_code}: {_msg}")
         body: dict[str, Any] = resp.json()
         return body
 

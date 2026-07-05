@@ -1,22 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+import { NextResponse } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { POST } from './route'
 
-import { getUser } from '@/lib/session'
+import { requireUser } from '@/lib/session'
 import type * as WorkerModule from '@/lib/worker'
 import { workerFetch } from '@/lib/worker'
 
-vi.mock('@/lib/session', () => ({ getUser: vi.fn() }))
+vi.mock('@/lib/session', () => ({ requireUser: vi.fn() }))
 vi.mock('@/lib/worker', async (importOriginal) => {
   const actual = await importOriginal<typeof WorkerModule>()
   // passthrough stays real (forwards status + body); only the outbound call is faked.
   return { ...actual, workerFetch: vi.fn() }
 })
 
-const mockGetUser = vi.mocked(getUser)
+const mockRequireUser = vi.mocked(requireUser)
 const mockWorkerFetch = vi.mocked(workerFetch)
 
 function req(body: unknown): Request {
@@ -34,7 +35,9 @@ beforeEach(() => {
 
 describe('POST /api/billing/init', () => {
   it('401s when there is no session', async () => {
-    mockGetUser.mockResolvedValue(null)
+    mockRequireUser.mockResolvedValue(
+      NextResponse.json({ error: 'unauthenticated' }, { status: 401 }),
+    )
 
     const res = await POST(req({ tier: 'starter' }))
 
@@ -43,7 +46,7 @@ describe('POST /api/billing/init', () => {
   })
 
   it('422s an unknown tier', async () => {
-    mockGetUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
+    mockRequireUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
 
     const res = await POST(req({ tier: 'enterprise' }))
 
@@ -52,7 +55,7 @@ describe('POST /api/billing/init', () => {
   })
 
   it('422s a malformed body', async () => {
-    mockGetUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
+    mockRequireUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
 
     const bad = new Request('https://app.test/api/billing/init', { method: 'POST', body: 'x' })
     const res = await POST(bad)
@@ -62,7 +65,7 @@ describe('POST /api/billing/init', () => {
   })
 
   it('proxies a valid tier to the worker with owner, email, and callback_url', async () => {
-    mockGetUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
+    mockRequireUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
     mockWorkerFetch.mockResolvedValue(
       new Response(JSON.stringify({ authorization_url: 'https://paystack.test/checkout' }), {
         status: 200,
@@ -89,7 +92,7 @@ describe('POST /api/billing/init', () => {
   })
 
   it('forwards interval=annual when set', async () => {
-    mockGetUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
+    mockRequireUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
     mockWorkerFetch.mockResolvedValue(
       new Response(JSON.stringify({ authorization_url: 'https://paystack.test/checkout' }), {
         status: 200,
@@ -105,7 +108,7 @@ describe('POST /api/billing/init', () => {
   })
 
   it('forwards the worker status verbatim on failure', async () => {
-    mockGetUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
+    mockRequireUser.mockResolvedValue({ id: 'user_1', email: 'dev@acme.test' })
     mockWorkerFetch.mockResolvedValue(
       new Response(JSON.stringify({ detail: 'tier growth not configured' }), { status: 503 }),
     )

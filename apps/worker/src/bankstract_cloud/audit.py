@@ -6,7 +6,7 @@ from __future__ import annotations
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from .clock import utcnow_iso
 
@@ -116,3 +116,17 @@ class AuditLog:
             (owner, since_iso, *extra),
         ).fetchall()
         return total, ok, [(r["day"], int(r["n"])) for r in daily]
+
+
+def pad_daily(raw: list[tuple[str, int]], *, since_iso: str) -> list[tuple[str, int]]:
+    """Fill zero-count gaps between since_iso and today so charts show the full billing cycle."""
+    counts: dict[str, int] = dict(raw)
+    start = date.fromisoformat(since_iso[:10])
+    today = datetime.now(UTC).date()
+    out: list[tuple[str, int]] = []
+    cur = start
+    while cur <= today:
+        key = cur.isoformat()
+        out.append((key, counts.get(key, 0)))
+        cur += timedelta(days=1)
+    return out

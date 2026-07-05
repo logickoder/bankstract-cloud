@@ -47,18 +47,7 @@ const result = await client.parse(pdfBuffer)
 
 NGN-anchored monthly subscriptions. Nigeria-first indefinitely. International USD surface deferred until the first US/EU lead.
 
-### Tiers
-
-| Tier | Price (NGN) | Cap | Overage | API key | SLA |
-|------|-------------|-----|---------|---------|-----|
-| Self-host | ₦0 | unlimited | n/a | n/a (run your own engine) | best-effort, community Discord |
-| Free demo | ₦0 | 50 parses/mo per IP | hard-stop | no | none. anonymous, Turnstile-gated, watermarked outputs |
-| Starter | ₦9,500/mo | 1,000 parses/mo | ₦15/parse | yes | email support, no uptime guarantee |
-| Growth | ₦35,000/mo | 10,000 parses/mo | ₦12/parse | yes | priority email + Discord, 99% target |
-| Scale | ₦150,000/mo | 100,000 parses/mo | ₦8/parse | yes | dedicated Slack, 99.5% SLA |
-| Enterprise | Custom (₦500k to ₦5M/mo band) | unlimited | negotiated | yes + per-key rate limits | dedicated Slack, 99.9% SLA, NDPR audit support, on-prem option |
-
-Annual prepay: 15% off across all paid tiers (Starter ₦96,900, Growth ₦357,000, Scale ₦1,530,000).
+Tiers, caps, overage rates, annual amounts, and Paystack plan setup: [PRICING.md](PRICING.md).
 
 ### Payment processor
 

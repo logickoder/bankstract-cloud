@@ -4,7 +4,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { getUserId } from '@/lib/session'
+import { requireOwner } from '@/lib/session'
 import { passthrough, workerFetch } from '@/lib/worker'
 
 const createSchema = z.object({
@@ -13,14 +13,14 @@ const createSchema = z.object({
 })
 
 export async function GET() {
-  const owner = await getUserId()
-  if (!owner) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  const owner = await requireOwner()
+  if (owner instanceof NextResponse) return owner
   return passthrough(await workerFetch(`/v1/keys?owner=${encodeURIComponent(owner)}`))
 }
 
 export async function POST(request: Request) {
-  const owner = await getUserId()
-  if (!owner) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
+  const owner = await requireOwner()
+  if (owner instanceof NextResponse) return owner
 
   const parsed = createSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'invalid request' }, { status: 422 })

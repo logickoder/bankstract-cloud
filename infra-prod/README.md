@@ -111,7 +111,7 @@ echo "bsk_test_$(openssl rand -hex 16)"   # -> DEMO_API_KEY
 
 **Tier 3 - defer until ready (empty = feature off).**
 
-- **Paystack** (after KYC): dashboard -> API keys (`sk_live_`) + create the subscription plans -> `PLN_` codes for each tier (monthly + annual). Empty = billing off, test keys still work.
+- **Paystack** (after KYC): dashboard -> API keys (`sk_live_`) + create the subscription plans -> `PLN_` codes for each tier (monthly + annual). Empty = billing off, test keys still work. See [PRICING.md](../PRICING.md) for exact plan names, amounts, and env var mapping.
 - **Turnstile**: demo bot gate. `TURNSTILE_SECRET_KEY` + the public site key from Cloudflare.
 - **Sentry**: `SENTRY_DSN` from sentry.io.
 - **R2 backup**: Cloudflare -> R2 -> bucket + S3 API token -> `R2_*`. Empty = local snapshots only.

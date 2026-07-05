@@ -33,7 +33,7 @@ export default async function DashboardLayout({
         <div className="relative mt-auto hidden items-center justify-between gap-2 border-t border-border pt-4 lg:flex">
           {user ? (
             <span
-              className="min-w-0 lg:flex-1 truncate text-xs text-fg-tertiary"
+              className="min-w-0 flex-1 truncate text-xs text-fg-tertiary"
               title={user.email}
             >
               {user.email}

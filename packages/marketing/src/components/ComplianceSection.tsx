@@ -12,6 +12,7 @@ const BULLETS: readonly string[] = [
   'Ephemeral processing. We never write your PDF to disk.',
   'Audit log is metadata only. Filename and byte count, never contents.',
   'Source on GitHub. Verify the claims yourself.',
+  'On-prem option. Your compliance policy requires it. Run the MIT engine on your own infrastructure instead.',
 ]
 
 export function ComplianceSection() {
@@ -27,7 +28,8 @@ export function ComplianceSection() {
         ))}
       </ul>
       <p className="mt-6 text-sm text-fg-tertiary">
-        Read the <Anchor href={links.security}>security policy</Anchor>.
+        Read the <Anchor href={links.security}>security policy</Anchor> or{' '}
+        <Anchor href={links.engine}>run the MIT engine on-prem</Anchor>.
       </p>
     </Section>
   )

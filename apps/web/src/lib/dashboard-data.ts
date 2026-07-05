@@ -9,42 +9,35 @@ import {
   workerFetch,
 } from './worker'
 
-// Server-side reads for the dashboard pages. The worker is the source of truth; we never
-// cache key/usage data in the app.
-export async function fetchKeys(): Promise<KeyInfo[]> {
+async function ownerFetch<T>(path: (owner: string) => string): Promise<T | null> {
   const owner = await getUserId()
-  if (!owner) return []
+  if (!owner) return null
   try {
-    const res = await workerFetch(`/v1/keys?owner=${encodeURIComponent(owner)}`)
-    if (!res.ok) return []
-    const { keys } = (await res.json()) as { keys: KeyInfo[] }
-    return keys
+    const res = await workerFetch(path(owner))
+    if (!res.ok) return null
+    return (await res.json()) as T
   } catch {
-    // worker unreachable: render an empty state rather than crash the page.
-    return []
+    return null
   }
+}
+
+export async function fetchKeys(): Promise<KeyInfo[]> {
+  const data = await ownerFetch<{ keys: KeyInfo[] }>(
+    (o) => `/v1/keys?owner=${encodeURIComponent(o)}`,
+  )
+  return data?.keys ?? []
 }
 
 export async function fetchUsage(): Promise<OwnerUsage | null> {
-  const owner = await getUserId()
-  if (!owner) return null
-  try {
-    const res = await workerFetch(`/v1/admin/usage?owner=${encodeURIComponent(owner)}`)
-    if (!res.ok) return null
-    return (await res.json()) as OwnerUsage
-  } catch {
-    return null
-  }
+  return ownerFetch<OwnerUsage>((o) => `/v1/admin/usage?owner=${encodeURIComponent(o)}`)
 }
 
 export async function fetchBillingStatus(): Promise<SubscriptionStatusResponse | null> {
-  const owner = await getUserId()
-  if (!owner) return null
-  try {
-    const res = await workerFetch(`/v1/admin/billing/status?owner=${encodeURIComponent(owner)}`)
-    if (!res.ok) return null
-    return (await res.json()) as SubscriptionStatusResponse
-  } catch {
-    return null
-  }
+  return ownerFetch<SubscriptionStatusResponse>(
+    (o) => `/v1/admin/billing/status?owner=${encodeURIComponent(o)}`,
+  )
+}
+
+export function hasUsageData(usage: OwnerUsage | null): usage is OwnerUsage {
+  return usage !== null
 }
