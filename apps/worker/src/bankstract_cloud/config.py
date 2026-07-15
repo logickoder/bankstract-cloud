@@ -28,6 +28,16 @@ class Settings(BaseSettings):
     demo_rate_limit_max: int = 50
     demo_rate_limit_window_seconds: int = 2_592_000
 
+    # Salt for the demo rate-limit IP hash. We never store a raw client IP; the bucket key is
+    # sha256(salt + ip). Set a stable per-deploy secret in prod (empty in dev still hashes, but
+    # an unsalted IPv4 hash is brute-forceable, so prod must set this). See /privacy.
+    rate_limit_ip_salt: str = ""
+
+    # Parse metadata (audit_log) retention. Rows older than this are purged by the background
+    # sweep (storage limitation, NDPR). Must exceed the billing window so overage metering,
+    # which reads the current + just-closed calendar month, is never starved.
+    audit_retention_days: int = 90
+
     allowed_origins: str = "http://localhost:3000"
 
     demo_api_key: str = ""

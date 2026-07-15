@@ -54,19 +54,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             max_concurrent=settings.parse_max_concurrent,
             ttl_seconds=settings.job_ttl_seconds,
         ),
+        conn=conn,
     )
     scheduler = asyncio.create_task(billing_scheduler(app.state.app_state))
     sweeper = asyncio.create_task(_job_sweeper(app.state.app_state))
+    retention = asyncio.create_task(_retention_sweeper(app.state.app_state))
     try:
         yield
     finally:
         # Stop the background tasks before closing the shared connection they would otherwise use.
-        scheduler.cancel()
-        sweeper.cancel()
-        with suppress(asyncio.CancelledError):
-            await scheduler
-        with suppress(asyncio.CancelledError):
-            await sweeper
+        for task in (scheduler, sweeper, retention):
+            task.cancel()
+        for task in (scheduler, sweeper, retention):
+            with suppress(asyncio.CancelledError):
+                await task
         conn.close()
 
 
@@ -75,6 +76,16 @@ async def _job_sweeper(state: AppState) -> None:
     while True:
         await asyncio.sleep(state.settings.job_ttl_seconds)
         state.jobs.sweep()
+
+
+async def _retention_sweeper(state: AppState) -> None:
+    # Storage limitation (NDPR, /privacy): purge audit metadata past the retention window.
+    # Runs once at boot, then daily.
+    while True:
+        removed = state.audit.purge_older_than(state.settings.audit_retention_days)
+        if removed:
+            logger.info("retention: purged %d audit rows", removed)
+        await asyncio.sleep(86_400)
 
 
 app = FastAPI(
@@ -113,6 +124,6 @@ for _router in (health.router, account.router, keys.router, billing.router, pars
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().allowed_origins_list,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )

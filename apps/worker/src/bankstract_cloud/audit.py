@@ -78,6 +78,17 @@ class AuditLog:
         )
         self._conn.commit()
 
+    def purge_older_than(self, days: int) -> int:
+        """Delete audit rows older than `days` (storage limitation, NDPR). Returns rows removed.
+        days <= 0 disables the purge. Timestamps are ISO-8601 UTC, so a lexicographic compare
+        against an ISO cutoff is correct."""
+        if days <= 0:
+            return 0
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        with self._conn:
+            cur = self._conn.execute("DELETE FROM audit_log WHERE timestamp < ?", (cutoff,))
+        return cur.rowcount
+
     def count_success_for_key(self, api_key_id: str, *, since_iso: str) -> int:
         row = self._conn.execute(
             "SELECT COUNT(*) AS n FROM audit_log "

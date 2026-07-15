@@ -52,6 +52,12 @@ class SubscriptionStore:
         ).fetchone()
         return row["customer_code"] if row else None
 
+    def subscription_code_for_owner(self, owner: str) -> str | None:
+        row = self._conn.execute(
+            "SELECT subscription_code FROM subscriptions WHERE owner = ?", (owner,)
+        ).fetchone()
+        return row["subscription_code"] if row else None
+
     def billable_owners(self) -> list[tuple[str, str, str]]:
         # (owner, customer_code, tier) for owners that can be billed: a Paystack customer is
         # mapped and a tier is set. Drives the overage cron's per-cycle tier snapshot.

@@ -27,7 +27,7 @@ from ..engine import (
 from ..jobs import TERMINAL_STAGE, Job
 from ..models import ErrorResponse, JobAccepted, JobSnapshot, ParseResponse, ProgressSnapshot
 from ..responses import error_response
-from ..state import AppState, client_ip, get_state, require_auth
+from ..state import AppState, client_ip, demo_bucket, get_state, require_auth
 from ..turnstile import verify_turnstile
 from ..watermark import DEMO_TIER, watermark_csv, watermark_json
 
@@ -420,7 +420,7 @@ async def _check_anonymous_access(
     if not ok:
         raise HTTPException(status_code=401, detail="Turnstile verification failed")
     allowed = state.rate_limiter.check(
-        f"demo:{client_ip(request)}",
+        demo_bucket(request, settings.rate_limit_ip_salt),
         max_count=settings.demo_rate_limit_max,
         window_seconds=settings.demo_rate_limit_window_seconds,
     )

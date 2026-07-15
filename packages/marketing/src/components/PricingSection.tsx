@@ -56,8 +56,8 @@ export function PricingSection() {
               <SpecRow label="Overage" value={featured.overage} />
               <SpecRow label="Support" value={featured.sla} />
             </dl>
-            <ButtonLink href={links.waitlist} variant="primary" className="mt-8 w-full">
-              Notify me on launch
+            <ButtonLink href={links.billing} variant="primary" className="mt-8 w-full">
+              Subscribe
             </ButtonLink>
           </Card>
         ) : null}
@@ -105,8 +105,8 @@ function RailTier({ tier }: { tier: PaidTier }) {
           <dd className="font-mono text-fg">{tier.overage}</dd>
         </div>
       </dl>
-      <ButtonLink href={links.waitlist} variant="secondary" size="sm" className="mt-4 w-full">
-        Notify me
+      <ButtonLink href={links.billing} variant="secondary" size="sm" className="mt-4 w-full">
+        Subscribe
       </ButtonLink>
     </Card>
   )

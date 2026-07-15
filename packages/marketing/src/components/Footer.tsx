@@ -38,6 +38,7 @@ const COLS: readonly FooterCol[] = [
   {
     title: 'Legal',
     items: [
+      { label: 'Privacy', href: links.privacy },
       { label: 'Security', href: links.security },
       { label: 'License (AGPL-3.0)', href: links.cloud },
     ],

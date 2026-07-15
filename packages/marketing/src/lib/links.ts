@@ -15,6 +15,7 @@ export const links = {
   docs: DOCS,
   signup: APP,
   pricing: '/pricing',
+  privacy: '/privacy',
   // Same-origin in the merged web (marketing + dashboard are one app). Relative so it resolves to
   // the deployed /sign-in without a build-time URL.
   signin: '/sign-in',
@@ -29,8 +30,8 @@ export const links = {
   owner: 'https://logickoder.dev',
   sales: 'mailto:jeffery@logickoder.dev?subject=bankstract%20Enterprise',
   sponsoredBank: 'mailto:jeffery@logickoder.dev?subject=bankstract%20sponsored%20bank',
-  // Paid tiers are not live yet: Paystack KYC is still pending (billing is built in the worker
-  // but no live charges). Paid-tier CTAs collect interest here; route them to app checkout once
-  // KYC approves and the dashboard is deployed.
-  waitlist: 'mailto:jeffery@logickoder.dev?subject=bankstract%20waitlist',
+  // Paid-tier checkout. Billing is live (Paystack). The dashboard billing page runs the
+  // subscribe flow (/api/billing/init -> Paystack). Anonymous visitors hit the auth gate first;
+  // subscribing needs an account anyway.
+  billing: '/dashboard/billing',
 } as const

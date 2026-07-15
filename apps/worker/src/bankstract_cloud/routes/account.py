@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .. import __version__
 from ..audit import current_period_start_iso, pad_daily
@@ -17,6 +17,8 @@ from ..models import (
     StatusResponse,
     UsageResponse,
 )
+from ..owner import purge_owner_data
+from ..paystack import PaystackError
 from ..responses import ADMIN_ERRORS
 from ..state import AppState, get_state, require_admin, require_auth
 from ..usage import compute_overage, kobo_to_naira_str, overage_report_for_owner
@@ -107,3 +109,29 @@ async def admin_usage(
         projected_overage_naira=kobo_to_naira_str(report.overage_amount_kobo),
         daily=[DailyCount(date=d, count=c) for d, c in pad_daily(daily, since_iso=since_iso)],
     )
+
+
+@router.delete(
+    "/v1/admin/owner",
+    responses=ADMIN_ERRORS,
+    summary="Erase an owner's data (admin)",
+    description="Admin-only. Cancels any live Paystack subscription, then deletes every row tied "
+    "to `owner` (keys, subscription, cycle tiers, invoices, audit metadata). Right to erasure "
+    "(NDPR). If the Paystack cancel fails, nothing is deleted (a live charge is never orphaned).",
+)
+async def delete_owner(
+    owner: str = Query(..., min_length=1),
+    _: None = Depends(require_admin),
+    state: AppState = Depends(get_state),
+) -> dict[str, bool]:
+    if state.subscriptions.is_active(owner):
+        code = state.subscriptions.subscription_code_for_owner(owner)
+        if code and state.paystack.enabled:
+            try:
+                await state.paystack.disable_subscription(code)
+            except PaystackError as exc:
+                raise HTTPException(
+                    status_code=502, detail=f"could not cancel subscription: {exc}"
+                ) from exc
+    purge_owner_data(state.conn, owner)
+    return {"ok": True}

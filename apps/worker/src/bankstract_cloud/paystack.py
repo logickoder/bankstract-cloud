@@ -63,6 +63,19 @@ class PaystackClient:
             "reference": str(d["reference"]),
         }
 
+    async def disable_subscription(self, subscription_code: str) -> None:
+        # Cancel a live subscription (account erasure). Paystack's /subscription/disable needs the
+        # subscription code AND its email_token, which we don't store, so fetch it first. Raises
+        # PaystackError on failure so the caller can abort the delete rather than orphan a charge.
+        data = await self._get(f"/subscription/{subscription_code}")
+        token = data.get("data", {}).get("email_token")
+        if not token:
+            raise PaystackError(f"no email_token for subscription {subscription_code}")
+        await self._post(
+            "/subscription/disable",
+            {"code": subscription_code, "token": str(token)},
+        )
+
     async def create_invoice(
         self, *, customer_code: str, amount_kobo: int, description: str
     ) -> str:
@@ -72,6 +85,18 @@ class PaystackClient:
             {"customer": customer_code, "amount": amount_kobo, "description": description},
         )
         return str(data["data"]["request_code"])
+
+    async def _get(self, path: str) -> dict[str, Any]:
+        if not self.enabled:
+            raise PaystackError("paystack not configured")
+        async with httpx.AsyncClient(timeout=15.0, base_url=_API_BASE) as client:
+            resp = await client.get(path, headers=self._headers())
+        if resp.status_code >= 300:
+            ct = resp.headers.get("content-type", "")
+            _msg = resp.json().get("message", "") if "application/json" in ct else ""
+            raise PaystackError(f"paystack {path} returned {resp.status_code}: {_msg}")
+        body: dict[str, Any] = resp.json()
+        return body
 
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         if not self.enabled:

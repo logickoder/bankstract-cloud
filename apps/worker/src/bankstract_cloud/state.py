@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
+import sqlite3
 from dataclasses import dataclass
 
 from fastapi import Depends, Header, HTTPException, Request
@@ -29,6 +31,8 @@ class AppState:
     cycle_tiers: CycleTierStore
     overage_ledger: OverageLedger
     jobs: JobStore
+    # The shared SQLite connection, exposed for cross-table operations (e.g. owner erasure).
+    conn: sqlite3.Connection
 
 
 def get_state(request: Request) -> AppState:
@@ -82,3 +86,11 @@ def client_ip(request: Request) -> str:
     if xff:
         return xff.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
+
+
+def demo_bucket(request: Request, salt: str) -> str:
+    """Rate-limit bucket key for an anonymous demo visitor. The raw IP never reaches storage:
+    the key is a salted sha256 of it (Directive 1, data minimisation). Turnstile still gets the
+    real IP for its own bot check; we just don't persist it."""
+    digest = hashlib.sha256(f"{salt}:{client_ip(request)}".encode()).hexdigest()
+    return f"demo:{digest[:32]}"
