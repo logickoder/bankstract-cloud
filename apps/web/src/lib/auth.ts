@@ -59,7 +59,7 @@ export const auth = betterAuth({
           return
         }
         await resend.emails.send({
-          from: 'bankstract <noreply@contact.logickoder.dev>',
+          from: 'bankstract <noreply@updates.logickoder.dev>',
           to: email,
           subject,
           text,

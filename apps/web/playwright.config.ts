@@ -19,6 +19,9 @@ export default defineConfig({
       BETTER_AUTH_URL: 'http://localhost:3002',
       AUTH_DB_PATH: './data/auth-e2e.db',
       MAGIC_LINK_LOG_FILE: './data/magic-e2e.log',
+      // Force the magic link to the log file, never email. A dev's .env.local RESEND_API_KEY
+      // would otherwise make the dev server send real emails and the sign-in helper find nothing.
+      RESEND_API_KEY: '',
       WORKER_URL: 'http://localhost:9',
       ADMIN_API_TOKEN: 'test-admin-token',
     },

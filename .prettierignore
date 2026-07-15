@@ -1,0 +1,4 @@
+# bankstract-cloud formats with ESLint (@stylistic: single quotes, no semicolons), not Prettier.
+# Prettier's defaults (double quotes, semicolons) fight that config and mangle the codebase, so
+# Prettier is disabled project-wide here: every path is ignored. Format with the ESLint fixer.
+**/*

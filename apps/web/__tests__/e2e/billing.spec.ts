@@ -17,8 +17,8 @@ test('authed user sees the tier plans and starts checkout', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Starter' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Scale' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Monthly' })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Annual/ })).toBeVisible()
+  await expect(page.getByRole('radio', { name: 'Monthly' })).toBeVisible()
+  await expect(page.getByRole('radio', { name: /Annual/ })).toBeVisible()
 
   let body: unknown = null
   await page.route('**/api/billing/init', async (route) => {
@@ -41,7 +41,7 @@ test('annual toggle shows annual price and posts the annual interval', async ({ 
   await signInWithMagicLink(page, 'billing-annual-e2e@example.com')
   await page.goto('/dashboard/billing')
 
-  await page.getByRole('button', { name: /Annual/ }).click()
+  await page.getByRole('radio', { name: /Annual/ }).click()
   await expect(page.getByText('₦96,900')).toBeVisible()
 
   let body: unknown = null
