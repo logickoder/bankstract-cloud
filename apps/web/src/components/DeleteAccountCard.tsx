@@ -37,8 +37,13 @@ export function DeleteAccountCard({ email }: { email: string }) {
       setError('Could not delete the account. Try again, or email jeffery@logickoder.dev.')
       return
     }
-    // Data is gone; end the session and leave the dashboard.
-    await authClient.signOut()
+    // Data is gone; end the session and leave the dashboard. The session row was just
+    // cascade-deleted, so signOut may reject; leave regardless.
+    try {
+      await authClient.signOut()
+    } catch {
+      // ignore
+    }
     window.location.href = '/'
   }
 

@@ -10,14 +10,19 @@ test('hero renders headline + both CTAs', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Read the docs' })).toBeVisible()
 })
 
-test('pricing renders NGN tiers with waitlist CTAs (Paystack not live)', async ({ page }) => {
+test('home shows the pricing teaser linking to the full page', async ({ page }) => {
   await page.goto('/')
+  await expect(page.getByText('₦9,500')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'See full pricing' })).toBeVisible()
+})
+
+test('pricing page renders all NGN tiers with subscribe CTAs', async ({ page }) => {
+  await page.goto('/pricing')
   await expect(page.getByText('₦9,500')).toBeVisible()
   await expect(page.getByText('₦35,000')).toBeVisible()
   await expect(page.getByText('₦150,000')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Notify me on launch' }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Subscribe' }).first()).toBeVisible()
   await expect(page.getByRole('link', { name: 'Talk to sales' }).first()).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Start', exact: true })).toHaveCount(0)
 })
 
 test('bank grid lists shipped NG banks and excludes wise', async ({ page }) => {
@@ -65,8 +70,9 @@ test('no horizontal overflow on small screens', async ({ page }) => {
 test('transformation demo is fully static under reduced-motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
-  // No animation: the last CSV row + the full curl render immediately.
-  await expect(page.getByRole('cell', { name: 'Airtime' })).toBeVisible()
+  // No animation: the last CSV row + the full curl render immediately. The transform block is
+  // aria-hidden (decorative), so match by text, not role.
+  await expect(page.getByText('Airtime').first()).toBeVisible()
   await expect(
     page.getByText('curl -X POST /v1/parse -F "pdf=@statement.pdf"'),
   ).toBeVisible()

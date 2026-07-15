@@ -80,11 +80,15 @@ async def _job_sweeper(state: AppState) -> None:
 
 async def _retention_sweeper(state: AppState) -> None:
     # Storage limitation (NDPR, /privacy): purge audit metadata past the retention window.
-    # Runs once at boot, then daily.
+    # Runs once at boot, then daily. A transient DB error (e.g. "database is locked") must not
+    # kill the task permanently, or retention silently stops until the next process restart.
     while True:
-        removed = state.audit.purge_older_than(state.settings.audit_retention_days)
-        if removed:
-            logger.info("retention: purged %d audit rows", removed)
+        try:
+            removed = state.audit.purge_older_than(state.settings.audit_retention_days)
+            if removed:
+                logger.info("retention: purged %d audit rows", removed)
+        except Exception:
+            logger.exception("retention purge failed; will retry next cycle")
         await asyncio.sleep(86_400)
 
 

@@ -109,13 +109,17 @@ def test_purge_owner_scopes_to_owner(harness: Harness) -> None:
     assert audit.count_success_for_key(k2, since_iso="1970-01-01") == 1
 
 
-def _insert_active_sub(harness: Harness, owner: str) -> None:
+def _insert_sub(harness: Harness, owner: str, *, status: str, code: str | None) -> None:
     harness.client.app.state.app_state.conn.execute(
         "INSERT INTO subscriptions (owner, customer_code, subscription_code, status, updated_at) "
-        "VALUES (?, ?, ?, 'active', ?)",
-        (owner, f"CUS_{owner}", f"SUB_{owner}", utcnow_iso()),
+        "VALUES (?, ?, ?, ?, ?)",
+        (owner, f"CUS_{owner}", code, status, utcnow_iso()),
     )
     harness.client.app.state.app_state.conn.commit()
+
+
+def _insert_active_sub(harness: Harness, owner: str) -> None:
+    _insert_sub(harness, owner, status="active", code=f"SUB_{owner}")
 
 
 def test_erasure_cancels_active_subscription(
@@ -166,3 +170,39 @@ def test_erasure_aborts_when_cancel_fails(
     keys = conn.execute("SELECT COUNT(*) AS n FROM api_keys WHERE owner = 'u4'").fetchone()["n"]
     assert subs == 1
     assert keys == 1
+
+
+def test_erasure_cancels_inactive_but_coded_subscription(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Locally inactive (a failed renewal deactivated us) but Paystack may still be live and
+    # retrying the card, so the cancel must still fire whenever a subscription_code exists.
+    _issue_key(harness, "u5")
+    _insert_sub(harness, "u5", status="inactive", code="SUB_u5")
+
+    called: list[str] = []
+
+    async def _ok(code: str) -> None:
+        called.append(code)
+
+    monkeypatch.setattr(harness.client.app.state.app_state.paystack, "disable_subscription", _ok)
+
+    res = harness.client.delete(
+        "/v1/admin/owner?owner=u5", headers=auth_header(harness.admin_token)
+    )
+    assert res.status_code == 200
+    assert called == ["SUB_u5"]
+
+
+def test_erasure_aborts_active_without_code(harness: Harness) -> None:
+    # Active locally but no subscription_code to cancel with: refuse rather than orphan a charge.
+    _issue_key(harness, "u6")
+    _insert_sub(harness, "u6", status="active", code=None)
+
+    res = harness.client.delete(
+        "/v1/admin/owner?owner=u6", headers=auth_header(harness.admin_token)
+    )
+    assert res.status_code == 409
+    conn = harness.client.app.state.app_state.conn
+    keys = conn.execute("SELECT COUNT(*) AS n FROM api_keys WHERE owner = 'u6'").fetchone()["n"]
+    assert keys == 1  # nothing purged

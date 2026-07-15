@@ -6,7 +6,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -68,7 +68,12 @@ class PaystackClient:
         # subscription code AND its email_token, which we don't store, so fetch it first. Raises
         # PaystackError on failure so the caller can abort the delete rather than orphan a charge.
         data = await self._get(f"/subscription/{subscription_code}")
-        token = data.get("data", {}).get("email_token")
+        sub = data.get("data", {})
+        # Idempotent: only active/attention subscriptions can be (and need to be) disabled.
+        # A cancelled/non-renewing/completed one is already off; disabling it would error.
+        if sub.get("status") not in {"active", "attention"}:
+            return
+        token = sub.get("email_token")
         if not token:
             raise PaystackError(f"no email_token for subscription {subscription_code}")
         await self._post(
@@ -86,15 +91,29 @@ class PaystackClient:
         )
         return str(data["data"]["request_code"])
 
+    @staticmethod
+    def _error_detail(resp: httpx.Response) -> str:
+        # The Paystack message field only (never the full body; may carry card details). Guards a
+        # non-object JSON error body (array/scalar), which would make .get() raise AttributeError.
+        if "application/json" not in resp.headers.get("content-type", ""):
+            return ""
+        try:
+            body: Any = resp.json()
+        except ValueError:
+            return ""
+        if isinstance(body, dict):
+            return str(cast("dict[str, Any]", body).get("message", ""))
+        return ""
+
     async def _get(self, path: str) -> dict[str, Any]:
         if not self.enabled:
             raise PaystackError("paystack not configured")
         async with httpx.AsyncClient(timeout=15.0, base_url=_API_BASE) as client:
             resp = await client.get(path, headers=self._headers())
         if resp.status_code >= 300:
-            ct = resp.headers.get("content-type", "")
-            _msg = resp.json().get("message", "") if "application/json" in ct else ""
-            raise PaystackError(f"paystack {path} returned {resp.status_code}: {_msg}")
+            raise PaystackError(
+                f"paystack {path} returned {resp.status_code}: {self._error_detail(resp)}"
+            )
         body: dict[str, Any] = resp.json()
         return body
 
@@ -104,10 +123,9 @@ class PaystackClient:
         async with httpx.AsyncClient(timeout=15.0, base_url=_API_BASE) as client:
             resp = await client.post(path, json=payload, headers=self._headers())
         if resp.status_code >= 300:
-            # Log the Paystack message field only (never the full body; may carry card details).
-            ct = resp.headers.get("content-type", "")
-            _msg = resp.json().get("message", "") if "application/json" in ct else ""
-            raise PaystackError(f"paystack {path} returned {resp.status_code}: {_msg}")
+            raise PaystackError(
+                f"paystack {path} returned {resp.status_code}: {self._error_detail(resp)}"
+            )
         body: dict[str, Any] = resp.json()
         return body
 

@@ -30,8 +30,4 @@ export const links = {
   owner: 'https://logickoder.dev',
   sales: 'mailto:jeffery@logickoder.dev?subject=bankstract%20Enterprise',
   sponsoredBank: 'mailto:jeffery@logickoder.dev?subject=bankstract%20sponsored%20bank',
-  // Paid-tier checkout. Billing is live (Paystack). The dashboard billing page runs the
-  // subscribe flow (/api/billing/init -> Paystack). Anonymous visitors hit the auth gate first;
-  // subscribing needs an account anyway.
-  billing: '/dashboard/billing',
 } as const
