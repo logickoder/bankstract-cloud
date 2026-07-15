@@ -3,4 +3,5 @@
 
 export { MarketingHome } from './home'
 export { metadata, JsonLd } from './metadata'
+export { PricingPage, pricingMetadata } from './pricing'
 export * as sections from './sections'

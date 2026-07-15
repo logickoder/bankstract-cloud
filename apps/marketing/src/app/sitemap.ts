@@ -5,5 +5,8 @@ import { SITE_URL } from '@bankstract/seo'
 import type { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [{ url: SITE_URL, changeFrequency: 'weekly', priority: 1 }]
+  return [
+    { url: SITE_URL, changeFrequency: 'weekly', priority: 1 },
+    { url: `${SITE_URL}/pricing`, changeFrequency: 'weekly', priority: 0.8 },
+  ]
 }

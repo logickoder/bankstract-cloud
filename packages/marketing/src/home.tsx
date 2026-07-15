@@ -10,7 +10,7 @@ import { FinalCtaSection } from './components/FinalCtaSection'
 import { Footer } from './components/Footer'
 import { HeroSection } from './components/HeroSection'
 import { OssPrideSection } from './components/OssPrideSection'
-import { PricingSection } from './components/PricingSection'
+import { PricingTeaser } from './components/PricingTeaser'
 import { TransformationDemo } from './components/TransformationDemo'
 
 export function MarketingHome() {
@@ -24,7 +24,7 @@ export function MarketingHome() {
       <BankCoverage />
       <ComplianceSection />
       <OssPrideSection />
-      <PricingSection />
+      <PricingTeaser />
       <FinalCtaSection />
       <Footer />
     </main>

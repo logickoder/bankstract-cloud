@@ -17,7 +17,7 @@ const COLS: readonly FooterCol[] = [
     title: 'Product',
     items: [
       { label: 'Demo', href: links.demo },
-      { label: 'Pricing', href: '#pricing' },
+      { label: 'Pricing', href: links.pricing },
       { label: 'Self-host', href: links.selfHost },
     ],
   },

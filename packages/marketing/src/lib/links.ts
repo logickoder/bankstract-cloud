@@ -14,6 +14,7 @@ export const links = {
   demo: DEMO,
   docs: DOCS,
   signup: APP,
+  pricing: '/pricing',
   // Same-origin in the merged web (marketing + dashboard are one app). Relative so it resolves to
   // the deployed /sign-in without a build-time URL.
   signin: '/sign-in',
