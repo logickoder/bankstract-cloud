@@ -45,7 +45,7 @@ export function Dropzone({ status, activeFile, onFile, onDragEnter, onDragLeave 
         onDragLeave()
       }}
       onDrop={handleDrop}
-      className={`flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-16 text-center transition-colors duration-150 ${
+      className={`flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-16 text-center transition-colors duration-150 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
         isOver ? 'border-accent bg-accent-glow' : 'border-border bg-bg-secondary'
       }`}
     >

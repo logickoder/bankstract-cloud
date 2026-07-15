@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Button, Card, cn } from '@bankstract/ui'
+import { Badge, ButtonLink, Card, cn } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 import { ANNUAL_NOTE, ENTERPRISE, FREE_TIERS, PAID_TIERS } from '../lib/pricing'
@@ -37,7 +37,7 @@ export function PricingSection() {
           >
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-fg">{t.name}</h3>
-              {t.highlight ? <span className="text-xs text-accent">Popular</span> : null}
+              {t.highlight ? <Badge tone="accent">Popular</Badge> : null}
             </div>
             <p className="mt-3">
               <span className="font-mono text-3xl text-fg">{t.price}</span>
@@ -57,11 +57,15 @@ export function PricingSection() {
                 <dd className="text-right text-fg">{t.sla}</dd>
               </div>
             </dl>
-            <a href={links.waitlist} className="mt-auto pt-6">
-              <Button variant={t.highlight ? 'primary' : 'secondary'} className="w-full">
+            <div className="mt-auto pt-6">
+              <ButtonLink
+                href={links.waitlist}
+                variant={t.highlight ? 'primary' : 'secondary'}
+                className="w-full"
+              >
                 Notify me on launch
-              </Button>
-            </a>
+              </ButtonLink>
+            </div>
           </Card>
         ))}
       </div>
@@ -71,11 +75,11 @@ export function PricingSection() {
           <h3 className="font-medium text-fg">{ENTERPRISE.name}</h3>
           <p className="mt-1 text-sm text-fg-secondary">{ENTERPRISE.detail}</p>
         </div>
-        <div className="flex items-center gap-1 md:gap-4">
+        <div className="flex items-center gap-1 sm:gap-4">
           <span className="font-mono text-sm text-fg">{ENTERPRISE.band}</span>
-          <a href={links.sales}>
-            <Button variant="ghost">Talk to sales</Button>
-          </a>
+          <ButtonLink href={links.sales} variant="ghost">
+            Talk to sales
+          </ButtonLink>
         </div>
       </Card>
     </Section>

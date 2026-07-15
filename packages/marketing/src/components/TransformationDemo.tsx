@@ -29,7 +29,9 @@ const FLYERS: readonly string[] = CSV_ROWS.map((r) => `${r[1]}  ${r[2]}`)
 export function TransformationDemo() {
   return (
     <Section>
-      <div className="relative overflow-hidden rounded-xl">
+      {/* Decorative signature animation with synthetic data; the semantic <table> would
+          otherwise be announced as a real data table. Hidden from assistive tech. */}
+      <div className="relative overflow-hidden rounded-xl" aria-hidden="true">
         <div className="grid items-stretch gap-4 sm:gap-6 lg:grid-cols-[1fr_auto_1fr]">
           <div className="rounded-lg border border-border bg-bg-secondary p-5 font-mono text-xs text-fg-tertiary">
             <div className="pb-2 text-fg-secondary">fbn statement</div>

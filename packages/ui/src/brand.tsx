@@ -17,7 +17,7 @@ export function BrandMark({ className, ...props }: SVGProps<SVGSVGElement>) {
       className={className}
       {...props}
     >
-      <rect x="5" y="0" width="14" height="2.5" rx="1.25" fill="#D2691E" />
+      <rect x="5" y="0" width="14" height="2.5" rx="1.25" fill="var(--color-accent)" />
       <rect x="5" y="5.5" width="10" height="2.5" rx="1.25" fill="currentColor" />
       <rect x="5" y="9.5" width="10" height="2.5" rx="1.25" fill="currentColor" />
     </svg>

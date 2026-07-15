@@ -57,7 +57,14 @@ export function IdleView({
               {progress.current}/{progress.total}
             </span>
           </div>
-          <div className="h-1 w-full overflow-hidden rounded-full bg-bg-tertiary">
+          <div
+            className="h-1 w-full overflow-hidden rounded-full bg-bg-tertiary"
+            role="progressbar"
+            aria-valuenow={pct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={STAGE_LABELS[progress.stage] ?? 'Parsing'}
+          >
             <div
               className="h-full rounded-full bg-accent transition-[width] duration-200"
               style={{ width: `${pct}%` }}

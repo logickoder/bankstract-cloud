@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Button } from '@bankstract/ui'
+import { ButtonLink } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 import { PAID_TIERS } from '../lib/pricing'
@@ -17,9 +17,9 @@ export function PricingTeaser() {
         <span className="font-mono text-fg">{PAID_TIERS[0]!.price}</span>/mo. Self-host free,
         forever.
       </p>
-      <a href={links.pricing} className="mt-8 inline-block">
-        <Button variant="secondary">See full pricing</Button>
-      </a>
+      <ButtonLink href={links.pricing} variant="secondary" className="mt-8">
+        See full pricing
+      </ButtonLink>
     </Section>
   )
 }

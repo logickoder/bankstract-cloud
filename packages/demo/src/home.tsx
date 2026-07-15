@@ -5,9 +5,10 @@ import { Anchor, BrandMark, linkClass } from '@bankstract/ui'
 
 import { DemoClient } from './components/DemoClient'
 
-// Muted footer nav link: keeps the quiet hover, adds a branded keyboard focus ring.
+// Muted footer nav link: a visible resting affordance (muted colour + underline on hover)
+// so it reads as a link, plus a branded keyboard focus ring.
 const navLink =
-  'rounded-sm hover:text-fg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+  'rounded-sm text-fg-tertiary underline-offset-4 hover:text-fg-secondary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline'
 
 export function DemoHome() {
   return (

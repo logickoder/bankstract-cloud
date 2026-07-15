@@ -14,10 +14,12 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           bankstract
         </span>
         <div className="relative">
-          <h2 className="font-display text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-fg">
+          {/* Decorative marketing copy, not the page heading (the form owns the <h1>). A <p>
+              keeps the visual weight without breaking the document outline. */}
+          <p className="font-display text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-fg">
             Statement parsing API
             <span className="block font-light text-fg-secondary">for Nigerian banks</span>
-          </h2>
+          </p>
           <p className="mt-4 max-w-sm text-fg-secondary">
             Issue a key, call one endpoint, get clean transactions. NDPR-compliant redaction
             built in.

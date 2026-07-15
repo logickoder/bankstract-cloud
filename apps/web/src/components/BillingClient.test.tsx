@@ -74,7 +74,7 @@ describe('BillingClient', () => {
 
   it('shows annual prices after toggling to Annual', async () => {
     render(<BillingClient status={null} />)
-    await userEvent.click(screen.getByRole('button', { name: /annual/i }))
+    await userEvent.click(screen.getByRole('radio', { name: /annual/i }))
     expect(screen.getByText('₦96,900')).toBeDefined()
     expect(screen.queryByText('₦9,500')).toBeNull()
   })
@@ -88,7 +88,7 @@ describe('BillingClient', () => {
     )
     render(<BillingClient status={null} />)
 
-    await userEvent.click(screen.getByRole('button', { name: /annual/i }))
+    await userEvent.click(screen.getByRole('radio', { name: /annual/i }))
     const starterCard = screen.getByRole('heading', { name: 'Starter' }).closest('div')!
     await userEvent.click(within(starterCard).getByRole('button', { name: /subscribe/i }))
 

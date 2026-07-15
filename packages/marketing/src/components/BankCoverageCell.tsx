@@ -15,7 +15,7 @@ const STATUS: Record<BankEntry['status'], { glyph: string; label: string; tone: 
 export function BankCoverageCell({ entry }: { entry: BankEntry }) {
   const { glyph, label, tone } = STATUS[entry.status]
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-bg-secondary px-3 py-3 transition-colors duration-150 hover:border-fg-tertiary sm:px-4">
+    <div className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-bg-secondary px-3 py-3 sm:px-4">
       <span aria-hidden="true">{glyph}</span>
       <span className={`truncate font-mono text-sm ${tone}`}>{entry.id}</span>
       <span className="ml-auto shrink-0 text-xs text-fg-tertiary">{label}</span>

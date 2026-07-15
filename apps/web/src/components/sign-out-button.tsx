@@ -5,18 +5,27 @@
 
 import { Button } from '@bankstract/ui'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 import { authClient } from '@/lib/auth-client'
 
 export function SignOutButton() {
   const router = useRouter()
+  const [pending, setPending] = useState(false)
+
+  async function signOut() {
+    setPending(true)
+    try {
+      await authClient.signOut()
+      router.push('/sign-in')
+    } catch {
+      setPending(false)
+    }
+  }
+
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => void authClient.signOut().then(() => router.push('/sign-in'))}
-    >
-      Sign out
+    <Button variant="ghost" size="sm" disabled={pending} onClick={() => void signOut()}>
+      {pending ? 'Signing out...' : 'Sign out'}
     </Button>
   )
 }

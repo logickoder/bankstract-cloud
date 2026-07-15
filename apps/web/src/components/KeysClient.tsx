@@ -5,6 +5,7 @@
 
 import {
   Button,
+  buttonClass,
   Card,
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import {
   useClipboard,
 } from '@bankstract/ui'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react'
 
 import { EnvBadge, StatusBadge } from '@/components/KeyBadges'
 import { PageHeading } from '@/components/PageHeading'
@@ -23,6 +24,8 @@ import type { KeyCreatedResponse, KeyInfo } from '@/lib/worker'
 function fmtDate(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10)
 }
+
+const ENVS = ['test', 'live'] as const
 
 export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
   const router = useRouter()
@@ -33,7 +36,13 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [created, setCreated] = useState<KeyCreatedResponse | null>(null)
+  const [confirmRevoke, setConfirmRevoke] = useState<KeyInfo | null>(null)
+  const [revokeBusy, setRevokeBusy] = useState(false)
+  const [revokeError, setRevokeError] = useState('')
   const { copied, copy } = useClipboard()
+  const nameId = useId()
+  const nameErrorId = useId()
+  const envRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   // Overview's "Create your first key" CTA links here with ?create=1 to open the dialog directly.
   useEffect(() => {
@@ -68,9 +77,28 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
     router.refresh()
   }
 
-  async function revoke(id: string) {
-    const res = await fetch(`/api/keys/${id}`, { method: 'DELETE' })
-    if (res.ok) router.refresh()
+  async function doRevoke() {
+    if (!confirmRevoke) return
+    setRevokeBusy(true)
+    setRevokeError('')
+    const res = await fetch(`/api/keys/${confirmRevoke.id}`, { method: 'DELETE' })
+    setRevokeBusy(false)
+    if (res.ok) {
+      setConfirmRevoke(null)
+      router.refresh()
+    } else {
+      setRevokeError('Could not revoke the key. Try again.')
+    }
+  }
+
+  function onEnvKey(e: KeyboardEvent<HTMLDivElement>) {
+    const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (!dir) return
+    e.preventDefault()
+    const cur = ENVS.indexOf(env)
+    const next = (cur + dir + ENVS.length) % ENVS.length
+    setEnv(ENVS[next]!)
+    envRefs.current[next]?.focus()
   }
 
   return (
@@ -128,7 +156,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {k.revoked_at ? null : (
-                        <Button variant="ghost" size="sm" onClick={() => void revoke(k.id)}>
+                        <Button variant="ghost" size="sm" onClick={() => setConfirmRevoke(k)}>
                           Revoke
                         </Button>
                       )}
@@ -148,7 +176,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
                     <div className="mt-0.5 font-mono text-xs text-fg-secondary">{k.prefix}</div>
                   </div>
                   {k.revoked_at ? null : (
-                    <Button variant="ghost" size="sm" onClick={() => void revoke(k.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmRevoke(k)}>
                       Revoke
                     </Button>
                   )}
@@ -189,24 +217,45 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
               <DialogTitle>Create an API key</DialogTitle>
               <DialogDescription>Name it, pick an environment.</DialogDescription>
               <div className="mt-4 flex flex-col gap-3">
+                <label htmlFor={nameId} className="text-sm text-fg-secondary">
+                  Key name
+                </label>
                 <Input
+                  id={nameId}
                   placeholder="e.g. production server"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  error={Boolean(error)}
+                  aria-describedby={error ? nameErrorId : undefined}
                 />
-                <div className="flex gap-2">
-                  {(['test', 'live'] as const).map((e) => (
-                    <Button
+                <div
+                  role="radiogroup"
+                  aria-label="Key environment"
+                  className="flex gap-2"
+                  onKeyDown={onEnvKey}
+                >
+                  {ENVS.map((e, i) => (
+                    <button
                       key={e}
-                      variant={env === e ? 'primary' : 'secondary'}
-                      size="sm"
+                      ref={(el) => {
+                        envRefs.current[i] = el
+                      }}
+                      type="button"
+                      role="radio"
+                      aria-checked={env === e}
+                      tabIndex={env === e ? 0 : -1}
                       onClick={() => setEnv(e)}
+                      className={buttonClass({ variant: env === e ? 'primary' : 'secondary', size: 'sm' })}
                     >
                       {e}
-                    </Button>
+                    </button>
                   ))}
                 </div>
-                {error ? <p className="text-sm text-error">{error}</p> : null}
+                {error ? (
+                  <p id={nameErrorId} role="alert" className="text-sm text-error">
+                    {error}
+                  </p>
+                ) : null}
                 <div className="mt-2 flex justify-end gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
                     Cancel
@@ -218,6 +267,41 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmRevoke !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConfirmRevoke(null)
+            setRevokeError('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>Revoke this key?</DialogTitle>
+          <DialogDescription>
+            {confirmRevoke ? (
+              <>
+                <span className="font-mono text-fg-secondary">{confirmRevoke.prefix}</span> stops
+                working immediately. This cannot be undone.
+              </>
+            ) : null}
+          </DialogDescription>
+          {revokeError ? (
+            <p role="alert" className="mt-3 text-sm text-error">
+              {revokeError}
+            </p>
+          ) : null}
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmRevoke(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" disabled={revokeBusy} onClick={() => void doRevoke()}>
+              {revokeBusy ? 'Revoking...' : 'Revoke key'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

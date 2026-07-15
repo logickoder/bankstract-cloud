@@ -4,11 +4,13 @@
 'use client'
 
 import { Badge, Button, Card } from '@bankstract/ui'
-import { useState } from 'react'
+import { type KeyboardEvent, useRef, useState } from 'react'
 
 import type { SubscribeResponse, SubscriptionStatusResponse } from '@/lib/worker'
 
 type Interval = 'monthly' | 'annual'
+
+const INTERVALS = ['monthly', 'annual'] as const
 
 // Tier economics mirror PRD § Pricing. Annual = 15% off (monthly x12 x0.85). Naira renders in
 // JetBrains Mono (voice rule).
@@ -20,14 +22,25 @@ const TIERS = [
 
 function tabClass(active: boolean): string {
   return active
-    ? 'rounded-md bg-bg px-3 py-1.5 font-medium text-fg'
-    : 'rounded-md px-3 py-1.5 text-fg-secondary'
+    ? 'rounded-md bg-bg px-3 py-1.5 font-medium text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none'
+    : 'rounded-md px-3 py-1.5 text-fg-secondary focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none'
 }
 
 export function BillingClient({ status }: { status: SubscriptionStatusResponse | null }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [interval, setBillingInterval] = useState<Interval>('monthly')
+  const intervalRefs = useRef<(HTMLButtonElement | null)[]>([])
+
+  function onIntervalKey(e: KeyboardEvent<HTMLDivElement>) {
+    const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (!dir) return
+    e.preventDefault()
+    const cur = INTERVALS.indexOf(interval)
+    const next = (cur + dir + INTERVALS.length) % INTERVALS.length
+    setBillingInterval(INTERVALS[next]!)
+    intervalRefs.current[next]?.focus()
+  }
 
   async function subscribe(tier: string) {
     setBusy(tier)
@@ -68,21 +81,28 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
 
   return (
     <div className="mt-8">
-      <div className="mb-6 inline-flex rounded-lg border border-border p-1 text-sm">
-        <button
-          type="button"
-          onClick={() => setBillingInterval('monthly')}
-          className={tabClass(interval === 'monthly')}
-        >
-          Monthly
-        </button>
-        <button
-          type="button"
-          onClick={() => setBillingInterval('annual')}
-          className={tabClass(interval === 'annual')}
-        >
-          Annual <span className="text-fg-tertiary">-15%</span>
-        </button>
+      <div
+        role="radiogroup"
+        aria-label="Billing interval"
+        onKeyDown={onIntervalKey}
+        className="mb-6 inline-flex rounded-lg border border-border p-1 text-sm"
+      >
+        {INTERVALS.map((iv, i) => (
+          <button
+            key={iv}
+            ref={(el) => {
+              intervalRefs.current[i] = el
+            }}
+            type="button"
+            role="radio"
+            aria-checked={interval === iv}
+            tabIndex={interval === iv ? 0 : -1}
+            onClick={() => setBillingInterval(iv)}
+            className={tabClass(interval === iv)}
+          >
+            {iv === 'monthly' ? 'Monthly' : <>Annual <span className="text-fg-tertiary">-15%</span></>}
+          </button>
+        ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -114,7 +134,11 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
           </Card>
         ))}
       </div>
-      {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="mt-4 text-sm text-error">
+          {error}
+        </p>
+      ) : null}
       <p className="mt-4 text-sm text-fg-tertiary">
         Payment runs on Paystack. Overage bills at the end of each cycle.
       </p>

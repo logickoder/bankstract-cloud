@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Anchor, Badge, Button, linkClass } from '@bankstract/ui'
+import { Anchor, Badge, ButtonLink, linkClass } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 
@@ -19,17 +19,17 @@ export function OssPrideSection() {
           showing a low count is a weak signal. License badge + a star CTA carry the trust. */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm">
         <Badge tone="accent">AGPL-3.0</Badge>
-        <a href={links.cloud} className={linkClass}>
+        <a href={links.stars} className={linkClass}>
           Star on GitHub
         </a>
       </div>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <a href={links.selfHost}>
-          <Button variant="primary">Self-host with docker-compose</Button>
-        </a>
-        <a href={links.cloud}>
-          <Button variant="ghost">View source</Button>
-        </a>
+        <ButtonLink href={links.selfHost} variant="primary">
+          Self-host with docker-compose
+        </ButtonLink>
+        <ButtonLink href={links.cloud} variant="ghost">
+          View source
+        </ButtonLink>
       </div>
       <p className="mt-6 text-sm text-fg-tertiary">
         Need a bank added?{' '}

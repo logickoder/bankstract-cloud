@@ -18,7 +18,7 @@ const ITEMS = [
 export function SidebarNav() {
   const pathname = usePathname()
   return (
-    <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5">
+    <nav aria-label="Dashboard" className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5">
       {ITEMS.map((item) => {
         const active = pathname === item.href
         return (

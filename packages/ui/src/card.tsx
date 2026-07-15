@@ -5,11 +5,19 @@ import type { ComponentProps } from 'react'
 
 import { cn } from './lib/cn'
 
-export function Card({ className, ...props }: ComponentProps<'div'>) {
+// `interactive` opts a card into the hover affordance (border + lift). Off by default so a
+// plain container card doesn't imply it's clickable.
+export function Card({
+  className,
+  interactive = false,
+  ...props
+}: ComponentProps<'div'> & { interactive?: boolean }) {
   return (
     <div
       className={cn(
-        'rounded-lg border border-border bg-bg-secondary p-6 transition-colors hover:border-fg-tertiary hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.6)]',
+        'rounded-lg border border-border bg-bg-secondary p-6',
+        interactive &&
+          'transition-colors hover:border-fg-tertiary hover:shadow-[var(--shadow-card-hover)]',
         className,
       )}
       {...props}

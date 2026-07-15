@@ -62,8 +62,18 @@ export function DemoClient() {
   }
 
   return (
-    <section className="w-full" aria-live="polite">
+    <section className="w-full">
       <TurnstileGate ref={turnstile} />
+
+      {/* Concise status only. A live region over the whole swap would re-announce the full
+          result table on every transition; the progress bar owns its own live region. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {state.status === 'result'
+          ? `Parsed ${state.data.transactions.length} transactions.`
+          : state.status === 'error'
+            ? 'Could not parse the statement.'
+            : ''}
+      </p>
 
       {state.status === 'result' ? (
         <ResultView

@@ -39,6 +39,7 @@
   --radius-lg: 12px;
 
   --shadow-glow-accent: 0 0 80px -20px #d2691e20;
+  --shadow-card-hover: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
 }
 
 /* App baseline. Every consuming app imports this, so the html/body defaults live once. */

@@ -42,12 +42,14 @@ export default async function OverviewPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         {cards.map(({ icon: Icon, label, value, sub }) => (
           <Card key={label}>
-            <div className="flex items-center gap-2 text-sm text-fg-secondary">
-              <Icon className="size-4 text-accent" aria-hidden="true" />
-              {label}
-            </div>
-            <div className="mt-3 font-mono text-3xl text-fg">{value}</div>
-            {sub ? <div className="mt-1 text-xs text-fg-tertiary">{sub}</div> : null}
+            <dl>
+              <dt className="flex items-center gap-2 text-sm text-fg-secondary">
+                <Icon className="size-4 text-accent" aria-hidden="true" />
+                {label}
+              </dt>
+              <dd className="mt-3 font-mono text-3xl text-fg">{value}</dd>
+              {sub ? <dd className="mt-1 text-xs text-fg-tertiary">{sub}</dd> : null}
+            </dl>
           </Card>
         ))}
       </div>

@@ -24,27 +24,38 @@ export function ResultTable({ data }: { data: ParseResponse }) {
 
   return (
     <div className="w-full overflow-hidden rounded-lg border border-border bg-bg-secondary">
-      <div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-4 text-sm">
-        <span className="text-fg">{data.metadata?.bank ?? 'statement'}</span>
-        {data.metadata?.account_number_masked ? (
-          <span className="font-mono text-fg-secondary">{data.metadata.account_number_masked}</span>
-        ) : null}
-        <span className="text-fg-tertiary">
-          {displayDate(data.metadata?.statement_period_start ?? null)} to{' '}
-          {displayDate(data.metadata?.statement_period_end ?? null)}
-        </span>
-        <span className="ml-auto" title={data.row_wise_reconcilable ? RECONCILED_TIP : FALLBACK_TIP}>
-          {data.row_wise_reconcilable ? (
-            <Badge tone="accent">reconciled</Badge>
-          ) : (
-            <Badge tone="muted">unverified totals</Badge>
-          )}
-        </span>
+      <div className="border-b border-border px-5 py-4">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <span className="text-fg">{data.metadata?.bank ?? 'statement'}</span>
+          {data.metadata?.account_number_masked ? (
+            <span className="font-mono text-fg-secondary">
+              {data.metadata.account_number_masked}
+            </span>
+          ) : null}
+          <span className="text-fg-tertiary">
+            {displayDate(data.metadata?.statement_period_start ?? null)} to{' '}
+            {displayDate(data.metadata?.statement_period_end ?? null)}
+          </span>
+          <span className="ml-auto">
+            {data.row_wise_reconcilable ? (
+              <Badge tone="accent">reconciled</Badge>
+            ) : (
+              <Badge tone="muted">unverified totals</Badge>
+            )}
+          </span>
+        </div>
+        {/* Explain the reconciliation badge inline; a title tooltip is invisible to keyboard + touch. */}
+        <p className="mt-2 text-xs text-fg-tertiary">
+          {data.row_wise_reconcilable ? RECONCILED_TIP : FALLBACK_TIP}
+        </p>
       </div>
 
       {/* Desktop: full table. Hidden below sm where it would overflow. */}
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-sm">
+          <caption className="sr-only">
+            Parsed transactions from {data.metadata?.bank ?? 'the statement'}
+          </caption>
           <thead>
             <tr className="text-left text-xs text-fg-tertiary">
               <th className="px-5 py-2 font-medium">DATE</th>

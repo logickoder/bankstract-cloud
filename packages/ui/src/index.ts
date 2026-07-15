@@ -4,7 +4,13 @@
 export { Anchor, linkClass } from './anchor'
 export { Badge, type BadgeProps } from './badge'
 export { BrandMark } from './brand'
-export { Button, type ButtonProps } from './button'
+export {
+  Button,
+  type ButtonProps,
+  ButtonLink,
+  type ButtonLinkProps,
+  buttonClass,
+} from './button'
 export { Card } from './card'
 export { GrainFilter } from './grain'
 export { Dialog, DialogContent, DialogDescription, DialogTitle } from './dialog'

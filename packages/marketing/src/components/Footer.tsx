@@ -56,7 +56,7 @@ export function Footer() {
                 <li key={item.label}>
                   <a
                     href={item.href}
-                    className="text-sm text-fg-secondary hover:text-fg"
+                    className="rounded-sm text-sm text-fg-secondary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline"
                   >
                     {item.label}
                   </a>

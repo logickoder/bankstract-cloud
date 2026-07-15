@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Anchor, Button, cn } from '@bankstract/ui'
+import { Anchor, ButtonLink, cn } from '@bankstract/ui'
 
 import { HERO_CURL } from '../lib/code-samples'
 import { links } from '../lib/links'
@@ -31,15 +31,15 @@ export function HeroSection() {
             redaction.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href={links.demo}>
-              <Button variant="primary">Try the demo</Button>
-            </a>
-            <a href={links.docs}>
-              <Button variant="secondary">Read the docs</Button>
-            </a>
-            <a href={links.signin}>
-              <Button variant="ghost">Sign in</Button>
-            </a>
+            <ButtonLink href={links.demo} variant="primary">
+              Try the demo
+            </ButtonLink>
+            <ButtonLink href={links.docs} variant="secondary">
+              Read the docs
+            </ButtonLink>
+            <ButtonLink href={links.signin} variant="ghost">
+              Sign in
+            </ButtonLink>
           </div>
           <p className="mt-6 text-sm text-fg-tertiary">Open source. Self-host. Cloud-hosted.</p>
         </div>

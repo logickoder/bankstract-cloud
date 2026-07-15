@@ -20,6 +20,7 @@ export const links = {
   signin: '/sign-in',
   engine: 'https://github.com/logickoder/bankstract',
   cloud: 'https://github.com/logickoder/bankstract-cloud',
+  stars: 'https://github.com/logickoder/bankstract-cloud/stargazers',
   selfHost:
     'https://github.com/logickoder/bankstract-cloud/blob/main/infra/README.md',
   security:
