@@ -4,8 +4,12 @@
 import { buildMetadata } from '@bankstract/seo'
 import { GrainFilter } from '@bankstract/ui'
 import { fraunces, inter, jetbrains } from '@bankstract/ui/fonts'
+import type { Viewport } from 'next'
 
 import './globals.css'
+
+// Dark UI: declare the theme-color so the browser chrome (mobile address bar) matches.
+export const viewport: Viewport = { themeColor: '#0a0a0a' }
 
 // Shared shell for every surface (marketing /, demo /demo, dashboard /app). Per-route-group
 // layouts add their own JSON-LD + metadata; this sets the metadataBase + a sensible default.

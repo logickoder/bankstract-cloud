@@ -2,11 +2,15 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { BrandMark } from '@bankstract/ui'
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
 import { SidebarNav } from '@/components/SidebarNav'
 import { SignOutButton } from '@/components/sign-out-button'
 import { getUser } from '@/lib/session'
+
+// Private surface: keep it out of search indexes.
+export const metadata: Metadata = { robots: { index: false, follow: false } }
 
 export default async function DashboardLayout({
   children,

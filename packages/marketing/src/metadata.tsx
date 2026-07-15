@@ -26,6 +26,11 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
+      '@type': 'WebSite',
+      name: 'bankstract',
+      url: SITE_URL,
+    },
+    {
       '@type': 'Organization',
       name: 'bankstract',
       url: SITE_URL,

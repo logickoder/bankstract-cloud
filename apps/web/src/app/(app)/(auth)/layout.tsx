@@ -2,7 +2,11 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { BrandMark } from '@bankstract/ui'
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
+
+// Auth pages carry no public content: keep them out of search indexes.
+export const metadata: Metadata = { robots: { index: false, follow: false } }
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (

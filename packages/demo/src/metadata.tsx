@@ -9,6 +9,7 @@ const DESCRIPTION =
 export const metadata = buildMetadata({
   title: 'bankstract: drop your bank statement, get clean transactions',
   description: DESCRIPTION,
+  path: '/demo',
   keywords: [
     'bank statement to CSV',
     'convert bank statement PDF',
@@ -25,7 +26,7 @@ const jsonLd = {
   applicationCategory: 'FinanceApplication',
   operatingSystem: 'Web',
   description: DESCRIPTION,
-  url: SITE_URL,
+  url: `${SITE_URL}/demo`,
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'NGN' },
 }
 
