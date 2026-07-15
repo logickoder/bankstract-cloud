@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Email **jeffreyliaison@gmail.com** with subject `SECURITY: bankstract-cloud`. Do not open a public issue for an unpatched vulnerability.
+Email **jeffery@logickoder.dev** with subject `SECURITY: bankstract-cloud`. Do not open a public issue for an unpatched vulnerability.
 
 Include: affected component (`apps/worker`, an app, a package), reproduction steps, and impact. A synthetic PDF that triggers the issue is welcome. **Never send a real bank statement** (see the privacy posture below).
 
