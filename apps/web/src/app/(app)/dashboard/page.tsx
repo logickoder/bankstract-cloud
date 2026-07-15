@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Button, Card, linkClass } from '@bankstract/ui'
-import { Activity, CircleCheck, KeyRound } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { ApiKeyIcon, Button, Card, linkClass, UsageIcon } from '@bankstract/ui'
+import { CircleCheck } from 'lucide-react'
 import Link from 'next/link'
+import type { ComponentType, SVGProps } from 'react'
 
 import { EnvBadge, StatusBadge } from '@/components/KeyBadges'
 import { PageHeading } from '@/components/PageHeading'
@@ -20,9 +20,10 @@ export default async function OverviewPage() {
   const recent = keys.slice(0, 3)
 
   const cap = usage?.monthly_cap ?? null
-  const cards: { icon: LucideIcon; label: string; value: string; sub?: string }[] = [
+  type StatIcon = ComponentType<SVGProps<SVGSVGElement>>
+  const cards: { icon: StatIcon; label: string; value: string; sub?: string }[] = [
     {
-      icon: Activity,
+      icon: UsageIcon,
       label: 'Parses this cycle',
       value: String(usage?.period_parses ?? 0),
       sub: cap !== null ? `of ${cap.toLocaleString()} included` : undefined,
@@ -32,7 +33,7 @@ export default async function OverviewPage() {
       label: 'Success rate',
       value: hasUsage ? `${Math.round(usage.success_rate * 100)}%` : 'n/a',
     },
-    { icon: KeyRound, label: 'Active keys', value: String(activeKeys) },
+    { icon: ApiKeyIcon, label: 'Active keys', value: String(activeKeys) },
   ]
 
   return (

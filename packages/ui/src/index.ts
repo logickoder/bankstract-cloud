@@ -13,6 +13,13 @@ export {
 } from './button'
 export { Card } from './card'
 export { GrainFilter } from './grain'
+export {
+  ParseIcon,
+  RedactIcon,
+  ReconcileIcon,
+  ApiKeyIcon,
+  UsageIcon,
+} from './icons'
 export { Dialog, DialogContent, DialogDescription, DialogTitle } from './dialog'
 export { Input } from './input'
 export { cn } from './lib/cn'

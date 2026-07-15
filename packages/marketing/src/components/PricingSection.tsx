@@ -1,12 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Badge, ButtonLink, Card, cn } from '@bankstract/ui'
+import { Badge, ButtonLink, Card } from '@bankstract/ui'
 
 import { links } from '../lib/links'
-import { ANNUAL_NOTE, ENTERPRISE, FREE_TIERS, PAID_TIERS } from '../lib/pricing'
+import { ANNUAL_NOTE, ENTERPRISE, FREE_TIERS, type PaidTier, PAID_TIERS } from '../lib/pricing'
 
 import { Section, SectionHeading } from './Section'
+
+// Not a row of three interchangeable cards (DESIGN §ai-slop). One dominant recommended tier
+// carries the decision; the other paid tiers sit as a compact mono datasheet rail beside it.
+const featured = PAID_TIERS.find((t) => t.highlight)
+const rail = PAID_TIERS.filter((t) => !t.highlight)
+
+function SpecRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-t border-border py-2">
+      <dt className="text-sm text-fg-tertiary">{label}</dt>
+      <dd className="text-right text-sm text-fg">{value}</dd>
+    </div>
+  )
+}
 
 export function PricingSection() {
   return (
@@ -26,48 +40,33 @@ export function PricingSection() {
         ))}
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        {PAID_TIERS.map((t) => (
-          <Card
-            key={t.name}
-            className={cn(
-              'flex flex-col transition duration-200 hover:-translate-y-1',
-              t.highlight && 'border-accent',
-            )}
-          >
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        {featured ? (
+          <Card className="flex flex-col border-accent">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium text-fg">{t.name}</h3>
-              {t.highlight ? <Badge tone="accent">Popular</Badge> : null}
+              <h3 className="font-display text-2xl font-semibold text-fg">{featured.name}</h3>
+              <Badge tone="accent">Popular</Badge>
             </div>
-            <p className="mt-3">
-              <span className="font-mono text-3xl text-fg">{t.price}</span>
+            <p className="mt-4">
+              <span className="font-mono text-5xl text-fg">{featured.price}</span>
               <span className="text-sm text-fg-tertiary">/mo</span>
             </p>
-            <dl className="mt-4 flex flex-col gap-2 text-sm text-fg-secondary">
-              <div className="flex justify-between">
-                <dt>Included</dt>
-                <dd className="font-mono text-fg">{t.cap}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Overage</dt>
-                <dd className="font-mono text-fg">{t.overage}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt>Support</dt>
-                <dd className="text-right text-fg">{t.sla}</dd>
-              </div>
+            <dl className="mt-6">
+              <SpecRow label="Included" value={featured.cap} />
+              <SpecRow label="Overage" value={featured.overage} />
+              <SpecRow label="Support" value={featured.sla} />
             </dl>
-            <div className="mt-auto pt-6">
-              <ButtonLink
-                href={links.waitlist}
-                variant={t.highlight ? 'primary' : 'secondary'}
-                className="w-full"
-              >
-                Notify me on launch
-              </ButtonLink>
-            </div>
+            <ButtonLink href={links.waitlist} variant="primary" className="mt-8 w-full">
+              Notify me on launch
+            </ButtonLink>
           </Card>
-        ))}
+        ) : null}
+
+        <div className="grid gap-4">
+          {rail.map((t) => (
+            <RailTier key={t.name} tier={t} />
+          ))}
+        </div>
       </div>
 
       <Card className="mt-4 flex flex-wrap items-center justify-between gap-4">
@@ -83,5 +82,32 @@ export function PricingSection() {
         </div>
       </Card>
     </Section>
+  )
+}
+
+function RailTier({ tier }: { tier: PaidTier }) {
+  return (
+    <Card className="flex flex-col">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="font-medium text-fg">{tier.name}</h3>
+        <p>
+          <span className="font-mono text-2xl text-fg">{tier.price}</span>
+          <span className="text-xs text-fg-tertiary">/mo</span>
+        </p>
+      </div>
+      <dl className="mt-3 flex flex-col gap-1.5 text-xs">
+        <div className="flex justify-between gap-4">
+          <dt className="text-fg-tertiary">Included</dt>
+          <dd className="font-mono text-fg">{tier.cap}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-fg-tertiary">Overage</dt>
+          <dd className="font-mono text-fg">{tier.overage}</dd>
+        </div>
+      </dl>
+      <ButtonLink href={links.waitlist} variant="secondary" size="sm" className="mt-4 w-full">
+        Notify me
+      </ButtonLink>
+    </Card>
   )
 }
