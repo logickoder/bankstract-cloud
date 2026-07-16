@@ -471,8 +471,9 @@ async def _admit_upload(
         return error_response(402, "subscription inactive", "subscription_inactive")
 
     # Test keys parse free up to the monthly cap, then serve the canned sample. Counted success-only
-    # (failed parses never burn quota) on this owner's test key for the current calendar month.
-    if ctx.tier == "test" and ctx.owner and _test_over_cap(state, ctx):
+    # (failed parses never burn quota) per OWNER for the current calendar month, so regenerating the
+    # test key does not reset the count.
+    if ctx.tier == "test" and _test_over_cap(state, ctx):
         return SERVE_SAMPLE
 
     data = await pdf.read()
@@ -502,7 +503,15 @@ def _demo_rate_ok(request: Request, state: AppState) -> bool:
 
 
 def _test_over_cap(state: AppState, ctx: AuthContext) -> bool:
-    used = state.audit.count_success_for_key(ctx.api_key_id, since_iso=current_period_start_iso())
+    since = current_period_start_iso()
+    if ctx.owner:
+        # Owner-scoped: sums every test key the owner has had this cycle, so rolling the key (a new
+        # key id) cannot reset the count.
+        used = state.audit.count_success_for_owner_tier(ctx.owner, "test", since_iso=since)
+    else:
+        # Ownerless test key (internal only; the dashboard always assigns an owner). Fall back to
+        # per-key so it is still bounded.
+        used = state.audit.count_success_for_key(ctx.api_key_id, since_iso=since)
     return used >= state.settings.test_tier_monthly_cap
 
 

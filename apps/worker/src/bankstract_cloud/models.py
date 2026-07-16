@@ -165,7 +165,9 @@ class StatusResponse(BaseModel):
 
 class KeyCreateRequest(BaseModel):
     name: str
-    env: Literal["live", "test"] = "test"
+    # Live-only via this route (test keys go through /v1/keys/test). Default live so an env-less
+    # body is not silently rejected.
+    env: Literal["live", "test"] = "live"
     owner: str | None = None
 
 

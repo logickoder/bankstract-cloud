@@ -104,6 +104,26 @@ def test_test_key_over_cap_serves_sample(harness: Harness, monkeypatch: pytest.M
     assert over.json()["_sample"]["reason"]
 
 
+def test_test_cap_survives_regenerate(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
+    # The cap is per-owner: rolling the test key (a fresh key id) must NOT reset the count, or an
+    # owner could regenerate to mint another 25 free parses (the bypass the review caught).
+    monkeypatch.setattr("bankstract.parse", _success_parse())
+    admin = auth_header(harness.admin_token)
+    first = harness.client.post("/v1/keys/test", json={"owner": "o_regen"}, headers=admin).json()
+    for _ in range(3):
+        assert (
+            harness.client.post(
+                "/v1/parse", files=pdf_upload(), headers=auth_header(first["key"])
+            ).status_code
+            == 200
+        )
+    # Roll to a fresh key id for the same owner, then parse: still capped.
+    second = harness.client.post("/v1/keys/test", json={"owner": "o_regen"}, headers=admin).json()
+    over = harness.client.post("/v1/parse", files=pdf_upload(), headers=auth_header(second["key"]))
+    assert over.status_code == 200
+    assert over.headers["X-Bankstract-Sample"] == "true"
+
+
 def test_test_key_failed_parses_do_not_count(harness: Harness) -> None:
     # Real engine on the synthetic pdf fails (422). Failures never accrue toward the cap, so the
     # key keeps returning 422 (never the canned sample) past the cap count.

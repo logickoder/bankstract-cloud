@@ -97,6 +97,16 @@ class AuditLog:
         ).fetchone()
         return int(row["n"]) if row else 0
 
+    def count_success_for_owner_tier(self, owner: str, tier: str, *, since_iso: str) -> int:
+        # Successful parses across ALL of an owner's keys of a tier (incl. revoked), since_iso. The
+        # free-tier cap counts by owner, not key id: rolling the test key must not reset the count.
+        row = self._conn.execute(
+            "SELECT COUNT(*) AS n FROM audit_log a JOIN api_keys k ON a.api_key_id = k.id "
+            "WHERE k.owner = ? AND k.tier = ? AND a.success = 1 AND a.timestamp >= ?",
+            (owner, tier, since_iso),
+        ).fetchone()
+        return int(row["n"]) if row else 0
+
     def owner_usage(
         self, owner: str, *, since_iso: str, until_iso: str | None = None
     ) -> tuple[int, int, list[tuple[str, int]]]:
