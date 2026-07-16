@@ -49,7 +49,7 @@ We share the minimum data needed with these services. Nothing else.
 
 | Service | Purpose | What it receives | Region |
 |---|---|---|---|
-| Cloudflare | Bot check (Turnstile), TLS, docs hosting, encrypted backups | Demo visitor IP, request traffic, backup copies of our databases | US / global |
+| Cloudflare | Bot check (Turnstile), TLS, docs hosting, cookieless analytics, encrypted backups | Demo visitor IP, request traffic, backup copies of our databases | US / global |
 | Paystack | Subscription billing | Your email, account id, invoice amounts | Nigeria |
 | Resend | Sign-in emails | Your email, the magic-link URL | US |
 | Sentry | Error tracking, only if we enable it | Error events, scrubbed of request body, headers, and IP | US |
@@ -89,7 +89,7 @@ We use two kinds of cookie. Both are necessary.
 - a session cookie, so you stay signed in
 - Cloudflare Turnstile cookies on the demo, for the bot check
 
-No analytics cookies. No tracking cookies. No advertising.
+No analytics cookies. No tracking cookies. No advertising. Our traffic analytics run through Cloudflare Web Analytics, which sets no cookies and collects no personal data.
 
 ## Bot protection
 

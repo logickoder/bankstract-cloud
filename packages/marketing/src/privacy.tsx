@@ -31,7 +31,7 @@ function Policy({ title, children }: { title: string; children: ReactNode }) {
 const SUBPROCESSORS: readonly { name: string; purpose: string; data: string; region: string }[] = [
   {
     name: 'Cloudflare',
-    purpose: 'Bot check (Turnstile), TLS, docs hosting, encrypted backups',
+    purpose: 'Bot check (Turnstile), TLS, docs hosting, cookieless analytics, encrypted backups',
     data: 'Demo visitor IP, request traffic, backup copies of our databases',
     region: 'US / global',
   },
@@ -260,7 +260,10 @@ export function PrivacyPage() {
               <li>a session cookie, so you stay signed in</li>
               <li>Cloudflare Turnstile cookies on the demo, for the bot check</li>
             </ul>
-            <p>No analytics cookies. No tracking cookies. No advertising.</p>
+            <p>
+              No analytics cookies. No tracking cookies. No advertising. Our traffic analytics run
+              through Cloudflare Web Analytics, which sets no cookies and collects no personal data.
+            </p>
           </Policy>
 
           <Policy title="Bot protection">

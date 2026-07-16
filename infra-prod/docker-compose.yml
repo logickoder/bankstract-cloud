@@ -57,6 +57,8 @@ services:
         # project), so in-app docs links are root-relative. Not a separate origin.
         NEXT_PUBLIC_DOCS_URL: /docs
         NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-1x00000000000000000000AA}
+        # Cloudflare Web Analytics beacon token (cookieless). Empty = no analytics.
+        NEXT_PUBLIC_CF_ANALYTICS_TOKEN: ${NEXT_PUBLIC_CF_ANALYTICS_TOKEN:-}
     environment:
       AUTH_DB_PATH: /data/auth.db
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
