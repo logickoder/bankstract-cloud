@@ -150,6 +150,13 @@ class OwnerUsageResponse(BaseModel):
     daily: list[DailyCount]
 
 
+class FunnelResponse(BaseModel):
+    demo_parses: int
+    api_parses: int
+    owners: int
+    active_subscriptions: int
+
+
 class StatusResponse(BaseModel):
     status: Literal["ok"]
     worker_version: str

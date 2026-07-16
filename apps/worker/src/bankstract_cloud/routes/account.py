@@ -9,10 +9,12 @@ from .. import __version__
 from ..audit import current_period_start_iso, pad_daily
 from ..auth import AuthContext
 from ..engine import ENGINE_VERSION, list_supported_banks
+from ..metrics import funnel
 from ..models import (
     BankInfo,
     BanksResponse,
     DailyCount,
+    FunnelResponse,
     OwnerUsageResponse,
     StatusResponse,
     UsageResponse,
@@ -108,6 +110,27 @@ async def admin_usage(
         overage_parses=report.overage_parses,
         projected_overage_naira=kobo_to_naira_str(report.overage_amount_kobo),
         daily=[DailyCount(date=d, count=c) for d, c in pad_daily(daily, since_iso=since_iso)],
+    )
+
+
+@router.get(
+    "/v1/admin/metrics",
+    response_model=FunnelResponse,
+    responses=ADMIN_ERRORS,
+    summary="Operator funnel metrics (admin)",
+    description="Admin-only. The usage-to-paid funnel derived from existing metadata: demo parses, "
+    "API parses, owners with a key, and active subscriptions. No client tracking.",
+)
+async def admin_metrics(
+    _: None = Depends(require_admin),
+    state: AppState = Depends(get_state),
+) -> FunnelResponse:
+    f = funnel(state.conn)
+    return FunnelResponse(
+        demo_parses=f.demo_parses,
+        api_parses=f.api_parses,
+        owners=f.owners,
+        active_subscriptions=f.active_subscriptions,
     )
 
 

@@ -206,3 +206,23 @@ def test_erasure_aborts_active_without_code(harness: Harness) -> None:
     conn = harness.client.app.state.app_state.conn
     keys = conn.execute("SELECT COUNT(*) AS n FROM api_keys WHERE owner = 'u6'").fetchone()["n"]
     assert keys == 1  # nothing purged
+
+
+# --- Funnel metrics ---
+
+
+def test_admin_metrics_requires_admin(harness: Harness) -> None:
+    assert harness.client.get("/v1/admin/metrics").status_code == 401
+
+
+def test_admin_metrics_funnel(harness: Harness) -> None:
+    key = _issue_key(harness, "m1")
+    _record(harness, key)  # one API parse (joins to a real key)
+    _record(harness, "demo-anon")  # one demo parse (no api_keys row for this id)
+    _insert_sub(harness, "m1", status="active", code="SUB_m1")
+
+    body = harness.client.get("/v1/admin/metrics", headers=auth_header(harness.admin_token)).json()
+    assert body["api_parses"] == 1
+    assert body["demo_parses"] == 1
+    assert body["owners"] == 1
+    assert body["active_subscriptions"] == 1

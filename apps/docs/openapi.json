@@ -256,6 +256,76 @@
         }
       }
     },
+    "/v1/admin/metrics": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Operator funnel metrics (admin)",
+        "description": "Admin-only. The usage-to-paid funnel derived from existing metadata: demo parses, API parses, owners with a key, and active subscriptions. No client tracking.",
+        "operationId": "admin_metrics_v1_admin_metrics_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/owner": {
       "delete": {
         "tags": [
@@ -1428,6 +1498,34 @@
         ],
         "title": "ErrorResponse",
         "description": "Error envelope for all non-2xx responses. `error_class` is one of:\n\n- `EncryptedSourceError`: source is password-protected\n- `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)\n- `LayoutDriftError`: bank detected, structure broke\n- `ReconciliationError`: totals don't match the statement\n- `ParseError`: last-resort parse failure\n- `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /\n  `WorkerError`: framework concerns\n\n`marker_coverage` is populated only for `EmptyStatementError`: high coverage with\nzero rows \u2248 legitimately empty; lower coverage \u2248 silent layout drift."
+      },
+      "FunnelResponse": {
+        "properties": {
+          "demo_parses": {
+            "type": "integer",
+            "title": "Demo Parses"
+          },
+          "api_parses": {
+            "type": "integer",
+            "title": "Api Parses"
+          },
+          "owners": {
+            "type": "integer",
+            "title": "Owners"
+          },
+          "active_subscriptions": {
+            "type": "integer",
+            "title": "Active Subscriptions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "demo_parses",
+          "api_parses",
+          "owners",
+          "active_subscriptions"
+        ],
+        "title": "FunnelResponse"
       },
       "HTTPValidationError": {
         "properties": {
