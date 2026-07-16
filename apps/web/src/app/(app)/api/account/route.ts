@@ -6,6 +6,8 @@ import { NextResponse } from 'next/server'
 
 import { db } from '@/lib/db'
 import { account, session, user, verification } from '@/lib/db/schema'
+import { accountDeletedEmail } from '@/lib/email/account-deleted'
+import { sendEmail } from '@/lib/email/send'
 import { requireUser } from '@/lib/session'
 import { workerFetch } from '@/lib/worker'
 
@@ -38,6 +40,9 @@ export async function DELETE() {
     db.delete(verification).where(eq(verification.identifier, u.email)),
     db.delete(user).where(eq(user.id, u.id)),
   ])
+
+  // NDPR closure. Fire-and-forget: a mail failure must not fail the erasure.
+  void sendEmail({ to: u.email, ...accountDeletedEmail() }).catch(() => {})
 
   return NextResponse.json({ ok: true })
 }

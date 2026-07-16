@@ -5,12 +5,10 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 import { magicLink } from 'better-auth/plugins'
-import { Resend } from 'resend'
 
 import { db } from './db'
-
-const resendKey = process.env.RESEND_API_KEY
-const resend = resendKey ? new Resend(resendKey) : null
+import { magicLinkEmail } from './email/magic-link'
+import { sendEmail } from './email/send'
 
 // Better Auth, self-hosted: users + sessions in our own libSQL DB (lib/db). Sign-in is
 // Google/GitHub OAuth + email magic-link (Resend). No password, no MFA (deferred).
@@ -44,9 +42,10 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: 60 * 15,
       sendMagicLink: async ({ email, url }) => {
-        const subject = 'Sign in to bankstract'
-        const text = `Tap to sign in. Link expires in 15 minutes.\nIf you didn't request this, ignore the email.\n\n${url}`
-        if (!resend) {
+        await sendEmail({
+          to: email,
+          ...magicLinkEmail({ url })
+        }, async () => {
           // Dev/test: no Resend key. Log the link so the flow can proceed. In e2e,
           // MAGIC_LINK_LOG_FILE lets the test read the URL and complete sign-in.
           console.warn(`[magic-link] ${email}: ${url}`)
@@ -56,13 +55,6 @@ export const auth = betterAuth({
             // Prefix the email so parallel e2e workers can each pick out their own link.
             await appendFile(file, `${email} ${url}\n`)
           }
-          return
-        }
-        await resend.emails.send({
-          from: 'bankstract <noreply@updates.logickoder.dev>',
-          to: email,
-          subject,
-          text,
         })
       },
     }),
