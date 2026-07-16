@@ -12,7 +12,10 @@
 #   DEPLOY_SSH_KEY   private key whose public half is in the box's authorized_keys
 #   DEPLOY_PATH      absolute path to the cloned repo on the box (compose runs from infra-prod under it)
 #   DEPLOY_PORT      optional, defaults to 22
-# Optional repo variable: NEXT_PUBLIC_TURNSTILE_SITE_KEY (else the test key is baked).
+# Optional repo variables (Settings -> Secrets and variables -> Actions -> Variables; both are
+# public NEXT_PUBLIC_* values baked into the client bundle, so variables not secrets):
+#   NEXT_PUBLIC_TURNSTILE_SITE_KEY   (else the Turnstile test key is baked)
+#   NEXT_PUBLIC_CF_ANALYTICS_TOKEN   (else the Cloudflare Web Analytics beacon is absent)
 # Make the two GHCR packages public once (or `docker login ghcr.io` on the box) so the pull needs no auth.
 name: Deploy infra-prod
 
@@ -66,6 +69,7 @@ jobs:
             NEXT_PUBLIC_SITE_URL=https://bankstract.logickoder.dev
             NEXT_PUBLIC_DOCS_URL=/docs
             NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA' }}
+            NEXT_PUBLIC_CF_ANALYTICS_TOKEN=${{ vars.NEXT_PUBLIC_CF_ANALYTICS_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

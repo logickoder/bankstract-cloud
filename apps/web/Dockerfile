@@ -32,11 +32,15 @@ ARG NEXT_PUBLIC_DOCS_URL=/docs
 # Same-origin signup in the merged web. Drives the marketing signup CTA + the demo "get a key"
 # conversion link. Unset in the standalone demo bundle, where that CTA stays hidden.
 ARG NEXT_PUBLIC_APP_URL=/sign-up
+# Cloudflare Web Analytics beacon token (public, embedded in client JS). Empty = no beacon. It is
+# NEXT_PUBLIC_* so it must be inlined here at build; a runtime env has no effect.
+ARG NEXT_PUBLIC_CF_ANALYTICS_TOKEN=
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
     NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
     NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_CF_ANALYTICS_TOKEN=$NEXT_PUBLIC_CF_ANALYTICS_TOKEN \
     NEXT_TELEMETRY_DISABLED=1 \
     # Build-only placeholder so Better Auth init during prerender doesn't error; the runtime value
     # is supplied by compose (and MUST be a real secret) and overrides this.
