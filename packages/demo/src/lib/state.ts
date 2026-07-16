@@ -10,7 +10,7 @@ export type DemoState =
   | { status: 'idle' }
   | { status: 'dragover' }
   | { status: 'parsing'; file: File; sample: boolean; progress: ParseProgress | null }
-  | { status: 'result'; data: ParseResponse; file: File; sample: boolean }
+  | { status: 'result'; data: ParseResponse; file: File; sample: boolean; overLimit: boolean }
   | { status: 'error'; code: DemoErrorCode; file: File | null }
 
 export type DemoAction =
@@ -18,7 +18,7 @@ export type DemoAction =
   | { type: 'DRAG_LEAVE' }
   | { type: 'PARSE_STARTED'; file: File; sample: boolean }
   | { type: 'PARSE_PROGRESS'; progress: ParseProgress }
-  | { type: 'PARSE_SUCCEEDED'; data: ParseResponse }
+  | { type: 'PARSE_SUCCEEDED'; data: ParseResponse; overLimit: boolean }
   | { type: 'PARSE_FAILED'; code: DemoErrorCode; file: File | null }
   | { type: 'RESET' }
 
@@ -36,7 +36,13 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return state.status === 'parsing' ? { ...state, progress: action.progress } : state
     case 'PARSE_SUCCEEDED':
       return state.status === 'parsing'
-        ? { status: 'result', data: action.data, file: state.file, sample: state.sample }
+        ? {
+            status: 'result',
+            data: action.data,
+            file: state.file,
+            sample: state.sample,
+            overLimit: action.overLimit,
+          }
         : state
     case 'PARSE_FAILED':
       return { status: 'error', code: action.code, file: action.file }

@@ -44,7 +44,7 @@ export function DemoClient() {
     turnstile.current?.reset()
 
     if (result.ok) {
-      dispatch({ type: 'PARSE_SUCCEEDED', data: result.data })
+      dispatch({ type: 'PARSE_SUCCEEDED', data: result.data, overLimit: result.overLimit })
     } else {
       dispatch({ type: 'PARSE_FAILED', code: result.code, file })
     }
@@ -80,6 +80,7 @@ export function DemoClient() {
           data={state.data}
           file={state.file}
           sample={state.sample}
+          overLimit={state.overLimit}
           turnstile={turnstile}
           onSampleCycle={() => void handleSample()}
           onReset={() => dispatch({ type: 'RESET' })}

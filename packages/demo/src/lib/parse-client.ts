@@ -6,7 +6,9 @@ import type { ParseResponse } from '@bankstract/types'
 import { codeForResponse, type DemoErrorCode } from './errors'
 
 export type ParseResult =
-  | { ok: true; data: ParseResponse }
+  // overLimit: the worker served a canned sample because the free demo cap is spent (an additive
+  // `_sample` marker on the payload). Not the caller's file; the UI says so and nudges upgrade.
+  | { ok: true; data: ParseResponse; overLimit: boolean }
   | { ok: false; code: DemoErrorCode }
 
 function parseForm(file: File, turnstileToken: string): FormData {
@@ -83,7 +85,7 @@ function streamResult(
           error_class?: string
         }
         if (final.state === 'done' && final.result) {
-          finish({ ok: true, data: final.result })
+          finish({ ok: true, data: final.result, overLimit: '_sample' in final.result })
         } else {
           finish({ ok: false, code: codeForResponse(422, final.error_class, null) })
         }

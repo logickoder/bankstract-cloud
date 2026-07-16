@@ -13,6 +13,7 @@ interface ResultViewProps {
   data: ParseResponse
   file: File
   sample: boolean
+  overLimit: boolean
   turnstile: RefObject<TurnstileHandle | null>
   onSampleCycle: () => void
   onReset: () => void
@@ -22,12 +23,24 @@ export function ResultView({
   data,
   file,
   sample,
+  overLimit,
   turnstile,
   onSampleCycle,
   onReset,
 }: ResultViewProps) {
   return (
     <div className="flex flex-col gap-4">
+      {overLimit ? (
+        <p className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+          Free demo limit reached (50 parses/month). This is sample data, not your file. For real
+          parses at volume,{' '}
+          <a href="/#pricing" className={linkClass}>
+            see the API
+          </a>
+          .
+        </p>
+      ) : null}
+
       {sample ? (
         <p className="text-xs text-fg-secondary">
           Showing a redacted {data.metadata?.bank ?? ''} sample. Drop your own, or{' '}

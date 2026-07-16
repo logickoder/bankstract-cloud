@@ -30,14 +30,24 @@ describe('demoReducer', () => {
 
   it('transitions parsing -> result on success', () => {
     const parsing = demoReducer(initialState, { type: 'PARSE_STARTED', file, sample: false })
-    const result = demoReducer(parsing, { type: 'PARSE_SUCCEEDED', data: response })
-    expect(result).toEqual({ status: 'result', data: response, file, sample: false })
+    const result = demoReducer(parsing, {
+      type: 'PARSE_SUCCEEDED',
+      data: response,
+      overLimit: false,
+    })
+    expect(result).toEqual({
+      status: 'result',
+      data: response,
+      file,
+      sample: false,
+      overLimit: false,
+    })
   })
 
   it('ignores PARSE_SUCCEEDED when not parsing (illegal transition is a no-op)', () => {
-    expect(demoReducer(initialState, { type: 'PARSE_SUCCEEDED', data: response })).toBe(
-      initialState,
-    )
+    expect(
+      demoReducer(initialState, { type: 'PARSE_SUCCEEDED', data: response, overLimit: false }),
+    ).toBe(initialState)
   })
 
   it('transitions to error on failure', () => {
