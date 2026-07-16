@@ -147,19 +147,28 @@ def test_poll_requires_auth(harness: Harness, monkeypatch: pytest.MonkeyPatch) -
     assert harness.client.get(sub.json()["poll_url"]).status_code == 401
 
 
-def test_demo_jobs_rate_limited(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    # DEMO_RATE_LIMIT_MAX=5 in the harness; submit is the metered point, the stream is not.
+def test_demo_jobs_over_cap_serves_sample(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # DEMO_RATE_LIMIT_MAX=5; submit is the metered point. Over cap the demo async path must still
+    # return 202 (its UI expects a job), with the streamed result being the canned sample.
     monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
-    seen_429 = False
-    for _ in range(7):
-        resp = harness.client.post(
-            "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.demo_key)
+    for _ in range(5):  # spend the per-IP budget on real jobs
+        assert (
+            harness.client.post(
+                "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.demo_key)
+            ).status_code
+            == 202
         )
-        if resp.status_code == 429:
-            seen_429 = True
-            break
-        assert resp.status_code == 202
-    assert seen_429
+    over = harness.client.post(
+        "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.demo_key)
+    )
+    assert over.status_code == 202  # not 429: over-cap still yields a job
+    with harness.client.stream("GET", over.json()["stream_url"]) as resp:
+        text = "".join(resp.iter_text())
+    result = _result_event(text)
+    assert result["state"] == "done"
+    assert result["result"]["_sample"]["reason"]  # the canned sample, no engine ran
 
 
 def _redact_mock(

@@ -131,6 +131,38 @@ class KeyStore:
         self._conn.commit()
         return cur.rowcount > 0
 
+    def active_test_key(self, owner: str) -> KeyRecord | None:
+        row = self._conn.execute(
+            "SELECT id, name, lookup_prefix, env, tier, owner, created_at, revoked_at "
+            "FROM api_keys WHERE owner = ? AND tier = 'test' AND revoked_at IS NULL "
+            "ORDER BY created_at DESC LIMIT 1",
+            (owner,),
+        ).fetchone()
+        if row is None:
+            return None
+        return KeyRecord(
+            id=row["id"],
+            name=row["name"],
+            lookup_prefix=row["lookup_prefix"],
+            env=row["env"],
+            tier=row["tier"],
+            owner=row["owner"],
+            created_at=row["created_at"],
+            revoked_at=row["revoked_at"],
+        )
+
+    def roll_test_key(self, owner: str) -> IssuedKey:
+        # One active test key per owner: revoke any existing active test key(s), then issue a fresh
+        # one. Serves both provision (none -> one) and regenerate (one -> new), so the dashboard and
+        # the signup auto-provision hit the same path.
+        self._conn.execute(
+            "UPDATE api_keys SET revoked_at = ? "
+            "WHERE owner = ? AND tier = 'test' AND revoked_at IS NULL",
+            (datetime.now(UTC).isoformat(), owner),
+        )
+        self._conn.commit()
+        return self.issue("Test key", "test", owner=owner)
+
     def authenticate(self, raw_key: str) -> AuthContext | None:
         if self._demo_api_key and hmac.compare_digest(raw_key, self._demo_api_key):
             return AuthContext(api_key_id="demo", tier="anonymous")

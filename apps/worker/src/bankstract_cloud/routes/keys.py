@@ -5,7 +5,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from ..models import KeyCreatedResponse, KeyCreateRequest, KeyInfo, KeyListResponse
+from ..models import (
+    KeyCreatedResponse,
+    KeyCreateRequest,
+    KeyInfo,
+    KeyListResponse,
+    TestKeyRequest,
+)
 from ..responses import ADMIN_ERRORS
 from ..state import AppState, get_state, require_admin
 
@@ -27,6 +33,10 @@ async def create_key(
     _: None = Depends(require_admin),
     state: AppState = Depends(get_state),
 ) -> KeyCreatedResponse:
+    # Live keys only. Test keys are one-per-owner and provisioned/rotated via /v1/keys/test, so
+    # this endpoint never mints them (an owner could otherwise accumulate free test keys).
+    if body.env == "test":
+        raise HTTPException(status_code=409, detail="test keys are issued via /v1/keys/test")
     issued = state.keystore.issue(body.name, body.env, owner=body.owner)
     # The raw key is returned here and NOWHERE else. The DB only has its argon2 hash.
     return KeyCreatedResponse(
@@ -35,6 +45,31 @@ async def create_key(
         prefix=issued.lookup_prefix,
         name=body.name,
         env=body.env,
+        tier=issued.tier,
+    )
+
+
+@router.post(
+    "/v1/keys/test",
+    response_model=KeyCreatedResponse,
+    status_code=201,
+    responses=ADMIN_ERRORS,
+    summary="Provision or regenerate the owner's test key",
+    description="Admin-only. Revokes any existing active test key for the owner and issues a fresh "
+    "one (exactly one active test key per owner). Returns the raw key exactly once.",
+)
+async def roll_test_key(
+    body: TestKeyRequest,
+    _: None = Depends(require_admin),
+    state: AppState = Depends(get_state),
+) -> KeyCreatedResponse:
+    issued = state.keystore.roll_test_key(body.owner)
+    return KeyCreatedResponse(
+        id=issued.id,
+        key=issued.raw_key,
+        prefix=issued.lookup_prefix,
+        name="Test key",
+        env="test",
         tier=issued.tier,
     )
 

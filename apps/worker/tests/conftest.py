@@ -77,6 +77,7 @@ def _make_harness(
     monkeypatch.setenv("PAYSTACK_PLAN_SCALE", "")
     monkeypatch.setenv("PAYSTACK_PLAN_SCALE_ANNUAL", "")
     monkeypatch.setenv("DEMO_RATE_LIMIT_MAX", "5")
+    monkeypatch.setenv("TEST_TIER_MONTHLY_CAP", "3")
 
     from bankstract_cloud.config import get_settings
     from bankstract_cloud.main import app

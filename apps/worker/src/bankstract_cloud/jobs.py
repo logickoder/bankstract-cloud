@@ -31,6 +31,7 @@ class Job:
     filename: str | None
     byte_count: int
     is_anonymous: bool = False  # demo tier: json/csv results are watermarked at serve time
+    is_sample: bool = False  # over a free cap: serve a canned sample, engine never ran, result=None
     queue: asyncio.Queue[dict[str, Any]] = field(
         default_factory=lambda: asyncio.Queue[dict[str, Any]]()
     )
@@ -62,7 +63,13 @@ class JobStore:
         return self._sem
 
     def create(
-        self, *, owner_key: str, filename: str | None, byte_count: int, is_anonymous: bool = False
+        self,
+        *,
+        owner_key: str,
+        filename: str | None,
+        byte_count: int,
+        is_anonymous: bool = False,
+        is_sample: bool = False,
     ) -> Job:
         job = Job(
             id=uuid.uuid4().hex,
@@ -70,6 +77,7 @@ class JobStore:
             filename=filename,
             byte_count=byte_count,
             is_anonymous=is_anonymous,
+            is_sample=is_sample,
         )
         self._jobs[job.id] = job
         return job

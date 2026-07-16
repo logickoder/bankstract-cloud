@@ -169,6 +169,11 @@ class KeyCreateRequest(BaseModel):
     owner: str | None = None
 
 
+class TestKeyRequest(BaseModel):
+    # Provision-or-regenerate the owner's single test key. No name/env: the tier is always test.
+    owner: str
+
+
 class KeyCreatedResponse(BaseModel):
     """Returned once, on creation. The only time the raw key is ever exposed."""
 

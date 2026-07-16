@@ -15,7 +15,7 @@ from bankstract import ProgressCallback, ProgressEvent
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from ..audit import AuditEntry
+from ..audit import AuditEntry, current_period_start_iso
 from ..auth import AuthContext
 from ..engine import (
     EngineError,
@@ -27,11 +27,22 @@ from ..engine import (
 from ..jobs import TERMINAL_STAGE, Job
 from ..models import ErrorResponse, JobAccepted, JobSnapshot, ParseResponse, ProgressSnapshot
 from ..responses import error_response
+from ..sample import sample_csv, sample_json_payload
 from ..state import AppState, client_ip, demo_bucket, get_state, require_auth
 from ..turnstile import verify_turnstile
 from ..watermark import DEMO_TIER, watermark_csv, watermark_json
 
 router = APIRouter(tags=["Parse"])
+
+_FREE_LIMIT_CLASS = "free_limit_reached"
+
+
+class _ServeSample:
+    """Admission verdict: the caller is over a free cap. Serve the canned sample (no engine run)
+    instead of parsing the upload. Distinct from a JSONResponse so both parse paths can branch."""
+
+
+SERVE_SAMPLE = _ServeSample()
 
 
 @router.post(
@@ -42,7 +53,6 @@ router = APIRouter(tags=["Parse"])
         402: {"model": ErrorResponse},
         413: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
     summary="Parse a bank statement",
@@ -64,6 +74,8 @@ async def parse(
     state: AppState = Depends(get_state),
 ) -> ParseResponse | Response:
     admitted = await _admit_upload(request, pdf, ctx, state, turnstile_token)
+    if isinstance(admitted, _ServeSample):
+        return _canned_response(fmt, redact, state, ctx, pdf.filename)
     if isinstance(admitted, JSONResponse):
         return admitted
     data, byte_count = admitted
@@ -121,7 +133,6 @@ async def parse(
         401: {"model": ErrorResponse},
         402: {"model": ErrorResponse},
         413: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
     },
     summary="Submit a long parse as an async job",
     description=(
@@ -143,6 +154,27 @@ async def submit_job(
     state: AppState = Depends(get_state),
 ) -> JobAccepted | Response:
     admitted = await _admit_upload(request, pdf, ctx, state, turnstile_token)
+    if isinstance(admitted, _ServeSample):
+        # Over a free cap. The demo drives this async path, so preserve the 202 + job contract: a
+        # canned sample job is created already done (no engine, no _run_job). redact has no
+        # meaningful sample, so it is a hard nudge served inline.
+        if redact:
+            return _canned_response(fmt, redact, state, ctx, pdf.filename)
+        job = state.jobs.create(
+            owner_key=ctx.api_key_id,
+            filename=pdf.filename,
+            byte_count=0,
+            is_sample=True,
+        )
+        job.result_kind = fmt
+        job.state = "done"
+        job.terminal_at = time.monotonic()
+        _audit(state, ctx, pdf.filename, 0, None, False, _FREE_LIMIT_CLASS)
+        return JobAccepted(
+            job_id=job.id,
+            stream_url=f"/v1/parse/jobs/{job.id}/stream",
+            poll_url=f"/v1/parse/jobs/{job.id}",
+        )
     if isinstance(admitted, JSONResponse):
         return admitted
     data, byte_count = admitted
@@ -217,12 +249,13 @@ async def job_result(
     state: AppState = Depends(get_state),
 ) -> Response:
     job = state.jobs.get_or_404(job_id, owner_key=ctx.api_key_id)
-    if job.state != "done" or job.result is None:
+    if job.state != "done" or (job.result is None and not job.is_sample):
         raise HTTPException(status_code=404, detail="job result not available")
     if job.result_kind == "json":
         return JSONResponse(content=_json_payload(job))
     if job.result_kind == "csv":
         return _csv_response(_csv_payload(job))
+    assert job.result is not None  # redact is never an is_sample job (json/csv only)
     return _redact_response(
         job.result.data,
         media_type=job.media_type or "application/octet-stream",
@@ -339,6 +372,9 @@ def _result_url(job: Job) -> str:
 
 
 def _json_payload(job: Job) -> dict[str, object]:
+    # Over a free cap: canned sample, engine never ran (job.result is None).
+    if job.is_sample:
+        return sample_json_payload()
     # Anonymous (demo) json is watermarked, matching the sync /v1/parse path. Applied at serve
     # time so the demo cannot get clean output via the async job surface.
     payload: dict[str, object] = job.result.response.model_dump(mode="json")
@@ -350,6 +386,8 @@ def _json_payload(job: Job) -> dict[str, object]:
 
 
 def _csv_payload(job: Job) -> bytes:
+    if job.is_sample:
+        return sample_csv()
     data: bytes = job.result.data
     return watermark_csv(data, tier=DEMO_TIER) if job.is_anonymous else data
 
@@ -358,7 +396,7 @@ def _sse_result(job: Job) -> str:
     final: dict[str, object] = {"state": job.state, "error_class": job.error_class}
     if job.error_message is not None:
         final["error"] = job.error_message
-    if job.state == "done" and job.result is not None:
+    if job.state == "done" and (job.result is not None or job.is_sample):
         final["kind"] = job.result_kind
         if job.result_kind == "json":
             # json rides the event; csv/redact bytes are fetched from result_url.
@@ -379,7 +417,8 @@ def _snapshot(job: Job) -> JobSnapshot:
         if last is not None
         else None
     )
-    is_done = job.state == "done" and job.result is not None
+    # is_sample jobs are "done" with no engine result; they still serve via result_url.
+    is_done = job.state == "done" and (job.result is not None or job.is_sample)
     return JobSnapshot(
         job_id=job.id,
         state=job.state,
@@ -411,20 +450,30 @@ async def _admit_upload(
     ctx: AuthContext,
     state: AppState,
     turnstile_token: str | None,
-) -> tuple[bytes, int] | JSONResponse:
+) -> tuple[bytes, int] | JSONResponse | _ServeSample:
     """Shared admission for the sync and async parse paths. Enforces the charter ordering: the size
-    limit, the human check (anonymous), and an active subscription are all verified BEFORE the PDF
-    is read, so an over-quota or inactive caller never moves payload. Returns (data, byte_count), or
-    the 402 envelope when the subscription is inactive."""
+    limit, the human check (anonymous), the subscription gate (live), and the free-tier cap are all
+    verified BEFORE the PDF is read, so an over-cap or inactive caller never moves payload. Returns
+    (data, byte_count); the 402 envelope when a live subscription is inactive; or SERVE_SAMPLE when
+    a free surface (demo per-IP, test per-owner) is over its cap and gets the canned sample."""
     max_bytes = state.settings.max_upload_bytes
     _enforce_size_header(request, max_bytes)
 
     if ctx.is_anonymous:
-        await _check_anonymous_access(request, state, turnstile_token)
+        # Turnstile is a hard human check (401); being over the per-IP budget is not an error, it
+        # serves the canned sample.
+        await _verify_turnstile(request, state, turnstile_token)
+        if not _demo_rate_ok(request, state):
+            return SERVE_SAMPLE
 
-    # Live keys parse only under an active subscription (charter §5); test keys parse free.
+    # Live keys parse only under an active subscription (charter §5).
     if ctx.is_billable and not (ctx.owner and state.subscriptions.is_active(ctx.owner)):
         return error_response(402, "subscription inactive", "subscription_inactive")
+
+    # Test keys parse free up to the monthly cap, then serve the canned sample. Counted success-only
+    # (failed parses never burn quota) on this owner's test key for the current calendar month.
+    if ctx.tier == "test" and ctx.owner and _test_over_cap(state, ctx):
+        return SERVE_SAMPLE
 
     data = await pdf.read()
     byte_count = len(data)
@@ -433,35 +482,48 @@ async def _admit_upload(
     return data, byte_count
 
 
-async def _check_anonymous_access(
-    request: Request,
-    state: AppState,
-    turnstile_token: str | None,
-) -> None:
-    # Demo tier: prove human (Turnstile) then spend against the per-IP rate budget.
-    # Authenticated keys skip this entirely.
-    settings = state.settings
+async def _verify_turnstile(request: Request, state: AppState, turnstile_token: str | None) -> None:
     ok = await verify_turnstile(
         turnstile_token or "",
-        secret=settings.turnstile_secret_key,
+        secret=state.settings.turnstile_secret_key,
         remote_ip=client_ip(request),
     )
     if not ok:
         raise HTTPException(status_code=401, detail="Turnstile verification failed")
-    allowed = state.rate_limiter.check(
+
+
+def _demo_rate_ok(request: Request, state: AppState) -> bool:
+    settings = state.settings
+    return state.rate_limiter.check(
         demo_bucket(request, settings.rate_limit_ip_salt),
         max_count=settings.demo_rate_limit_max,
         window_seconds=settings.demo_rate_limit_window_seconds,
     )
-    if not allowed:
-        retry_after = state.rate_limiter.seconds_until_reset(
-            settings.demo_rate_limit_window_seconds
-        )
-        raise HTTPException(
-            status_code=429,
-            detail="rate limit exceeded",
-            headers={"Retry-After": str(retry_after)},
-        )
+
+
+def _test_over_cap(state: AppState, ctx: AuthContext) -> bool:
+    used = state.audit.count_success_for_key(ctx.api_key_id, since_iso=current_period_start_iso())
+    return used >= state.settings.test_tier_monthly_cap
+
+
+def _canned_response(
+    fmt: Literal["json", "csv"],
+    redact: bool,
+    state: AppState,
+    ctx: AuthContext,
+    filename: str | None,
+) -> Response:
+    # Over a free cap: return the canned sample instead of running the engine. Audited success-False
+    # so it is funnel-visible and never counts toward the cap. redact has no meaningful sample.
+    _audit(state, ctx, filename, 0, None, False, _FREE_LIMIT_CLASS)
+    if redact:
+        return error_response(402, "free tier limit reached", _FREE_LIMIT_CLASS)
+    if fmt == "csv":
+        response = _csv_response(sample_csv())
+    else:
+        response = JSONResponse(content=sample_json_payload())
+    response.headers["X-Bankstract-Sample"] = "true"
+    return response
 
 
 def _record_success(

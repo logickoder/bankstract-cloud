@@ -11,8 +11,8 @@ def test_admin_usage_requires_admin(harness: Harness) -> None:
 
 def test_admin_usage_aggregates_by_owner(harness: Harness) -> None:
     created = harness.client.post(
-        "/v1/keys",
-        json={"name": "k", "env": "test", "owner": "u1"},
+        "/v1/keys/test",
+        json={"owner": "u1"},
         headers=auth_header(harness.admin_token),
     ).json()
     audit = harness.client.app.state.app_state.audit

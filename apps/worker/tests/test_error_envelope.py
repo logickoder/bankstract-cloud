@@ -96,16 +96,3 @@ def test_413_unified_envelope(harness: Harness) -> None:
     )
     assert resp.status_code == 413
     assert resp.json()["error_class"] == "PayloadTooLarge"
-
-
-def test_429_unified_envelope(harness: Harness) -> None:
-    last = None
-    for _ in range(7):
-        last = harness.client.post(
-            "/v1/parse", files=pdf_upload(), headers=auth_header(harness.demo_key)
-        )
-        if last.status_code == 429:
-            break
-    assert last is not None
-    assert last.status_code == 429
-    assert last.json()["error_class"] == "RateLimitError"

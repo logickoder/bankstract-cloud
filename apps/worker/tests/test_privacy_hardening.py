@@ -116,8 +116,8 @@ def test_purge_older_than_respects_window(harness: Harness) -> None:
 
 def _issue_key(harness: Harness, owner: str) -> str:
     res = harness.client.post(
-        "/v1/keys",
-        json={"name": owner, "env": "test", "owner": owner},
+        "/v1/keys/test",
+        json={"owner": owner},
         headers=auth_header(harness.admin_token),
     )
     return res.json()["id"]

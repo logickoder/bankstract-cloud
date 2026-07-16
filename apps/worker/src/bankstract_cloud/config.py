@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     demo_rate_limit_max: int = 50
     demo_rate_limit_window_seconds: int = 2_592_000
 
+    # Free authenticated tier: real parses per owner per calendar month before /v1/parse serves a
+    # canned sample (no engine run) instead of parsing the upload. Counted success-only against the
+    # owner's test key; keeps test keys for integration, not free production.
+    test_tier_monthly_cap: int = 25
+
     # Salt for the demo rate-limit IP hash. We never store a raw client IP; the bucket key is
     # sha256(salt + ip). Set a stable per-deploy secret in prod (empty in dev still hashes, but
     # an unsalted IPv4 hash is brute-forceable, so prod must set this). See /privacy.
