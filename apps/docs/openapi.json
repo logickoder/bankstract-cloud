@@ -580,6 +580,86 @@
         }
       }
     },
+    "/v1/keys/test": {
+      "post": {
+        "tags": [
+          "Keys"
+        ],
+        "summary": "Provision or regenerate the owner's test key",
+        "description": "Admin-only. Revokes any existing active test key for the owner and issues a fresh one (exactly one active test key per owner). Returns the raw key exactly once.",
+        "operationId": "roll_test_key_v1_keys_test_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyCreatedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/keys/{key_id}": {
       "delete": {
         "tags": [
@@ -993,16 +1073,6 @@
             },
             "description": "Unprocessable Entity"
           },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Too Many Requests"
-          },
           "500": {
             "content": {
               "application/json": {
@@ -1106,16 +1176,6 @@
               }
             },
             "description": "Request Entity Too Large"
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Too Many Requests"
           },
           "422": {
             "description": "Validation Error",
@@ -1707,7 +1767,7 @@
               "test"
             ],
             "title": "Env",
-            "default": "test"
+            "default": "live"
           },
           "owner": {
             "anyOf": [
@@ -2267,6 +2327,19 @@
           "current_period_end"
         ],
         "title": "SubscriptionStatusResponse"
+      },
+      "TestKeyRequest": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          }
+        },
+        "type": "object",
+        "required": [
+          "owner"
+        ],
+        "title": "TestKeyRequest"
       },
       "TotalsOut": {
         "properties": {
