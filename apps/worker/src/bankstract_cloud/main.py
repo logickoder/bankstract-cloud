@@ -109,6 +109,9 @@ app = FastAPI(
         "HTTP and do not inherit the AGPL-3.0 license of the hosted service."
     ),
     license_info={"name": "AGPL-3.0-only", "url": "https://www.gnu.org/licenses/agpl-3.0.html"},
+    # Without this the OpenAPI spec has no servers and the docs UI defaults its base URL to
+    # https://example.com. Paths carry the /v1 prefix, so the server is the bare origin.
+    servers=[{"url": "https://bankstract.logickoder.dev", "description": "Production"}],
     openapi_tags=[
         {"name": "Parse", "description": "Turn a statement into structured data."},
         {"name": "Keys", "description": "Issue, list, and revoke API keys (admin-only)."},
