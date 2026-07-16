@@ -27,8 +27,8 @@ export function HeroSection() {
             </span>
           </h1>
           <p className="mt-6 max-w-md text-lg text-fg-secondary sm:text-xl">
-            Drop in one API call. Get clean transactions, account metadata, NDPR-compliant
-            redaction.
+            For lending fintechs, bookkeeping SaaS, and developers who need clean transaction data
+            out of Nigerian bank statements. Without building a parser.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href={links.demo} variant="primary">
