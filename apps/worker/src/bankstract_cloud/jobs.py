@@ -30,6 +30,7 @@ class Job:
     owner_key: str  # the submitter's api_key_id; a secondary guard behind the capability job_id
     filename: str | None
     byte_count: int
+    is_anonymous: bool = False  # demo tier: json/csv results are watermarked at serve time
     queue: asyncio.Queue[dict[str, Any]] = field(
         default_factory=lambda: asyncio.Queue[dict[str, Any]]()
     )
@@ -60,12 +61,15 @@ class JobStore:
     def semaphore(self) -> asyncio.Semaphore:
         return self._sem
 
-    def create(self, *, owner_key: str, filename: str | None, byte_count: int) -> Job:
+    def create(
+        self, *, owner_key: str, filename: str | None, byte_count: int, is_anonymous: bool = False
+    ) -> Job:
         job = Job(
             id=uuid.uuid4().hex,
             owner_key=owner_key,
             filename=filename,
             byte_count=byte_count,
+            is_anonymous=is_anonymous,
         )
         self._jobs[job.id] = job
         return job

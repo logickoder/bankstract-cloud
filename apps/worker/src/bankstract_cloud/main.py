@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.formparsers import MultiPartParser
 
 from . import __version__
 from .audit import AuditLog
@@ -39,6 +40,13 @@ init_sentry(get_settings())
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
+    # Directive 1: PDF bytes never touch disk. Starlette spools each uploaded file part to a
+    # SpooledTemporaryFile that ROLLS TO DISK past spool_max_size (default 1MB) during multipart
+    # parsing, before the worker ever holds the bytes. Bank PDFs routinely exceed 1MB, so the
+    # default writes the statement to a temp file. Raise the ceiling to the upload cap so the whole
+    # file stays in memory; anything larger is rejected in _admit_upload before it can matter. Set
+    # here (not at import) so it tracks the settings the app actually runs with.
+    MultiPartParser.spool_max_size = settings.max_upload_bytes
     run_migrations(settings.audit_db_path)
     conn = connect(settings.audit_db_path)
     app.state.app_state = AppState(

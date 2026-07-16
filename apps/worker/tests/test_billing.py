@@ -101,6 +101,31 @@ def test_subscription_lifecycle(harness: Harness) -> None:
     assert _status(harness, owner)["status"] == "inactive"
 
 
+def test_subscription_create_before_charge_success_still_activates(harness: Harness) -> None:
+    # Paystack does not guarantee webhook order. If subscription.create lands before the
+    # charge.success that maps owner <-> customer, the activation is parked and applied once the
+    # mapping arrives. Without reconciliation the UPDATE would hit 0 rows and the sub stays dead.
+    owner, customer = "user_race", "CUS_race"
+
+    assert _webhook(harness, _sub_create(customer, "PLN_starter_test")).status_code == 200
+    assert _status(harness, owner)["status"] == "none"  # no owner row yet
+
+    assert _webhook(harness, _charge(owner, customer)).status_code == 200
+    reconciled = _status(harness, owner)
+    assert reconciled["status"] == "active"
+    assert reconciled["tier"] == "starter"
+
+
+def test_disable_before_mapping_does_not_resurrect(harness: Harness) -> None:
+    # A parked activation must not survive a disable: if create then disable both arrive before
+    # charge.success, the later mapping must land inactive, not active.
+    owner, customer = "user_race2", "CUS_race2"
+    _webhook(harness, _sub_create(customer, "PLN_starter_test", event_id=51))
+    _webhook(harness, _customer_event("subscription.disable", customer, 52))
+    _webhook(harness, _charge(owner, customer, event_id=53))
+    assert _status(harness, owner)["status"] == "inactive"
+
+
 def test_payment_failed_deactivates(harness: Harness) -> None:
     owner, customer = "user_pf", "CUS_pf"
     _webhook(harness, _charge(owner, customer))

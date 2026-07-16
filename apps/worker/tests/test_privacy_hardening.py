@@ -6,10 +6,13 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from starlette.formparsers import MultiPartParser
+from starlette.requests import Request
 
 from bankstract_cloud.audit import AuditEntry
 from bankstract_cloud.clock import utcnow_iso
 from bankstract_cloud.paystack import PaystackError
+from bankstract_cloud.state import client_ip
 from tests.conftest import Harness, auth_header, pdf_upload
 
 
@@ -24,6 +27,46 @@ def _record(harness: Harness, api_key_id: str) -> None:
             error_class=None,
         )
     )
+
+
+# --- Directive 1: uploads never spill to disk ---
+
+
+def test_upload_spool_ceiling_matches_cap_so_pdf_never_spills_to_disk(harness: Harness) -> None:
+    # Starlette spools each upload part to a SpooledTemporaryFile that ROLLS TO DISK past
+    # spool_max_size. The app raises that ceiling to the upload cap, so there is no size band where
+    # a file both parses AND spills to disk: anything past the cap is rejected (413) before the
+    # worker holds it. A regression to the 1MB default would reopen that disk-write window.
+    settings = harness.client.app.state.app_state.settings
+    assert MultiPartParser.spool_max_size == settings.max_upload_bytes
+
+
+# --- Anti-spoof: rate-limit identity is the trusted hop, not a client-set header ---
+
+
+def _http_request(
+    *, xff: str | None = None, cf: str | None = None, peer: str = "1.2.3.4"
+) -> Request:
+    headers: list[tuple[bytes, bytes]] = []
+    if xff is not None:
+        headers.append((b"x-forwarded-for", xff.encode()))
+    if cf is not None:
+        headers.append((b"cf-connecting-ip", cf.encode()))
+    return Request({"type": "http", "headers": headers, "client": (peer, 0)})
+
+
+def test_client_ip_trusts_rightmost_forwarded_hop() -> None:
+    # Caddy appends the real peer to the right of XFF; left entries are client-supplied.
+    assert client_ip(_http_request(xff="9.9.9.9, 10.0.0.1, 172.16.0.9")) == "172.16.0.9"
+
+
+def test_client_ip_ignores_spoofed_cf_header() -> None:
+    # Box is Caddy-fronted, not CF-proxied: cf-connecting-ip is attacker-controlled, never trusted.
+    assert client_ip(_http_request(xff="172.16.0.9", cf="6.6.6.6")) == "172.16.0.9"
+
+
+def test_client_ip_falls_back_to_peer_without_forwarded_header() -> None:
+    assert client_ip(_http_request(peer="5.5.5.5")) == "5.5.5.5"
 
 
 # --- Phase 2: demo IP is hashed, never stored raw ---

@@ -147,7 +147,12 @@ async def submit_job(
         return admitted
     data, byte_count = admitted
 
-    job = state.jobs.create(owner_key=ctx.api_key_id, filename=pdf.filename, byte_count=byte_count)
+    job = state.jobs.create(
+        owner_key=ctx.api_key_id,
+        filename=pdf.filename,
+        byte_count=byte_count,
+        is_anonymous=ctx.is_anonymous,
+    )
     # Runs to completion after this 202 returns. _run_job owns the bytes from here and drops them
     # when done (Directive 1). The task is held on the job so the loop never garbage-collects it.
     job.task = asyncio.create_task(_run_job(state, ctx, job, data, bank, redact, fmt))
@@ -215,9 +220,9 @@ async def job_result(
     if job.state != "done" or job.result is None:
         raise HTTPException(status_code=404, detail="job result not available")
     if job.result_kind == "json":
-        return JSONResponse(content=job.result.response.model_dump(mode="json"))
+        return JSONResponse(content=_json_payload(job))
     if job.result_kind == "csv":
-        return _csv_response(job.result.data)
+        return _csv_response(_csv_payload(job))
     return _redact_response(
         job.result.data,
         media_type=job.media_type or "application/octet-stream",
@@ -243,8 +248,9 @@ async def _run_job(
     try:
         async with state.jobs.semaphore:
             job.state = "running"
-            # Same branch order as the sync /v1/parse. No watermarking here: jobs are the
-            # authenticated B2B surface, while the sync path keeps the demo watermark.
+            # Same branch order as the sync /v1/parse. The result is stored raw; anonymous (demo)
+            # json/csv is watermarked at serve time (_json_payload / _csv_payload) so the demo
+            # cannot get clean output through the async surface.
             if redact:
                 redacted = await asyncio.to_thread(
                     redact_pdf, data, bank=bank, progress_callback=callback
@@ -332,6 +338,22 @@ def _result_url(job: Job) -> str:
     return f"/v1/parse/jobs/{job.id}/result"
 
 
+def _json_payload(job: Job) -> dict[str, object]:
+    # Anonymous (demo) json is watermarked, matching the sync /v1/parse path. Applied at serve
+    # time so the demo cannot get clean output via the async job surface.
+    payload: dict[str, object] = job.result.response.model_dump(mode="json")
+    if job.is_anonymous:
+        payload = watermark_json(
+            payload, tier=DEMO_TIER, generated_at=datetime.now(UTC).isoformat()
+        )
+    return payload
+
+
+def _csv_payload(job: Job) -> bytes:
+    data: bytes = job.result.data
+    return watermark_csv(data, tier=DEMO_TIER) if job.is_anonymous else data
+
+
 def _sse_result(job: Job) -> str:
     final: dict[str, object] = {"state": job.state, "error_class": job.error_class}
     if job.error_message is not None:
@@ -340,7 +362,7 @@ def _sse_result(job: Job) -> str:
         final["kind"] = job.result_kind
         if job.result_kind == "json":
             # json rides the event; csv/redact bytes are fetched from result_url.
-            final["result"] = job.result.response.model_dump(mode="json")
+            final["result"] = _json_payload(job)
         else:
             final["result_url"] = _result_url(job)
             if job.format_version is not None:
@@ -365,7 +387,14 @@ def _snapshot(job: Job) -> JobSnapshot:
         progress=progress,
         result=(
             job.result.response
-            if (job.state == "done" and job.result is not None and job.result_kind == "json")
+            # Anonymous json is served watermarked via result_url (the byte channel), never inlined
+            # raw here. Authenticated callers get the typed response directly.
+            if (
+                job.state == "done"
+                and job.result is not None
+                and job.result_kind == "json"
+                and not job.is_anonymous
+            )
             else None
         ),
         result_url=_result_url(job) if is_done else None,

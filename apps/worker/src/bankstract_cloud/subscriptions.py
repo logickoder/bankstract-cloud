@@ -90,6 +90,9 @@ class SubscriptionStore:
             (owner, customer_code, _INACTIVE, utcnow_iso()),
         )
         self._conn.commit()
+        # A subscription.create may have raced ahead of this charge.success and parked its
+        # activation (no owner row existed to update). Now the row exists: apply and clear it.
+        self._apply_pending(customer_code)
 
     def activate(
         self,
@@ -100,7 +103,7 @@ class SubscriptionStore:
         tier: str | None,
         current_period_end: str | None,
     ) -> None:
-        self._conn.execute(
+        cur = self._conn.execute(
             "UPDATE subscriptions SET subscription_code = ?, plan_code = ?, tier = ?, "
             "status = ?, current_period_end = ?, updated_at = ? WHERE customer_code = ?",
             (
@@ -113,12 +116,63 @@ class SubscriptionStore:
                 customer_code,
             ),
         )
+        if cur.rowcount == 0:
+            # subscription.create raced ahead of charge.success: no owner row for this customer
+            # yet. Park the activation; map_customer applies it once the owner is known.
+            self._conn.execute(
+                "INSERT INTO pending_activations "
+                "(customer_code, subscription_code, plan_code, tier, current_period_end, "
+                "received_at) VALUES (?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(customer_code) DO UPDATE SET subscription_code = "
+                "excluded.subscription_code, plan_code = excluded.plan_code, "
+                "tier = excluded.tier, current_period_end = excluded.current_period_end, "
+                "received_at = excluded.received_at",
+                (
+                    customer_code,
+                    subscription_code,
+                    plan_code,
+                    tier,
+                    current_period_end,
+                    utcnow_iso(),
+                ),
+            )
+        self._conn.commit()
+
+    def _apply_pending(self, customer_code: str) -> None:
+        row = self._conn.execute(
+            "SELECT subscription_code, plan_code, tier, current_period_end "
+            "FROM pending_activations WHERE customer_code = ?",
+            (customer_code,),
+        ).fetchone()
+        if row is None:
+            return
+        self._conn.execute(
+            "UPDATE subscriptions SET subscription_code = ?, plan_code = ?, tier = ?, "
+            "status = ?, current_period_end = ?, updated_at = ? WHERE customer_code = ?",
+            (
+                row["subscription_code"],
+                row["plan_code"],
+                row["tier"],
+                _ACTIVE,
+                row["current_period_end"],
+                utcnow_iso(),
+                customer_code,
+            ),
+        )
+        self._conn.execute(
+            "DELETE FROM pending_activations WHERE customer_code = ?", (customer_code,)
+        )
         self._conn.commit()
 
     def deactivate_by_customer(self, customer_code: str) -> None:
         self._conn.execute(
             "UPDATE subscriptions SET status = ?, updated_at = ? WHERE customer_code = ?",
             (_INACTIVE, utcnow_iso(), customer_code),
+        )
+        # Drop any parked activation: a disable must not be undone later by a pending row that
+        # raced in before the owner mapping existed.
+        self._conn.execute(
+            "DELETE FROM pending_activations WHERE customer_code = ?", (customer_code,)
         )
         self._conn.commit()
 

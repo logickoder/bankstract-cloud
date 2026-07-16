@@ -79,12 +79,15 @@ def require_admin(
 
 
 def client_ip(request: Request) -> str:
-    cf = request.headers.get("cf-connecting-ip")
-    if cf:
-        return cf
+    # The prod edge is a SINGLE trusted reverse proxy (Caddy), which appends the real peer to the
+    # RIGHT of X-Forwarded-For. So the right-most hop is the trustworthy client IP; every entry to
+    # its left is client-supplied and spoofable. We deliberately do NOT read cf-connecting-ip: the
+    # box is Caddy-fronted, not Cloudflare-proxied, so that header is fully attacker-controlled.
+    # (Trusting the left-most XFF hop or cf-connecting-ip would let a demo caller rotate the header
+    # per request and mint unlimited rate-limit buckets, defeating the 50/month cap.)
     xff = request.headers.get("x-forwarded-for")
     if xff:
-        return xff.split(",")[0].strip()
+        return xff.split(",")[-1].strip()
     return request.client.host if request.client else "unknown"
 
 

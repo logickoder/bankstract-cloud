@@ -271,6 +271,54 @@ def test_result_endpoint_404_unknown_and_401_without_auth(harness: Harness) -> N
     assert harness.client.get("/v1/parse/jobs/nope/result").status_code == 401
 
 
+def test_anonymous_json_job_result_is_watermarked(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The demo drives async jobs anonymously; its json output must carry the free-demo envelope,
+    # same as the sync path. Served via result_url (the byte channel), never inlined in the poll
+    # snapshot (which would leak clean output).
+    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    sub = harness.client.post(
+        "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.demo_key)
+    )
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        "".join(resp.iter_text())
+
+    snap = harness.client.get(sub.json()["poll_url"], headers=auth_header(harness.demo_key)).json()
+    assert snap["result"] is None  # not inlined clean for anonymous
+    got = harness.client.get(snap["result_url"], headers=auth_header(harness.demo_key))
+    assert got.json()["_demo"]["tier"] == "free_demo"
+
+
+def test_authenticated_json_job_result_is_clean(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    sub = harness.client.post(
+        "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        "".join(resp.iter_text())
+    got = harness.client.get(
+        f"{sub.json()['poll_url']}/result", headers=auth_header(harness.test_key)
+    )
+    assert "_demo" not in got.json()  # paid/test tiers pass through clean
+
+
+def test_anonymous_csv_job_result_is_watermarked(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("bankstract.parse_to", _csv_mock())
+    sub = harness.client.post(
+        "/v1/parse/jobs?format=csv", files=pdf_upload(), headers=auth_header(harness.demo_key)
+    )
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        text = "".join(resp.iter_text())
+    url = _result_event(text)["result_url"]
+    got = harness.client.get(url, headers=auth_header(harness.demo_key))
+    assert got.content.startswith(b"# bankstract free demo")
+
+
 def test_failed_job_result_is_404(harness: Harness) -> None:
     # Real engine on the minimal stub fails -> job failed -> no downloadable result.
     sub = harness.client.post(
