@@ -10,6 +10,23 @@ test('unauthenticated dashboard redirects to sign-in', async ({ page }) => {
   await expect(page).toHaveURL(/\/sign-in/)
 })
 
+test('dashboard with a forged session cookie still redirects to sign-in', async ({
+  page,
+  context,
+}) => {
+  // The edge middleware only checks cookie PRESENCE, so a forged/expired token slips past it. The
+  // dashboard layout must re-verify the session server-side and bounce. Guards the Web2 fix.
+  await context.addCookies([
+    {
+      name: 'better-auth.session_token',
+      value: 'forged.invalid',
+      url: 'http://localhost:3002',
+    },
+  ])
+  await page.goto('/dashboard')
+  await expect(page).toHaveURL(/\/sign-in/)
+})
+
 test('sign-in shows OAuth options + magic-link', async ({ page }) => {
   await page.goto('/sign-in')
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()

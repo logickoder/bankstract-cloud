@@ -3,6 +3,7 @@
 
 import { BrandMark } from '@bankstract/ui'
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { SidebarNav } from '@/components/SidebarNav'
@@ -17,7 +18,10 @@ export default async function DashboardLayout({
 }: {
   children: ReactNode;
 }) {
+  // Middleware gates on cookie presence only; an expired/invalid session still reaches here and
+  // would render an empty dashboard. Verify the session server-side and bounce to sign-in.
   const user = await getUser()
+  if (!user) redirect('/sign-in')
   return (
     <div className="flex min-h-screen w-full flex-col lg:flex-row">
       <aside className="relative flex shrink-0 flex-col gap-6 overflow-hidden border-b border-border bg-bg-secondary px-6 py-6 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:gap-8 lg:border-r lg:border-b-0 lg:py-8">

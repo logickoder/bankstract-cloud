@@ -25,14 +25,21 @@ export function SignInForm({ title = 'Sign in' }: { title?: string }) {
   const isError = status.kind === 'error'
   const busy = status.kind === 'sending' || oauthPending !== null
 
+  function failOauth() {
+    setOauthPending(null)
+    setStatus({ kind: 'error', message: 'OAuth handshake failed. Retry or try email.' })
+  }
+
   async function social(provider: 'google' | 'github') {
     setOauthPending(provider)
     try {
-      // On success the browser redirects to the provider, so no reset on the happy path.
-      await authClient.signIn.social({ provider, callbackURL: '/dashboard' })
+      // On success the browser redirects to the provider. Better Auth resolves with { error } on
+      // a non-thrown failure (misconfigured provider, network), so surface it or the button stays
+      // stuck at "Redirecting..." forever.
+      const { error } = await authClient.signIn.social({ provider, callbackURL: '/dashboard' })
+      if (error) failOauth()
     } catch {
-      setOauthPending(null)
-      setStatus({ kind: 'error', message: 'OAuth handshake failed. Retry or try email.' })
+      failOauth()
     }
   }
 

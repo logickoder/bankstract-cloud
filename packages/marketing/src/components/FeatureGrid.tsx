@@ -16,13 +16,14 @@ const PARSE = {
   body: 'Bank PDF in, structured JSON out. Transactions, balances, and account metadata, fully typed. One endpoint, the same contract every time.',
 }
 
-// Synthetic sample (FOO / ACME, fixture rule) of the shape a parse returns. Fills the dominant
-// cell with the actual payload instead of dead space.
+// Synthetic sample (FOO / ACME, fixture rule) in the real ParseResponse shape: money is a decimal
+// string split into debit/credit, account holder lives in metadata. Fills the dominant cell with
+// the actual payload instead of dead space.
 const PARSE_SAMPLE = `{
-  "account": "ACME LTD ****1234",
+  "metadata": { "bank": "fbn", "account_number_masked": "****1234" },
   "transactions": [
-    { "date": "2026-06-01", "narration": "Transfer FOO", "amount": 250.00 },
-    { "date": "2026-06-02", "narration": "POS ACME", "amount": -40.00 }
+    { "date": "2026-06-01", "narration": "Transfer FOO", "credit": "250.00", "balance": "1250.00" },
+    { "date": "2026-06-02", "narration": "POS ACME", "debit": "40.00", "balance": "1210.00" }
   ]
 }`
 
