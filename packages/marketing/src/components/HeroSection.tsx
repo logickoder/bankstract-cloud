@@ -34,7 +34,7 @@ export function HeroSection() {
             <ButtonLink href={links.demo} variant="primary">
               Try the demo
             </ButtonLink>
-            <ButtonLink href={links.docs} variant="secondary">
+            <ButtonLink href={links.docs} reload variant="secondary">
               Read the docs
             </ButtonLink>
             <ButtonLink href={links.signin} variant="ghost">
@@ -46,7 +46,7 @@ export function HeroSection() {
         <div className="min-w-0 lg:justify-self-end lg:pl-8">
           <CodeBlock code={HERO_CURL} lang="bash" />
           <p className="mt-3 text-xs text-fg-tertiary">
-            Full reference in the <Anchor href={links.docs}>docs</Anchor>.
+            Full reference in the <Anchor href={links.docs} reload>docs</Anchor>.
           </p>
         </div>
       </div>

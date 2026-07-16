@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { cn } from '@bankstract/ui'
+import { cn, SmartLink } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 
@@ -9,7 +9,9 @@ import { PAGE_CONTAINER } from './Section'
 
 interface FooterCol {
   title: string
-  items: { label: string; href: string }[]
+  // reload: /docs is a relative path in prod but a separate app (Cloudflare Pages), so it must
+  // full-load rather than client-route.
+  items: { label: string; href: string; reload?: boolean }[]
 }
 
 const COLS: readonly FooterCol[] = [
@@ -24,8 +26,8 @@ const COLS: readonly FooterCol[] = [
   {
     title: 'Docs',
     items: [
-      { label: 'Quickstart', href: links.docs },
-      { label: 'API reference', href: links.docs },
+      { label: 'Quickstart', href: links.docs, reload: true },
+      { label: 'API reference', href: links.docs, reload: true },
     ],
   },
   {
@@ -55,12 +57,13 @@ export function Footer() {
             <ul className="mt-3 flex flex-col gap-2">
               {col.items.map((item) => (
                 <li key={item.label}>
-                  <a
+                  <SmartLink
                     href={item.href}
+                    reload={item.reload}
                     className="rounded-sm text-sm text-fg-secondary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline"
                   >
                     {item.label}
-                  </a>
+                  </SmartLink>
                 </li>
               ))}
             </ul>

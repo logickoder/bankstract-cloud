@@ -5,6 +5,7 @@ import { type VariantProps, cva } from 'class-variance-authority'
 import type { ComponentProps } from 'react'
 
 import { cn } from './lib/cn'
+import { SmartLink } from './smart-link'
 
 export const buttonClass = cva(
   // static-with-hover (DESIGN motion): colour transition only (no scale/glow), a subtle
@@ -35,10 +36,12 @@ export function Button({ variant, size, className, ...props }: ButtonProps) {
   return <button type="button" className={cn(buttonClass({ variant, size }), className)} {...props} />
 }
 
-export type ButtonLinkProps = ComponentProps<'a'> & VariantProps<typeof buttonClass>
+export type ButtonLinkProps = ComponentProps<'a'> &
+  VariantProps<typeof buttonClass> & { reload?: boolean }
 
-// An <a> that wears the button skin. Use for navigation CTAs so a link is a link (one tab
-// stop, valid HTML) instead of the invalid <a><button/></a> nesting.
+// A link wearing the button skin. Use for navigation CTAs so a link is a link (one tab stop,
+// valid HTML) instead of the invalid <a><button/></a> nesting. SmartLink owns the client-nav vs
+// full-load decision (in-app route -> next/link, external / cross-app -> <a>, `reload` forces <a>).
 export function ButtonLink({ variant, size, className, ...props }: ButtonLinkProps) {
-  return <a className={cn(buttonClass({ variant, size }), className)} {...props} />
+  return <SmartLink className={cn(buttonClass({ variant, size }), className)} {...props} />
 }

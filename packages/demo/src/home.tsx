@@ -34,7 +34,7 @@ export function DemoHome() {
 
       <div className="text-center text-sm text-fg-tertiary">
         <p>
-          For production use, see the <Anchor href="/docs">API docs</Anchor>.
+          For production use, see the <Anchor href="/docs" reload>API docs</Anchor>.
         </p>
         <p className="mt-1">
           Don&apos;t trust us? Self-host with{' '}
