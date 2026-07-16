@@ -31,10 +31,10 @@ export function ResultView({
   return (
     <div className="flex flex-col gap-4">
       {overLimit ? (
-        <p className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+        <p className="rounded-md border border-accent/30 bg-accent-muted px-3 py-2 text-sm text-fg">
           Free demo limit reached (50 parses/month). This is sample data, not your file. For real
           parses at volume,{' '}
-          <a href="/#pricing" className={linkClass}>
+          <a href="/pricing" className={linkClass}>
             see the API
           </a>
           .

@@ -40,6 +40,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
   const [created, setCreated] = useState<KeyCreatedResponse | null>(null)
 
   const [testBusy, setTestBusy] = useState(false)
+  const [testError, setTestError] = useState('')
   const [confirmRoll, setConfirmRoll] = useState(false)
 
   const [confirmRevoke, setConfirmRevoke] = useState<KeyInfo | null>(null)
@@ -81,9 +82,13 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
   async function rollTestKey() {
     setConfirmRoll(false)
     setTestBusy(true)
+    setTestError('')
     const res = await fetch('/api/keys/test', { method: 'POST' })
     setTestBusy(false)
-    if (!res.ok) return
+    if (!res.ok) {
+      setTestError('Could not issue the test key. Try again.')
+      return
+    }
     setCreated((await res.json()) as KeyCreatedResponse)
     router.refresh()
   }
@@ -131,6 +136,11 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
             {testBusy ? 'Working...' : testKey ? 'Regenerate' : 'Generate test key'}
           </Button>
         </Card>
+        {testError ? (
+          <p role="alert" className="mt-2 text-sm text-error">
+            {testError}
+          </p>
+        ) : null}
       </section>
 
       <section className="mt-10">

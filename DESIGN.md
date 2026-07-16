@@ -474,12 +474,14 @@ dashboard-sections:
     cards: ["This month: parses", "This month: $ used", "Avg parse time", "Success rate"]
 
   - id: api-keys
-    component: ApiKeysTable
+    component: ApiKeysClient
     ref: resend.com (their API keys page is the gold standard)
-    elements:
-      table-cols: ["Name", "Prefix", "Created", "Last used", "Actions"]
-      create-modal: "name input + env toggle (test/live) + scopes (future)"
-      reveal-once: "show full key once on creation; copy-to-clipboard; warning that it won't be shown again"
+    layout: "one singleton Test key card + a Live keys table (test and live are separate, not a toggle)"
+    test-key: "exactly one active test key per owner, auto-provisioned at signup; Generate when none, Regenerate to roll (revokes the old). Free up to 25 parses/month, then /v1/parse returns sample data"
+    live-keys:
+      table-cols: ["Name", "Prefix", "Created", "Status", "Actions"]
+      create-modal: "name input only (env is always live; scopes future)"
+    reveal-once: "show full key once on creation/regenerate; copy-to-clipboard; warning that it won't be shown again"
 
   - id: usage
     component: UsageDashboard
