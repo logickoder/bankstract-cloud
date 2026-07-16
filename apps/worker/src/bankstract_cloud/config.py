@@ -7,15 +7,27 @@ from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 # One env for every surface: the repo-root .env (dev). Absent in the prod container, where
 # compose injects real env vars (pydantic reads os.environ over the file), so this is dev-only
 # and harmless when missing. extra="ignore" means the worker reads only its own vars and skips
 # the web/demo vars that share the file.
-_ROOT_ENV = Path(__file__).resolve().parents[4] / ".env"
+def _find_root_env() -> str | None:
+    # Walk up for the shared .env instead of assuming a fixed parent index: the monorepo depth
+    # differs from the prod container (/app/src/bankstract_cloud), where a hardcoded parents[4]
+    # raises IndexError at import. None => no file, so pydantic reads os.environ only.
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / ".env"
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
+_ROOT_ENV = _find_root_env()
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=str(_ROOT_ENV), extra="ignore")
+    model_config = SettingsConfigDict(env_file=_ROOT_ENV, extra="ignore")
 
     env: Literal["development", "production"] = "development"
 
