@@ -5,14 +5,14 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3002",
+    "dev": "dotenv -e ../../.env -- next dev -p 3002",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "db:push": "drizzle-kit push"
+    "db:push": "dotenv -e ../../.env -- drizzle-kit push"
   },
   "dependencies": {
     "@bankstract/demo": "workspace:*",

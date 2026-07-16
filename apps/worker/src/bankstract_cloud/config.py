@@ -2,13 +2,20 @@
 # Copyright (C) 2026 Jeffery Orazulike
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# One env for every surface: the repo-root .env (dev). Absent in the prod container, where
+# compose injects real env vars (pydantic reads os.environ over the file), so this is dev-only
+# and harmless when missing. extra="ignore" means the worker reads only its own vars and skips
+# the web/demo vars that share the file.
+_ROOT_ENV = Path(__file__).resolve().parents[4] / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=str(_ROOT_ENV), extra="ignore")
 
     env: Literal["development", "production"] = "development"
 
