@@ -9,6 +9,7 @@ import { magicLink } from 'better-auth/plugins'
 import { db } from './db'
 import { magicLinkEmail } from './email/magic-link'
 import { sendEmail } from './email/send'
+import { workerFetch } from './worker'
 
 // Better Auth, self-hosted: users + sessions in our own libSQL DB (lib/db). Sign-in is
 // Google/GitHub OAuth + email magic-link (Resend). No password, no MFA (deferred).
@@ -36,6 +37,28 @@ export const auth = betterAuth({
       subscriptionTier: { type: 'string', required: false },
       subscriptionStatus: { type: 'string', required: false },
       apiKeysIssuedAt: { type: 'string', required: false },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Provision the owner's single test key at signup (Paystack-style: it exists before they
+          // ask). Best-effort: a worker failure must not block signup, and the keys page offers
+          // "Generate test key" as the fallback when none exists.
+          try {
+            const res = await workerFetch('/v1/keys/test', {
+              method: 'POST',
+              body: JSON.stringify({ owner: user.id }),
+            })
+            if (!res.ok) {
+              console.warn(`[auth] test key provision failed for ${user.id}: ${res.status}`)
+            }
+          } catch (err) {
+            console.warn(`[auth] test key provision error for ${user.id}:`, err)
+          }
+        },
+      },
     },
   },
   plugins: [

@@ -7,9 +7,9 @@ import { z } from 'zod'
 import { requireOwner } from '@/lib/session'
 import { passthrough, workerFetch } from '@/lib/worker'
 
+// Live keys only. The single test key is provisioned/rotated via /api/keys/test.
 const createSchema = z.object({
   name: z.string().min(1).max(120),
-  env: z.enum(['test', 'live']).default('test'),
 })
 
 export async function GET() {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   return passthrough(
     await workerFetch('/v1/keys', {
       method: 'POST',
-      body: JSON.stringify({ ...parsed.data, owner }),
+      body: JSON.stringify({ ...parsed.data, env: 'live', owner }),
     }),
   )
 }
