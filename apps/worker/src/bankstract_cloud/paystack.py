@@ -106,22 +106,18 @@ class PaystackClient:
         return ""
 
     async def _get(self, path: str) -> dict[str, Any]:
-        if not self.enabled:
-            raise PaystackError("paystack not configured")
-        async with httpx.AsyncClient(timeout=15.0, base_url=_API_BASE) as client:
-            resp = await client.get(path, headers=self._headers())
-        if resp.status_code >= 300:
-            raise PaystackError(
-                f"paystack {path} returned {resp.status_code}: {self._error_detail(resp)}"
-            )
-        body: dict[str, Any] = resp.json()
-        return body
+        return await self._request("GET", path)
 
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request("POST", path, payload)
+
+    async def _request(
+        self, method: str, path: str, payload: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         if not self.enabled:
             raise PaystackError("paystack not configured")
         async with httpx.AsyncClient(timeout=15.0, base_url=_API_BASE) as client:
-            resp = await client.post(path, json=payload, headers=self._headers())
+            resp = await client.request(method, path, json=payload, headers=self._headers())
         if resp.status_code >= 300:
             raise PaystackError(
                 f"paystack {path} returned {resp.status_code}: {self._error_detail(resp)}"

@@ -22,5 +22,6 @@ export {
 } from './icons'
 export { Dialog, DialogContent, DialogDescription, DialogTitle } from './dialog'
 export { Input } from './input'
+export { SegmentedRadio } from './segmented-radio'
 export { cn } from './lib/cn'
 export { useClipboard } from './use-clipboard'

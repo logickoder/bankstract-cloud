@@ -12,10 +12,11 @@ import {
   DialogDescription,
   DialogTitle,
   Input,
+  SegmentedRadio,
   useClipboard,
 } from '@bankstract/ui'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 
 import { EnvBadge, StatusBadge } from '@/components/KeyBadges'
 import { PageHeading } from '@/components/PageHeading'
@@ -42,7 +43,6 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
   const { copied, copy } = useClipboard()
   const nameId = useId()
   const nameErrorId = useId()
-  const envRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   // Overview's "Create your first key" CTA links here with ?create=1 to open the dialog directly.
   useEffect(() => {
@@ -89,16 +89,6 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
     } else {
       setRevokeError('Could not revoke the key. Try again.')
     }
-  }
-
-  function onEnvKey(e: KeyboardEvent<HTMLDivElement>) {
-    const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
-    if (!dir) return
-    e.preventDefault()
-    const cur = ENVS.indexOf(env)
-    const next = (cur + dir + ENVS.length) % ENVS.length
-    setEnv(ENVS[next]!)
-    envRefs.current[next]?.focus()
   }
 
   return (
@@ -228,29 +218,16 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
                   error={Boolean(error)}
                   aria-describedby={error ? nameErrorId : undefined}
                 />
-                <div
-                  role="radiogroup"
-                  aria-label="Key environment"
+                <SegmentedRadio
+                  options={ENVS}
+                  value={env}
+                  onChange={setEnv}
+                  ariaLabel="Key environment"
                   className="flex gap-2"
-                  onKeyDown={onEnvKey}
-                >
-                  {ENVS.map((e, i) => (
-                    <button
-                      key={e}
-                      ref={(el) => {
-                        envRefs.current[i] = el
-                      }}
-                      type="button"
-                      role="radio"
-                      aria-checked={env === e}
-                      tabIndex={env === e ? 0 : -1}
-                      onClick={() => setEnv(e)}
-                      className={buttonClass({ variant: env === e ? 'primary' : 'secondary', size: 'sm' })}
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
+                  optionClassName={(selected) =>
+                    buttonClass({ variant: selected ? 'primary' : 'secondary', size: 'sm' })
+                  }
+                />
                 {error ? (
                   <p id={nameErrorId} role="alert" className="text-sm text-error">
                     {error}

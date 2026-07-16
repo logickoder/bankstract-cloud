@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { buildMetadata, SITE_URL } from '@bankstract/seo'
+import { buildMetadata, JsonLd, SITE_URL } from '@bankstract/seo'
 import { Anchor, cn } from '@bankstract/ui'
 
 import { FinalCtaSection } from './components/FinalCtaSection'
@@ -39,10 +39,7 @@ const pricingJsonLd = {
 export function PricingPage() {
   return (
     <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingJsonLd) }}
-      />
+      <JsonLd data={pricingJsonLd} />
       <div className={cn(PAGE_CONTAINER, 'pt-8')}>
         <Anchor href="/">← bankstract</Anchor>
       </div>

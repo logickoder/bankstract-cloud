@@ -3,8 +3,8 @@
 
 'use client'
 
-import { Badge, Button, Card } from '@bankstract/ui'
-import { type KeyboardEvent, useRef, useState } from 'react'
+import { Badge, Button, Card, SegmentedRadio } from '@bankstract/ui'
+import { useState } from 'react'
 
 import type { SubscribeResponse, SubscriptionStatusResponse } from '@/lib/worker'
 
@@ -30,17 +30,6 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [interval, setBillingInterval] = useState<Interval>('monthly')
-  const intervalRefs = useRef<(HTMLButtonElement | null)[]>([])
-
-  function onIntervalKey(e: KeyboardEvent<HTMLDivElement>) {
-    const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
-    if (!dir) return
-    e.preventDefault()
-    const cur = INTERVALS.indexOf(interval)
-    const next = (cur + dir + INTERVALS.length) % INTERVALS.length
-    setBillingInterval(INTERVALS[next]!)
-    intervalRefs.current[next]?.focus()
-  }
 
   async function subscribe(tier: string) {
     setBusy(tier)
@@ -81,29 +70,17 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
 
   return (
     <div className="mt-8">
-      <div
-        role="radiogroup"
-        aria-label="Billing interval"
-        onKeyDown={onIntervalKey}
+      <SegmentedRadio
+        options={INTERVALS}
+        value={interval}
+        onChange={setBillingInterval}
+        ariaLabel="Billing interval"
         className="mb-6 inline-flex rounded-lg border border-border p-1 text-sm"
-      >
-        {INTERVALS.map((iv, i) => (
-          <button
-            key={iv}
-            ref={(el) => {
-              intervalRefs.current[i] = el
-            }}
-            type="button"
-            role="radio"
-            aria-checked={interval === iv}
-            tabIndex={interval === iv ? 0 : -1}
-            onClick={() => setBillingInterval(iv)}
-            className={tabClass(interval === iv)}
-          >
-            {iv === 'monthly' ? 'Monthly' : <>Annual <span className="text-fg-tertiary">-15%</span></>}
-          </button>
-        ))}
-      </div>
+        optionClassName={tabClass}
+        renderOption={(iv) =>
+          iv === 'monthly' ? 'Monthly' : <>Annual <span className="text-fg-tertiary">-15%</span></>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         {TIERS.map((t) => (

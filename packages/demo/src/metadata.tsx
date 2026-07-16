@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { buildMetadata, SITE_URL } from '@bankstract/seo'
+import { buildMetadata, JsonLd as SchemaScript, SITE_URL } from '@bankstract/seo'
 
 const DESCRIPTION =
   'Convert a Nigerian bank statement PDF into clean transactions in your browser. No signup, no storage, processed in memory. Free, by the bankstract parsing API.'
@@ -31,7 +31,5 @@ const jsonLd = {
 }
 
 export function JsonLd() {
-  return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-  )
+  return <SchemaScript data={jsonLd} />
 }
