@@ -144,14 +144,19 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
       </section>
 
       <section className="mt-10">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h2 className="font-display text-lg font-semibold text-fg">Live keys</h2>
             <p className="mt-1 text-sm text-fg-secondary">
               Production keys. Parse under an active subscription. Make as many as you need.
             </p>
           </div>
-          <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
+          <Button
+            variant="primary"
+            size="sm"
+            className="shrink-0 self-start whitespace-nowrap sm:self-auto"
+            onClick={() => setCreateOpen(true)}
+          >
             Create key
           </Button>
         </div>
