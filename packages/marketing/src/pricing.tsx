@@ -2,12 +2,11 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { buildMetadata, JsonLd, SITE_URL } from '@bankstract/seo'
-import { Anchor, cn } from '@bankstract/ui'
 
+import { BackToHome } from './components/BackToHome'
 import { FinalCtaSection } from './components/FinalCtaSection'
 import { Footer } from './components/Footer'
 import { PricingSection } from './components/PricingSection'
-import { PAGE_CONTAINER } from './components/Section'
 import { PAID_TIERS } from './lib/pricing'
 
 export const pricingMetadata = buildMetadata({
@@ -40,9 +39,7 @@ export function PricingPage() {
   return (
     <main>
       <JsonLd data={pricingJsonLd} />
-      <div className={cn(PAGE_CONTAINER, 'pt-8')}>
-        <Anchor href="/">← bankstract</Anchor>
-      </div>
+      <BackToHome />
       <PricingSection />
       <FinalCtaSection />
       <Footer />

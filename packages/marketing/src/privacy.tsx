@@ -5,6 +5,7 @@ import { buildMetadata } from '@bankstract/seo'
 import { Anchor, cn } from '@bankstract/ui'
 import type { ReactNode } from 'react'
 
+import { BackToHome } from './components/BackToHome'
 import { Footer } from './components/Footer'
 import { PAGE_CONTAINER } from './components/Section'
 
@@ -76,9 +77,7 @@ const SUBPROCESSORS: readonly { name: string; purpose: string; data: string; reg
 export function PrivacyPage() {
   return (
     <main>
-      <div className={cn(PAGE_CONTAINER, 'pt-8')}>
-        <Anchor href="/">← bankstract</Anchor>
-      </div>
+      <BackToHome />
 
       <div className={cn(PAGE_CONTAINER, 'py-12 sm:py-16')}>
         <header className="flex flex-col gap-4">
