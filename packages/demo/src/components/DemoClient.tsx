@@ -24,8 +24,10 @@ export function DemoClient() {
   const [state, dispatch] = useReducer(demoReducer, initialState)
   const turnstile = useRef<TurnstileHandle>(null)
   const sampleIndex = useRef(0)
+  const busy = useRef(false)
 
   async function handleFile(file: File, sample = false) {
+    if (busy.current) return // ignore a second drop while a parse is in flight
     if (file.size > MAX_BYTES) {
       dispatch({ type: 'PARSE_FAILED', code: 'too_large', file })
       return
@@ -35,18 +37,26 @@ export function DemoClient() {
       return
     }
 
+    busy.current = true
     dispatch({ type: 'PARSE_STARTED', file, sample })
-    // Token obtained at submit time, freshest relative to the immediately-following POST.
-    const token = (await turnstile.current?.getToken()) ?? ''
-    const result = await parseStatement(file, token, (progress) =>
-      dispatch({ type: 'PARSE_PROGRESS', progress }),
-    )
-    turnstile.current?.reset()
-
-    if (result.ok) {
-      dispatch({ type: 'PARSE_SUCCEEDED', data: result.data, overLimit: result.overLimit })
-    } else {
-      dispatch({ type: 'PARSE_FAILED', code: result.code, file })
+    try {
+      // Token obtained at submit time, freshest relative to the immediately-following POST.
+      const token = (await turnstile.current?.getToken()) ?? ''
+      const result = await parseStatement(file, token, (progress) =>
+        dispatch({ type: 'PARSE_PROGRESS', progress }),
+      )
+      turnstile.current?.reset()
+      if (result.ok) {
+        dispatch({ type: 'PARSE_SUCCEEDED', data: result.data, overLimit: result.overLimit })
+      } else {
+        dispatch({ type: 'PARSE_FAILED', code: result.code, file })
+      }
+    } catch {
+      // Any unexpected throw must still reach a terminal state, never leave the spinner hanging.
+      turnstile.current?.reset()
+      dispatch({ type: 'PARSE_FAILED', code: 'network', file })
+    } finally {
+      busy.current = false
     }
   }
 
