@@ -11,7 +11,7 @@ Annual prepay is available at 15% off (billed yearly). The cap and overage rate 
 
 | Tier | Price | Includes |
 |------|-------|----------|
-| `bsk_test_` | Free | Full API, integration testing |
+| `bsk_test_` | Free up to 25 parses/owner/month, then a canned sample | Full API, integration testing |
 | `bsk_live_` | Subscription (NGN/mo) | Production parses up to your tier cap, then per-parse overage |
 | Self-host | Free | Run the AGPL-3.0 stack yourself |
 
@@ -27,7 +27,7 @@ An inactive subscription returns `402` with `error_class: "subscription_inactive
 
 ## Rate limits
 
-The anonymous demo surface is capped at **50 parses/month per IP**. Authenticated keys are not hard-rate-limited during the alpha; abuse protection scales with load. A `429` returns the standard envelope with `error_class: "RateLimitError"`.
+The anonymous demo surface is capped at **50 parses/month per IP**, and a test key is capped at **25 parses/owner/month**. Over either cap the request is not rejected. It returns a `200` with a canned synthetic sample (an additive `_sample` marker in the JSON and an `X-Bankstract-Sample: true` header); the engine does not run. There is no `429`. Live keys are not hard-rate-limited; they are gated by the subscription tier cap (billing), not a rate limit.
 
 ## Usage
 

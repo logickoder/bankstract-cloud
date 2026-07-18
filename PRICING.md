@@ -83,9 +83,16 @@ Leave any annual plan blank to disable that interval for that tier (returns 503 
 
 | Tier | Monthly | Annual | Cap | Overage |
 |---|---|---|---|---|
+| Free (`bsk_test_`) | ₦0 | ₦0 | 25 parses/owner/mo | Canned sample (no billing) |
 | Starter | ₦9,500 | ₦96,900 | 1,000 parses/mo | ₦15/parse |
 | Growth | ₦35,000 | ₦357,000 | 10,000 parses/mo | ₦12/parse |
 | Scale | ₦150,000 | ₦1,530,000 | 100,000 parses/mo | ₦8/parse |
 | Enterprise | Custom | Custom | Unlimited | Negotiated |
 
 Annual = monthly × 12 × 0.85 (15% off). No partial-month refunds.
+
+The Free tier is a `bsk_test_` key: 25 successful parses per owner per calendar month
+(`TEST_TIER_MONTHLY_CAP=25`), auto-provisioned at signup, one active test key per owner
+(rotate via `POST /v1/keys/test`). Past the cap the API does not block. It returns a 200
+canned synthetic sample (`_sample` marker + `X-Bankstract-Sample: true`) and the engine
+does not run, so over-cap test usage is never billed and never errors.

@@ -16,7 +16,7 @@ Parse a statement. `multipart/form-data` with `pdf=<file>`.
 
 - Query: `format=json|csv` (default `json`)
 - Form: `bank=<name>` (optional), `redact=true` (optional)
-- `200` → `ParseResponse` JSON, or CSV / redacted bytes · `401` `413` `422` `429` `500`
+- `200` → `ParseResponse` JSON, or CSV / redacted bytes · `401` `402` `413` `422` `500`
 
 ## Account
 
@@ -34,7 +34,10 @@ Worker and engine version. No auth.
 Gated by an admin token, not a `bsk_` key. A key can never mint more keys.
 
 ### `POST /v1/keys`
-Issue a key. Body: `{ name, env: "live"|"test", owner? }`. Returns the raw key **once**.
+Issue a **live** key. Body: `{ name, owner? }` (env is always live). `env=test` → `409`; test keys are provisioned via `POST /v1/keys/test`. Returns the raw key **once**. Owners may hold many live keys.
+
+### `POST /v1/keys/test`
+Provision or rotate the owner's single test key. Revokes the existing test key and issues a new one. Returns the raw key **once**.
 
 ### `GET /v1/keys?owner=`
 List key metadata (never the raw key or hash). Optional `owner` filter.

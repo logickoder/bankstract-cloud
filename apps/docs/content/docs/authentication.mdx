@@ -16,7 +16,11 @@ Authorization: Bearer bsk_live_xxx
 | Prefix | Billed | Use |
 |--------|--------|-----|
 | `bsk_live_` | Yes (counts against your NGN subscription tier cap) | Production |
-| `bsk_test_` | No | Integration + onboarding |
+| `bsk_test_` | Free up to 25 parses/owner/month, then a canned sample | Integration + onboarding |
+
+Past the 25-parse monthly cap a test key does not error. It returns a `200` with a canned synthetic sample (an additive `_sample` marker in the JSON and an `X-Bankstract-Sample: true` header). The engine does not run on the sample response.
+
+You have exactly **one** active test key. It is auto-provisioned when you sign up and rotated with `POST /v1/keys/test` (the old key is revoked and a new raw key is returned once). Live keys are unlimited per owner.
 
 Keys are shown **once** at creation and stored only as an argon2 hash. We can't recover a lost key, so store it securely. Revoke and re-issue if it leaks.
 

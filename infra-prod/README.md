@@ -83,7 +83,7 @@ One-time setup:
    - `DEPLOY_SSH_KEY` - a private key whose public half is in the box's `~/.ssh/authorized_keys`
    - `DEPLOY_PATH` - absolute path to the cloned repo on the box
    - `DEPLOY_PORT` - optional, defaults to 22
-4. Optional repo **variable** `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (else the bundle bakes the test key).
+4. Optional repo **variables** (build-time, baked into the `web` image by CI): `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (else the bundle bakes the test key) and `NEXT_PUBLIC_CF_ANALYTICS_TOKEN` (Cloudflare Web Analytics beacon; empty = no beacon). Both are GitHub Actions repo variables, not box runtime env.
 
 After that, every push touching `apps/web`, `apps/worker`, `packages`, or `infra-prod` ships automatically. `workflow_dispatch` runs it manually. Pin `IMAGE_TAG` in `.env` to a commit SHA to freeze a release; `latest` tracks main.
 
@@ -97,7 +97,7 @@ openssl rand -hex 32                      # -> BETTER_AUTH_SECRET
 echo "bsk_test_$(openssl rand -hex 16)"   # -> DEMO_API_KEY
 ```
 
-**Tier 1 - required to boot.** With only these, the stack comes up: worker parses (test keys, free), the demo works, the dashboard loads. But nobody can sign in yet (Tier 2).
+**Tier 1 - required to boot.** With only these, the stack comes up: worker parses (test keys, free up to 25 parses/owner/month then a canned sample), the demo works, the dashboard loads. But nobody can sign in yet (Tier 2).
 
 - `PUBLIC_ORIGIN` - the product domain, e.g. `https://bankstract.logickoder.dev`.
 - `ADMIN_API_TOKEN` - shared web <-> worker admin token (the `openssl` output).

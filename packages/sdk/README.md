@@ -91,7 +91,7 @@ try {
 | `SubscriptionInactiveError` | 402, subscription inactive |
 | `PayloadTooLargeError` | 413, file over 50MB |
 | `UnsupportedStatementError` | 422, no parser / layout drift / reconciliation (see `errorClass`, `markerCoverage`) |
-| `RateLimitError` | 429, with `retryAfter` |
+| `RateLimitError` | 429, with `retryAfter`. The API no longer emits 429 (over-cap returns a 200 canned sample); kept as a defensive mapping. |
 | `ServerError` | 5xx |
 | `TimeoutError` | request aborted (timeout or your `signal`) |
 

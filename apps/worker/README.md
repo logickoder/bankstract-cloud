@@ -46,15 +46,19 @@ uv run pytest
 
 ### `/v1/parse` status codes
 
-`200` ParseResponse JSON, or redacted bytes when `redact=true` · `401` bad/missing key or failed Turnstile · `413` >50 MB · `422` unsupported bank / reconciliation failure · `429` rate limit · `500` engine error.
+`200` ParseResponse JSON, or redacted bytes when `redact=true` · `401` bad/missing key or failed Turnstile · `402` subscription inactive (`subscription_inactive`) · `413` >50 MB · `422` unsupported bank / reconciliation failure · `500` engine error.
+
+Over-cap requests are not rejected. A test key past 25 parses/owner/month, or a demo IP past 50/month, gets a `200` canned synthetic sample (`_sample` marker + `X-Bankstract-Sample: true`); the engine does not run. There is no `429`.
 
 ## API keys
 
-Format `bsk_<env>_<random32>`. Stored argon2-hashed; the raw key is returned once on issue. The anonymous demo key comes from `DEMO_API_KEY` and is matched from config, never stored. Issue a key programmatically:
+Format `bsk_<env>_<random32>`. Stored argon2-hashed; the raw key is returned once on issue. The anonymous demo key comes from `DEMO_API_KEY` and is matched from config, never stored.
+
+Each owner has exactly one active test key (auto-provisioned at signup, rotated via `POST /v1/keys/test`) and may hold many live keys (`POST /v1/keys`). A test key parses free up to 25 parses/owner/month; past the cap the endpoint returns a `200` canned sample instead of running the engine. Issue a live key programmatically:
 
 ```python
 from bankstract_cloud.auth import KeyStore
-# issued = keystore.issue("my-key", "test")  # tier=test, not billed
+# issued = keystore.issue("my-key", "live")  # live tier; test keys go through POST /v1/keys/test
 ```
 
 ## Layout

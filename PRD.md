@@ -49,6 +49,8 @@ NGN-anchored monthly subscriptions. Nigeria-first indefinitely. International US
 
 Tiers, caps, overage rates, annual amounts, and Paystack plan setup: [PRICING.md](PRICING.md).
 
+Free tier: a `bsk_test_` key parses free up to 25 successful parses per owner per calendar month (`TEST_TIER_MONTHLY_CAP=25`). Past the cap the API does not block. It returns a 200 canned synthetic sample (`_sample` marker + `X-Bankstract-Sample: true`), the engine does not run, and nothing is billed. One active test key per owner, auto-provisioned at signup and rotated via `POST /v1/keys/test`. Paid `bsk_live_` keys carry the tier caps above.
+
 ### Payment processor
 
 Paystack only. NGN cards and NGN bank transfer. Subscriptions drive monthly billing. Overage is metered in-app and charged via Paystack Invoices at end of cycle. Webhook signatures verified with HMAC-SHA512 against the Paystack secret key. API key lifecycle is bound to subscription state: an inactive subscription returns `402` with `error_class: subscription_inactive`.
@@ -224,8 +226,12 @@ Response 401  invalid / missing API key
 Response 402  subscription inactive (error_class: subscription_inactive)
 Response 413  file too large (>50MB)
 Response 422  no parser/redactor detected (unsupported bank or wrong format)
-Response 429  rate limit exceeded
 Response 500  internal parse error (response body includes format_version)
+
+Over-cap requests are NOT rejected. A test key past its 25/mo free cap, or an
+anonymous demo IP past its 50/mo cap, gets a 200 with a canned synthetic sample
+(additive `_sample` marker in the JSON + `X-Bankstract-Sample: true` header). The
+engine does not run. `429` is not used.
 ```
 
 ### Async parse jobs (`/v1/parse/jobs`)
@@ -267,7 +273,22 @@ GET /v1/usage
 Same `/v1/parse` handler internally; demo wrapper passes:
 - Public demo API key (server-side)
 - Cloudflare Turnstile token from client (server validates)
-- Anonymous IP-based rate limit (50 parses/month per IP)
+- Anonymous IP-based free cap (50 parses/month per IP). Over the cap the request is
+  not blocked: it returns a 200 canned synthetic sample (`_sample` marker +
+  `X-Bankstract-Sample: true`), not a 429.
+
+### Keys (admin token, not a `bsk_` key)
+
+```
+POST   /v1/keys                   issue a LIVE key. Body { name, owner? }; env is
+                                  always live. env=test -> 409 (test keys are not
+                                  minted here). Raw key shown once. Many live keys/owner.
+POST   /v1/keys/test              provision or rotate the owner's single test key
+                                  (roll: revoke old, issue new). Exactly one active
+                                  test key per owner. Raw key shown once.
+GET    /v1/keys?owner=            list key metadata (never the raw key or hash)
+DELETE /v1/keys/{id}              revoke (soft delete)
+```
 
 ### Health
 

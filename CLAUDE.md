@@ -266,9 +266,12 @@ Response:
   402 → billing failure (subscription inactive; error_class: subscription_inactive)
   413 → file too large (>50MB)
   422 → no parser detected (unsupported bank or wrong format)
-  429 → rate limit exceeded
   500 → internal parse error (include format_version)
 ```
+
+Over a free-tier cap there is no 429. The response is a 200 canned synthetic sample (additive
+`_sample` marker + `X-Bankstract-Sample: true` header), engine not run. See CORE DIRECTIVES / the
+free-tier cap. 429 is unused product-wide.
 
 Versioned URL prefix `/v1/` from day 1. Breaking changes → `/v2/`.
 
@@ -317,7 +320,7 @@ async def parse(pdf: UploadFile, redact: bool = False, bank: str | None = None) 
 
 ### 4. Consumer demo calls the same endpoint internally
 
-`apps/demo` POSTs to the same `/v1/parse` worker endpoint using a public demo key + Turnstile token. Server validates Turnstile + applies anonymous rate limit. One worker code path, two surfaces.
+`apps/demo` POSTs to the same `/v1/parse` worker endpoint using a public demo key + Turnstile token. Server validates Turnstile + applies the anonymous cap (50/month per IP). Over the cap it returns a 200 canned sample, not a 429. One worker code path, two surfaces.
 
 ### 5. Paystack NGN subscription billing
 
@@ -346,8 +349,8 @@ Fixture privacy rule (mirrors bankstract engine):
 ## API KEY CONVENTIONS
 
 - Format: `bsk_<env>_<random32>` where `<env>` is `live` or `test`
-- `bsk_live_` keys parse under an active Paystack subscription; an inactive subscription → `402 subscription_inactive`
-- `bsk_test_` keys parse for free, used in onboarding + integration testing
+- `bsk_live_` keys parse under an active Paystack subscription; an inactive subscription → `402 subscription_inactive`. Many live keys per owner; create via `POST /v1/keys` (live-only: `env=test` → 409).
+- `bsk_test_` keys parse free up to the monthly cap (25 successful parses/owner/month, `test_tier_monthly_cap`), then `/v1/parse` returns the 200 canned sample. One active test key per owner, auto-provisioned at signup, rotated via `POST /v1/keys/test` (roll: revokes old, issues new). For onboarding + integration testing, not free production.
 - Keys stored hashed (argon2) in DB; raw key shown ONCE on creation
 - Revocation = mark `revoked_at` timestamp; never delete (audit trail)
 
