@@ -22,7 +22,7 @@
     "@bankstract/tsconfig": "workspace:*",
     "@types/react": "^19.2.0",
     "eslint": "^9.17.0",
-    "next": "16.2.9",
+    "next": "16.2.11",
     "react": "19.2.7",
     "typescript": "^5.7.2"
   }
