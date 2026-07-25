@@ -38,13 +38,15 @@ interface OgInput {
 //
 // Exception: apps/docs is a static export, where the file convention prerenders to a clean static
 // file — so docs keeps opengraph-image.tsx and points `ogImage` at /docs/opengraph-image.
-export function ogRoute(input: OgInput): { GET: () => ImageResponse } {
+// Return the global Response (ImageResponse extends it) so consumers can name the type without
+// reaching into this package's nested next/og (TS2742).
+export function ogRoute(input: OgInput): { GET: () => Response } {
   return { GET: () => ogImage(input) }
 }
 
 // The shared 1200x630 social card: brand mark + wordmark header, two-line headline (the second
 // line accented), and a muted subtitle. Each surface supplies only the copy.
-export function ogImage({ line1, line2, subtitle }: OgInput): ImageResponse {
+export function ogImage({ line1, line2, subtitle }: OgInput): Response {
   return new ImageResponse(
     (
       <div

@@ -12,8 +12,9 @@ const BG = '#0a0a0a'
 const STACK = '#52525B'
 
 // iOS home-screen icon (180x180, opaque - iOS masks its own corners). The extract mark, dim stack,
-// centred in the dark square.
-export function appleIcon(): ImageResponse {
+// centred in the dark square. Return the global Response (ImageResponse extends it) so consumers in
+// other packages can name the type without reaching into this package's nested next/og (TS2742).
+export function appleIcon(): Response {
   return new ImageResponse(
     (
       <div
