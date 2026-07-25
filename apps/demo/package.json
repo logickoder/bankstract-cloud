@@ -20,7 +20,7 @@
     "@bankstract/ui": "workspace:*",
     "@marsidev/react-turnstile": "1.5.3",
     "@sentry/nextjs": "^10.59.0",
-    "next": "16.2.9",
+    "next": "16.2.11",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },
