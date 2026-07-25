@@ -14,6 +14,7 @@ export const pricingMetadata = buildMetadata({
   description:
     'NGN monthly subscription tiers for the bankstract statement parsing API. Free self-host and demo tiers, paid tiers with parse caps and overage.',
   path: '/pricing',
+  ogImage: '/pricing/og',
   keywords: ['bankstract pricing', 'statement parsing API pricing', 'NGN subscription'],
 })
 

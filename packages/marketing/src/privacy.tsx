@@ -17,6 +17,7 @@ export const privacyMetadata = buildMetadata({
   description:
     'How the bankstract hosted service handles your data. Statements are processed in memory and never written to disk. Metadata only, no statement contents.',
   path: '/privacy',
+  ogImage: '/privacy/og',
   keywords: ['bankstract privacy', 'NDPR', 'data protection', 'statement parsing privacy'],
 })
 

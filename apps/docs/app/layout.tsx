@@ -15,6 +15,8 @@ export const metadata = buildMetadata({
   title: 'bankstract API docs',
   description:
     'Documentation for the bankstract statement-parsing API: quickstart, authentication, the /v1 reference, and the TypeScript SDK.',
+  // Explicit image paths are not basePath-adjusted the way the file convention is, so carry /docs.
+  ogImage: '/docs/opengraph-image',
 })
 
 export default function Layout({ children }: { children: ReactNode }) {

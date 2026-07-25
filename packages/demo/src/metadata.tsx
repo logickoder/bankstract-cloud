@@ -10,6 +10,7 @@ export const metadata = buildMetadata({
   title: 'bankstract: drop your bank statement, get clean transactions',
   description: DESCRIPTION,
   path: '/demo',
+  ogImage: '/demo/og',
   keywords: [
     'bank statement to CSV',
     'convert bank statement PDF',
