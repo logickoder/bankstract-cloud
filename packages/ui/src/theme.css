@@ -50,6 +50,14 @@ html {
   overflow-x: hidden;
 }
 
+/* In-page anchor links (e.g. /for-lenders "See a sample parse") scroll instead of jump.
+   Gated on prefers-reduced-motion: a user who has turned off motion still gets it instant. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

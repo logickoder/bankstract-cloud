@@ -8,12 +8,13 @@ import { BackToHome } from './components/BackToHome'
 import { CodeBlock } from './components/CodeBlock'
 import { FinalCtaSection } from './components/FinalCtaSection'
 import { Footer } from './components/Footer'
+import { SampleStatementPanel } from './components/SampleStatementPanelLoader'
 import { Section, SectionHeading } from './components/Section'
 import { HERO_CURL } from './lib/code-samples'
 import { links } from './lib/links'
 
 const DESCRIPTION =
-  'Turn Nigerian bank statement PDFs into clean transactions for underwriting. One API call. NDPR-aware redaction, open source, self-hostable. Built for lending fintechs.'
+  'Turn Nigerian bank statement PDFs into clean transactions for underwriting. One API call. NDPR-aware redaction, open source, self-hostable. Built for lenders.'
 
 export const lendersMetadata = buildMetadata({
   title: 'Bank statement parsing API for Nigerian lenders',
@@ -94,7 +95,7 @@ export function LendersPage() {
 
       <Section grain className="pt-8 pb-6 sm:pt-12 sm:pb-8">
         <BackToHome container={false} />
-        <p className="mt-8 font-mono text-sm text-accent">For lending fintechs</p>
+        <p className="mt-8 font-mono text-sm text-accent">For lenders</p>
         <h1 className="mt-4 max-w-3xl font-display text-4xl font-extrabold leading-[1.05] tracking-[-0.03em] text-fg sm:text-6xl sm:tracking-[-0.04em]">
           Bank statement parsing for underwriting
         </h1>
@@ -102,13 +103,16 @@ export function LendersPage() {
           Turn a Nigerian bank statement PDF into clean transactions, balances, and account metadata
           over one API call. NDPR-aware redaction in the same call.
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-8 flex flex-wrap items-center gap-3">
           <ButtonLink href={DEMO} reload variant="primary">
             Try the live demo
           </ButtonLink>
           <ButtonLink href={links.docs} reload variant="secondary">
             Read the docs
           </ButtonLink>
+          <Anchor href="#sample-output" className="text-sm">
+            See a sample parse ↓
+          </Anchor>
         </div>
       </Section>
 
@@ -152,7 +156,18 @@ export function LendersPage() {
         </div>
       </Section>
 
-      <Section>
+      <Section id="sample-output">
+        <SectionHeading>Sample output</SectionHeading>
+        <p className="mt-4 max-w-xl text-fg-secondary">
+          Synthetic data, generated in your browser. Not a parse of a real statement. This is the
+          shape every real parse comes back in.
+        </p>
+        <div className="mt-8">
+          <SampleStatementPanel />
+        </div>
+      </Section>
+
+      <Section surface="raised">
         <SectionHeading>Coverage</SectionHeading>
         <p className="mt-4 max-w-xl text-fg-secondary">
           Live today: PalmPay, First Bank, Zenith, and Opay. New banks and format drift ship in about

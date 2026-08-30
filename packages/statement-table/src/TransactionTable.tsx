@@ -3,20 +3,23 @@
 
 'use client'
 
+import { displayDate, displayMoney, displayNaira, signedNaira } from '@bankstract/format'
 import type { ParseResponse, Transaction } from '@bankstract/types'
 import { Badge, linkClass } from '@bankstract/ui'
 import { useState } from 'react'
 
-import { displayDate, displayMoney, displayNaira, signedNaira } from '../lib/format'
-
+// Shared between @bankstract/demo's real parse result and @bankstract/marketing's generated
+// sample statement on /for-lenders. Both render the same ParseResponse shape the same way;
+// the only behavioral difference between the two call sites is row count (a real parse can
+// run past PREVIEW_ROWS, a generated sample never does), and that difference is already
+// handled by the same expand/collapse logic below with no extra prop needed.
 const PREVIEW_ROWS = 10
 
-const RECONCILED_TIP =
-  'Row balances and statement totals both check out.'
+const RECONCILED_TIP = 'Row balances and statement totals both check out.'
 const FALLBACK_TIP =
   "This statement doesn't ship per-row balances. We verified by matching debit + credit sums to the statement header. Same math, different proof."
 
-export function ResultTable({ data }: { data: ParseResponse }) {
+export function TransactionTable({ data }: { data: ParseResponse }) {
   const [expanded, setExpanded] = useState(false)
   const total = data.transactions.length
   const rows = expanded ? data.transactions : data.transactions.slice(0, PREVIEW_ROWS)
@@ -96,11 +99,7 @@ export function ResultTable({ data }: { data: ParseResponse }) {
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-5 py-3 text-xs">
         {hasMore ? (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className={linkClass}
-          >
+          <button type="button" onClick={() => setExpanded((v) => !v)} className={linkClass}>
             {expanded ? 'Show first 10' : `Show all ${total} rows`}
           </button>
         ) : (

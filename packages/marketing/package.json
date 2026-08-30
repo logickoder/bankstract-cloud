@@ -14,7 +14,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@bankstract/format": "workspace:*",
     "@bankstract/seo": "workspace:*",
+    "@bankstract/statement-table": "workspace:*",
     "@bankstract/types": "workspace:*",
     "@bankstract/ui": "workspace:*",
     "lucide-react": "^0.469.0",
