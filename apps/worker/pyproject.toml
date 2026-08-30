@@ -70,3 +70,9 @@ reportUnknownArgumentType = false
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.uv]
+# GHSA-g6cj-pr64-35w5: cryptography <50.0.0 PKCS#7 EnvelopedData Bleichenbacher oracle.
+# Transitive via pdfplumber -> pdfminer-six -> cryptography; not a direct dependency, so
+# constrained here rather than added to [project.dependencies].
+constraint-dependencies = ["cryptography>=50.0.0"]

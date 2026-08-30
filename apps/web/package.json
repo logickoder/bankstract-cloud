@@ -18,6 +18,7 @@
     "@bankstract/demo": "workspace:*",
     "@bankstract/marketing": "workspace:*",
     "@bankstract/seo": "workspace:*",
+    "@bankstract/statement-table": "workspace:*",
     "@bankstract/types": "workspace:*",
     "@bankstract/ui": "workspace:*",
     "@libsql/client": "^0.14.0",

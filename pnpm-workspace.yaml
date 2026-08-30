@@ -2,16 +2,6 @@ packages:
   - apps/*
   - packages/*
 
-auditConfig:
-  ignoreGhsas:
-    # GHSA-mh99-v99m-4gvg (brace-expansion OOM DoS). Unfixable + unreachable: the only remaining path
-    # is eslint's minimatch@3 (pinned minimatch@^3 by @eslint/config-array + @eslint/eslintrc), which
-    # requires the v1 callable API. brace-expansion's newest 1.x is 1.1.16 (no 1.x patch exists) and
-    # the fix (>=5.0.8) is a v5 named export that crashes minimatch@3. It runs at build time over our
-    # own eslint config globs and repo file paths (no attacker input). The v5 edge (minimatch@10) is
-    # patched to 5.0.8 via overrides; only this build-only v1 edge is waived.
-    - GHSA-mh99-v99m-4gvg
-
 allowBuilds:
   # Unused: apps/app uses libSQL (prebuilt). better-sqlite3 lingers only as a Better Auth
   # optional peer; never build its native binary (it fails under Node 24 and we don't load it).
@@ -35,20 +25,32 @@ overrides:
   # Bare keys (force every instance) with a major cap, since ranged selectors match the declared
   # spec, not the resolved version, and leave transitive copies un-bumped. brace-expansion has two
   # legitimate majors in the tree, so it uses per-major selectors instead of a collapsing bare key.
-  # GHSA-r28c-9q8g-f849: postcss <8.5.18 source-map path traversal.
-  postcss: ">=8.5.18 <9"
-  # GHSA-3jxr-9vmj-r5cp / GHSA-mh99-v99m-4gvg: brace-expansion DoS. Bump per-major: v1 must stay v1
-  # because minimatch 3.x calls it as `module.exports = expand` (v5 changed to a named export and
-  # crashes minimatch 3.x). A resolved-version range catches the stubborn v5 minimatch edge that the
-  # bare `@5` selector missed. Build-time glob only, off the runtime path.
-  brace-expansion@1: ">=1.1.16 <2"
-  brace-expansion@5: ">=5.0.8 <6"
-  # GHSA-52cp-r559-cp3m: js-yaml <4.3.0 quadratic CPU via merge-key chains.
-  js-yaml: ">=4.3.0 <5"
+  # GHSA-r28c-9q8g-f849 / GHSA-fxqj-rqcc-2cmp: postcss <8.5.23 source-map path traversal
+  # (second GHSA is an incomplete-fix follow-up on the first).
+  postcss: ">=8.5.23 <9"
+  # GHSA-3jxr-9vmj-r5cp / GHSA-mh99-v99m-4gvg / GHSA-rgw5-rvv9-x895: brace-expansion DoS. Bump
+  # per-major: v1 must stay v1 because minimatch 3.x calls it as `module.exports = expand` (v5
+  # changed to a named export and crashes minimatch 3.x). A resolved-version range catches the
+  # stubborn v5 minimatch edge that the bare `@5` selector missed. Build-time glob only, off the
+  # runtime path. A 1.x patch (1.1.18) now exists, so both majors are fixable in place.
+  brace-expansion@1: ">=1.1.18 <2"
+  brace-expansion@5: ">=5.0.9 <6"
+  # GHSA-52cp-r559-cp3m / GHSA-5p4m-2wfm-xmqj: js-yaml <4.3.1 quadratic CPU (merge-key chains,
+  # then a !!omap follow-up).
+  js-yaml: ">=4.3.1 <5"
   # GHSA-395f-4hp3-45gv: shell-quote <=1.8.4 quadratic-complexity DoS in parse().
   shell-quote: ">=1.8.5 <2"
-  # GHSA-v2hh-gcrm-f6hx / GHSA-4c8g-83qw-93j6: fast-uri <3.1.4 host confusion.
-  fast-uri: ">=3.1.4 <4"
+  # GHSA-v2hh-gcrm-f6hx / GHSA-4c8g-83qw-93j6 / GHSA-7p8r-x3mc-p8w7: fast-uri <3.1.5 host
+  # confusion (backslash authority introducer is the latest variant).
+  fast-uri: ">=3.1.5 <4"
+  # GHSA-2v37-7h3g-55p8 / GHSA-28wg-ghj8-5hjv: nanoid infinite loop on size 0 / negative size.
+  # Two majors in the tree (Next.js pulls v5, older transitives pull v3).
+  nanoid@3: ">=3.3.18 <4"
+  nanoid@5: ">=5.1.16 <6"
+  # GHSA-4cwx-7wf7-3272 (+4 related undici advisories): cache/cookie/CRLF-injection and
+  # response-desync issues, all fixed together at 7.29.0. Reaches us via vitest>jsdom's fetch
+  # polyfill (test-only), not a runtime dependency.
+  undici: ">=7.29.0 <8"
   # GHSA-f88m-g3jw-g9cj: sharp <0.35.0 inherited libvips CVEs.
   sharp: ">=0.35.0 <0.36"
   esbuild@>=0.27.3 <0.28.1: ">=0.28.1"

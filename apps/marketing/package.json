@@ -16,6 +16,7 @@
   "dependencies": {
     "@bankstract/marketing": "workspace:*",
     "@bankstract/seo": "workspace:*",
+    "@bankstract/statement-table": "workspace:*",
     "@bankstract/ui": "workspace:*",
     "lucide-react": "^0.469.0",
     "next": "16.2.11",

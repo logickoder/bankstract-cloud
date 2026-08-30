@@ -9,3 +9,4 @@
    (and pull the marketing keyframes). Without these the moved classes silently drop. */
 @import "@bankstract/marketing/styles.css";
 @import "@bankstract/demo/styles.css";
+@import "@bankstract/statement-table/styles.css";

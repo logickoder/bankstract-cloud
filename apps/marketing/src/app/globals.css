@@ -10,3 +10,4 @@
 /* The marketing sections + their TransformationDemo animation now live in
    @bankstract/marketing; scan them for utilities + pull the keyframes. */
 @import "@bankstract/marketing/styles.css";
+@import "@bankstract/statement-table/styles.css";

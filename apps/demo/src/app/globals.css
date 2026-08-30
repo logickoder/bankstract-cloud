@@ -9,3 +9,4 @@
 
 /* The demo feature components now live in @bankstract/demo; scan them for utilities. */
 @import "@bankstract/demo/styles.css";
+@import "@bankstract/statement-table/styles.css";
