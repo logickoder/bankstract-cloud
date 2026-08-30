@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+import { TransactionTable } from '@bankstract/statement-table'
 import type { ParseResponse } from '@bankstract/types'
 import { linkClass } from '@bankstract/ui'
 import type { RefObject } from 'react'
 
 import { ResultActions } from './ResultActions'
-import { ResultTable } from './ResultTable'
 import type { TurnstileHandle } from './TurnstileGate'
 
 interface ResultViewProps {
@@ -51,7 +51,7 @@ export function ResultView({
         </p>
       ) : null}
 
-      <ResultTable data={data} />
+      <TransactionTable data={data} />
 
       {sample ? (
         <p className="text-xs text-fg-secondary">

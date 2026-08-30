@@ -49,6 +49,9 @@ __pycache__/
 .idea/
 .vscode/
 
+# local MCP server config (machine-specific)
+.mcp.json
+
 # apps/web Better Auth local DB (sessions live here in dev/e2e; never commit)
 apps/web/data/
 apps/web/drizzle/

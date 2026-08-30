@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { displayBytes, displayDate, displayMoney, displayNaira, signedNaira } from './format'
+import { displayBytes, displayDate, displayMoney, displayNaira, signedNaira } from './index'
 
 describe('displayMoney', () => {
   it('groups thousands while keeping the fractional part exact', () => {

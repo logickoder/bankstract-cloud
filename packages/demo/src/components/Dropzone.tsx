@@ -3,9 +3,9 @@
 
 'use client'
 
+import { displayBytes } from '@bankstract/format'
 import { type DragEvent, useRef } from 'react'
 
-import { displayBytes } from '../lib/format'
 import type { DemoState } from '../lib/state'
 
 interface DropzoneProps {

@@ -330,9 +330,15 @@ importers:
 
   packages/demo:
     dependencies:
+      '@bankstract/format':
+        specifier: workspace:*
+        version: link:../format
       '@bankstract/seo':
         specifier: workspace:*
         version: link:../seo
+      '@bankstract/statement-table':
+        specifier: workspace:*
+        version: link:../statement-table
       '@bankstract/types':
         specifier: workspace:*
         version: link:../types
@@ -392,11 +398,39 @@ importers:
         specifier: ^8.18.0
         version: 8.61.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
 
+  packages/format:
+    dependencies:
+      '@bankstract/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@bankstract/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@bankstract/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.4(jiti@2.7.0)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@24.13.2)(jiti@2.7.0)(jsdom@29.1.1(@noble/hashes@2.2.0))(lightningcss@1.32.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0)
+
   packages/marketing:
     dependencies:
+      '@bankstract/format':
+        specifier: workspace:*
+        version: link:../format
       '@bankstract/seo':
         specifier: workspace:*
         version: link:../seo
+      '@bankstract/statement-table':
+        specifier: workspace:*
+        version: link:../statement-table
       '@bankstract/types':
         specifier: workspace:*
         version: link:../types
@@ -485,6 +519,46 @@ importers:
       react:
         specifier: 19.2.7
         version: 19.2.7
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/statement-table:
+    dependencies:
+      '@bankstract/format':
+        specifier: workspace:*
+        version: link:../format
+      '@bankstract/types':
+        specifier: workspace:*
+        version: link:../types
+      '@bankstract/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: ^19.2.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.7(react@19.2.7)
+    devDependencies:
+      '@bankstract/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@bankstract/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/react':
+        specifier: ^19.2.0
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.0
+        version: 19.2.3(@types/react@19.2.17)
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.4(jiti@2.7.0)
+      next:
+        specifier: 16.2.11
+        version: 16.2.11(@opentelemetry/api@1.9.1)(@playwright/test@1.61.0)(@types/node@24.13.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -3672,6 +3746,7 @@ packages:
   eslint@9.39.4:
     resolution: {integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
