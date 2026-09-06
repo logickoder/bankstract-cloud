@@ -53,6 +53,10 @@ overrides:
   undici: ">=7.29.0 <8"
   # GHSA-f88m-g3jw-g9cj: sharp <0.35.0 inherited libvips CVEs.
   sharp: ">=0.35.0 <0.36"
+  # GHSA-c83g-rgw3-j3cx / GHSA-73wf-gq98-2v4g: browserslist <=4.28.6 unbounded query cache OOM +
+  # prototype write via untrusted custom stats. Build-time only (babel/webpack targets), never on
+  # the runtime path.
+  browserslist: ">=4.28.7 <5"
   esbuild@>=0.27.3 <0.28.1: ">=0.28.1"
   # GHSA-67mh-4wv8-2f99: esbuild <=0.24.2 dev-server CORS. Reaches us only via the deprecated
   # @esbuild-kit loader (drizzle-kit config load, no dev server), so unreachable in practice;
