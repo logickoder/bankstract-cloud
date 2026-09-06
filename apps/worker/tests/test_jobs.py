@@ -169,6 +169,16 @@ def test_demo_jobs_over_cap_serves_sample(
     result = _result_event(text)
     assert result["state"] == "done"
     assert result["result"]["_sample"]["reason"]  # the canned sample, no engine ran
+    # The machine-readable sample markers must exist on every async channel, matching the sync
+    # path's X-Bankstract-Sample contract: the SSE event, the poll snapshot, and the result
+    # download header. A proxy gating on them must never render synthetic rows as real data.
+    assert result["sample"] is True
+    demo = auth_header(harness.demo_key)
+    snap = harness.client.get(over.json()["poll_url"], headers=demo).json()
+    assert snap["sample"] is True
+    res = harness.client.get(snap["result_url"], headers=demo)
+    assert res.status_code == 200
+    assert res.headers["X-Bankstract-Sample"] == "true"
 
 
 def _redact_mock(

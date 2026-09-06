@@ -1,8 +1,32 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 
-from bankstract_cloud.audit import AuditEntry
+from bankstract_cloud.audit import AuditEntry, current_period_start_iso
 from tests.conftest import Harness, auth_header
+
+
+def test_owner_usage_tier_filter_excludes_free_parses(harness: Harness) -> None:
+    # The overage/billing consumers pass tier="live": a first_party (or test) parse under the
+    # same owner must never inflate the count an invoice is computed from.
+    state = harness.client.app.state.app_state
+    live = state.keystore.issue("prod", "live", owner="mix")
+    fp = state.keystore.issue("fp", "first_party", owner="mix")
+    for key_id in (live.id, fp.id):
+        state.audit.record(
+            AuditEntry(
+                api_key_id=key_id,
+                filename="a.pdf",
+                byte_count=1,
+                parser_detected="fbn",
+                success=True,
+                error_class=None,
+            )
+        )
+    since = current_period_start_iso()
+    _total, all_ok, _daily = state.audit.owner_usage("mix", since_iso=since)
+    _lt, live_ok, _ld = state.audit.owner_usage("mix", since_iso=since, tier="live")
+    assert all_ok == 2
+    assert live_ok == 1
 
 
 def test_admin_usage_requires_admin(harness: Harness) -> None:

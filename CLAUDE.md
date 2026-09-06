@@ -348,9 +348,10 @@ Fixture privacy rule (mirrors bankstract engine):
 
 ## API KEY CONVENTIONS
 
-- Format: `bsk_<env>_<random32>` where `<env>` is `live` or `test`
-- `bsk_live_` keys parse under an active Paystack subscription; an inactive subscription → `402 subscription_inactive`. Many live keys per owner; create via `POST /v1/keys` (live-only: `env=test` → 409).
+- Format: `bsk_<env>_<random32>` where `<env>` is `live` or `test`, derived from the tier at mint time and existing only inside the key string. `tier` is the single classification everywhere (DB + wire, values `live` | `test` | `first_party`); rationale in `apps/worker/src/bankstract_cloud/auth.py`.
+- `bsk_live_` keys (tier `live`) parse under an active Paystack subscription; an inactive subscription → `402 subscription_inactive`. Many live keys per owner; create via `POST /v1/keys` (body takes `tier`, and `test` is unrepresentable there → 422; test keys only via `/v1/keys/test`).
 - `bsk_test_` keys parse free up to the monthly cap (25 successful parses/owner/month, `test_tier_monthly_cap`), then `/v1/parse` returns the 200 canned sample. One active test key per owner, auto-provisioned at signup, rotated via `POST /v1/keys/test` (roll: revokes old, issues new). For onboarding + integration testing, not free production.
+- `first_party` tier keys (minted via `POST /v1/keys` with `tier=first_party`, admin-only) are for surfaces we run ourselves (consumer tools built on the API). Key string reads `bsk_live_*`; the DB tier is the truth. No subscription gate, no test cap; per-END-USER-IP capped instead (demo budget, bucket namespaced by key id) using the `X-First-Party-Client-IP` header the surface's proxy forwards. That header is trusted for this tier only. Rotation = revoke + remint; the worker's env never references any surface.
 - Keys stored hashed (argon2) in DB; raw key shown ONCE on creation
 - Revocation = mark `revoked_at` timestamp; never delete (audit trail)
 

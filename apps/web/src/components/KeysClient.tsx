@@ -16,7 +16,7 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useId, useState } from 'react'
 
-import { StatusBadge } from '@/components/KeyBadges'
+import { StatusBadge, TierBadge } from '@/components/KeyBadges'
 import { PageHeading } from '@/components/PageHeading'
 import type { KeyCreatedResponse, KeyInfo } from '@/lib/worker'
 
@@ -28,9 +28,11 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Exactly one active test key per owner; live keys are a free-form list.
+  // Exactly one active test key per owner; everything else (live, plus any admin-minted
+  // first_party key that happens to share this owner) is a free-form list. Filtering to
+  // tier === 'live' would hide such a key here while the Overview still lists it.
   const testKey = initialKeys.find((k) => k.tier === 'test' && !k.revoked_at) ?? null
-  const liveKeys = initialKeys.filter((k) => k.tier === 'live')
+  const liveKeys = initialKeys.filter((k) => k.tier !== 'test')
 
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState('')
@@ -188,7 +190,10 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
                         {fmtDate(k.created_at)}
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge revoked={Boolean(k.revoked_at)} />
+                        <span className="inline-flex items-center gap-2">
+                          <StatusBadge revoked={Boolean(k.revoked_at)} />
+                          {k.tier !== 'live' && <TierBadge tier={k.tier} />}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-right">
                         {k.revoked_at ? null : (
@@ -219,6 +224,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-fg-tertiary">
                     <StatusBadge revoked={Boolean(k.revoked_at)} />
+                    {k.tier !== 'live' && <TierBadge tier={k.tier} />}
                     <span className="font-mono">Created {fmtDate(k.created_at)}</span>
                   </div>
                 </Card>

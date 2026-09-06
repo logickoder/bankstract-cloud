@@ -34,7 +34,7 @@ Worker and engine version. No auth.
 Gated by an admin token, not a `bsk_` key. A key can never mint more keys.
 
 ### `POST /v1/keys`
-Issue a **live** key. Body: `{ name, owner? }` (env is always live). `env=test` → `409`; test keys are provisioned via `POST /v1/keys/test`. Returns the raw key **once**. Owners may hold many live keys.
+Issue a key. Body: `{ name, owner?, tier? }` with `tier` one of `live` (default) or `first_party` (surfaces operated by us; no subscription gate, per-end-user-IP capped via the `X-First-Party-Client-IP` header their proxy forwards). `tier=test` and unknown fields → `422`; test keys are provisioned via `POST /v1/keys/test`. Returns the raw key **once**. Owners may hold many live keys.
 
 ### `POST /v1/keys/test`
 Provision or rotate the owner's single test key. Revokes the existing test key and issues a new one. Returns the raw key **once**.

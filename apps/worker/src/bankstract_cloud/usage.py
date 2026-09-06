@@ -57,7 +57,7 @@ def overage_report_for_owner(
 ) -> OverageReport:
     """Overage for an owner this cycle: success count across all their keys, against the
     tier cap from their subscription. Used by /v1/usage and the manual overage charge."""
-    _total, period_parses, _daily = audit.owner_usage(owner, since_iso=since_iso)
+    _total, period_parses, _daily = audit.owner_usage(owner, since_iso=since_iso, tier="live")
     tier = subscriptions.status_for_owner(owner).tier
     return compute_overage(tier=tier, period_parses=period_parses)
 

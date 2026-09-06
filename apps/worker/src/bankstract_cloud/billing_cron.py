@@ -63,7 +63,7 @@ async def run_overage_billing(state: AppState, *, asof: datetime) -> list[Overag
         if state.overage_ledger.already_billed(owner, since):
             continue
         _total, parses, _daily = state.audit.owner_usage(
-            owner, since_iso=since, until_iso=cur_start
+            owner, since_iso=since, until_iso=cur_start, tier="live"
         )
         overage, amount = overage_for(parses, monthly_cap=monthly_cap, overage_kobo=overage_kobo)
         request_code: str | None = None

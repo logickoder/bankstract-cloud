@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   return passthrough(
     await workerFetch('/v1/keys', {
       method: 'POST',
-      body: JSON.stringify({ ...parsed.data, env: 'live', owner }),
+      body: JSON.stringify({ ...parsed.data, owner }),
     }),
   )
 }

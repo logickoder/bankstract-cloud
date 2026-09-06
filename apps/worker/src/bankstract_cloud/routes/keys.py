@@ -33,18 +33,15 @@ async def create_key(
     _: None = Depends(require_admin),
     state: AppState = Depends(get_state),
 ) -> KeyCreatedResponse:
-    # Live keys only. Test keys are one-per-owner and provisioned/rotated via /v1/keys/test, so
-    # this endpoint never mints them (an owner could otherwise accumulate free test keys).
-    if body.env == "test":
-        raise HTTPException(status_code=409, detail="test keys are issued via /v1/keys/test")
-    issued = state.keystore.issue(body.name, body.env, owner=body.owner)
+    # Test keys are one-per-owner and minted via /v1/keys/test only (unrepresentable in
+    # KeyCreateRequest.tier).
+    issued = state.keystore.issue(body.name, body.tier, owner=body.owner)
     # The raw key is returned here and NOWHERE else. The DB only has its argon2 hash.
     return KeyCreatedResponse(
         id=issued.id,
         key=issued.raw_key,
         prefix=issued.lookup_prefix,
         name=body.name,
-        env=body.env,
         tier=issued.tier,
     )
 
@@ -69,7 +66,6 @@ async def roll_test_key(
         key=issued.raw_key,
         prefix=issued.lookup_prefix,
         name="Test key",
-        env="test",
         tier=issued.tier,
     )
 
@@ -94,7 +90,6 @@ async def list_keys(
                 id=r.id,
                 name=r.name,
                 prefix=r.lookup_prefix,
-                env=r.env,
                 tier=r.tier,
                 owner=r.owner,
                 created_at=r.created_at,

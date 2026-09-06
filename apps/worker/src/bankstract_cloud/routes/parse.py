@@ -28,7 +28,14 @@ from ..jobs import TERMINAL_STAGE, Job
 from ..models import ErrorResponse, JobAccepted, JobSnapshot, ParseResponse, ProgressSnapshot
 from ..responses import error_response
 from ..sample import sample_csv, sample_json_payload
-from ..state import AppState, client_ip, demo_bucket, get_state, require_auth
+from ..state import (
+    AppState,
+    client_ip,
+    demo_bucket,
+    first_party_bucket,
+    get_state,
+    require_auth,
+)
 from ..turnstile import verify_turnstile
 from ..watermark import DEMO_TIER, watermark_csv, watermark_json
 
@@ -251,10 +258,16 @@ async def job_result(
     job = state.jobs.get_or_404(job_id, owner_key=ctx.api_key_id)
     if job.state != "done" or (job.result is None and not job.is_sample):
         raise HTTPException(status_code=404, detail="job result not available")
+    # Same machine-readable sample marker as the sync path: a proxy that gates on the header
+    # (never rendering synthetic rows as the user's statement) must work on both surfaces.
+    sample_headers = {"X-Bankstract-Sample": "true"} if job.is_sample else None
     if job.result_kind == "json":
-        return JSONResponse(content=_json_payload(job))
+        return JSONResponse(content=_json_payload(job), headers=sample_headers)
     if job.result_kind == "csv":
-        return _csv_response(_csv_payload(job))
+        response = _csv_response(_csv_payload(job))
+        if job.is_sample:
+            response.headers["X-Bankstract-Sample"] = "true"
+        return response
     assert job.result is not None  # redact is never an is_sample job (json/csv only)
     return _redact_response(
         job.result.data,
@@ -398,6 +411,10 @@ def _sse_result(job: Job) -> str:
         final["error"] = job.error_message
     if job.state == "done" and (job.result is not None or job.is_sample):
         final["kind"] = job.result_kind
+        # Sample marker on the event itself: the json payload carries _sample, but csv consumers
+        # only see result_url, so without this flag they cannot tell before fetching.
+        if job.is_sample:
+            final["sample"] = True
         if job.result_kind == "json":
             # json rides the event; csv/redact bytes are fetched from result_url.
             final["result"] = _json_payload(job)
@@ -439,6 +456,7 @@ def _snapshot(job: Job) -> JobSnapshot:
         result_url=_result_url(job) if is_done else None,
         format_version=job.format_version if (is_done and job.result_kind == "redact") else None,
         redactions=job.redactions if (is_done and job.result_kind == "redact") else None,
+        sample=job.is_sample,
         error=job.error_message,
         error_class=job.error_class,
     )
@@ -455,7 +473,8 @@ async def _admit_upload(
     limit, the human check (anonymous), the subscription gate (live), and the free-tier cap are all
     verified BEFORE the PDF is read, so an over-cap or inactive caller never moves payload. Returns
     (data, byte_count); the 402 envelope when a live subscription is inactive; or SERVE_SAMPLE when
-    a free surface (demo per-IP, test per-owner) is over its cap and gets the canned sample."""
+    a free surface (demo per-IP, first-party per-IP, test per-owner) is over its cap and gets the
+    canned sample."""
     max_bytes = state.settings.max_upload_bytes
     _enforce_size_header(request, max_bytes)
 
@@ -463,8 +482,16 @@ async def _admit_upload(
         # Turnstile is a hard human check (401); being over the per-IP budget is not an error, it
         # serves the canned sample.
         await _verify_turnstile(request, state, turnstile_token)
-        if not _demo_rate_ok(request, state):
+        if not _free_rate_ok(state, demo_bucket(request, state.settings.rate_limit_ip_salt)):
             return SERVE_SAMPLE
+
+    # First-party surfaces parse free of billing but stay per-end-user-IP bounded, so a popular
+    # surface cannot eat the box. Their proxy runs its own Turnstile and forwards the end-user
+    # IP (trust model + missing-header degradation: see first_party_bucket).
+    if ctx.is_first_party and not _free_rate_ok(
+        state, first_party_bucket(request, state.settings.rate_limit_ip_salt, ctx.api_key_id)
+    ):
+        return SERVE_SAMPLE
 
     # Live keys parse only under an active subscription (charter §5).
     if ctx.is_billable and not (ctx.owner and state.subscriptions.is_active(ctx.owner)):
@@ -493,10 +520,13 @@ async def _verify_turnstile(request: Request, state: AppState, turnstile_token: 
         raise HTTPException(status_code=401, detail="Turnstile verification failed")
 
 
-def _demo_rate_ok(request: Request, state: AppState) -> bool:
+def _free_rate_ok(state: AppState, bucket: str) -> bool:
+    # One free per-IP budget product-wide (PRD § Pricing: one anonymous-consumer number): the
+    # demo and first-party surfaces share these numbers in separately namespaced buckets. Split
+    # into per-surface settings only if a surface ever earns a different budget.
     settings = state.settings
     return state.rate_limiter.check(
-        demo_bucket(request, settings.rate_limit_ip_salt),
+        bucket,
         max_count=settings.demo_rate_limit_max,
         window_seconds=settings.demo_rate_limit_window_seconds,
     )

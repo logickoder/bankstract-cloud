@@ -7,7 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, PlainSerializer
+from pydantic import BaseModel, ConfigDict, PlainSerializer
 
 # The engine (bankstract) returns dataclasses (ParseResult, StatementMetadata) holding a
 # pydantic Transaction. It exposes no model_dump. We define our own response contract here
@@ -109,6 +109,9 @@ class JobSnapshot(BaseModel):
     result_url: str | None = None  # download URL for the bytes (csv/redact), present once done
     format_version: str | None = None
     redactions: int | None = None  # redact only
+    # True when the job served the over-cap canned sample (engine never ran). Mirrors the sync
+    # path's X-Bankstract-Sample header so poll consumers can gate without fetching the result.
+    sample: bool = False
     error: str | None = None
     error_class: str | None = None
 
@@ -164,11 +167,18 @@ class StatusResponse(BaseModel):
 
 
 class KeyCreateRequest(BaseModel):
+    # extra="forbid" so the retired `env` field errors (422) instead of being silently dropped:
+    # a legacy client posting env=test must never receive a live key by accident.
+    model_config = ConfigDict(extra="forbid")
+
     name: str
-    # Live-only via this route (test keys go through /v1/keys/test). Default live so an env-less
-    # body is not silently rejected.
-    env: Literal["live", "test"] = "live"
     owner: str | None = None
+    # tier is the single field: "test" is deliberately unrepresentable here (test keys are
+    # one-per-owner via /v1/keys/test, so this route can never mint one). "first_party" marks a
+    # key minted to a surface we run ourselves (a consumer tool built on the API): no
+    # subscription gate, no test cap, but per-IP bounded at parse time. The key string still
+    # reads bsk_live_*.
+    tier: Literal["live", "first_party"] = "live"
 
 
 class TestKeyRequest(BaseModel):
@@ -183,7 +193,6 @@ class KeyCreatedResponse(BaseModel):
     key: str
     prefix: str
     name: str
-    env: str
     tier: str
 
 
@@ -191,7 +200,6 @@ class KeyInfo(BaseModel):
     id: str
     name: str
     prefix: str
-    env: str
     tier: str
     owner: str | None
     created_at: str

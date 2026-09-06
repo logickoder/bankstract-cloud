@@ -97,10 +97,15 @@ async def admin_usage(
 ) -> OwnerUsageResponse:
     since_iso = current_period_start_iso()
     total, ok, daily = state.audit.owner_usage(owner, since_iso=since_iso)
-    # Same overage math as /v1/usage (compute_overage), so the dashboard figure and the
-    # invoice never disagree (Directive 6). Cap comes from the owner's subscription tier.
+    # The graph shows ALL of the owner's activity (a pre-subscription owner's test parses must
+    # stay visible), but the overage math counts live parses only: test/first_party are free by
+    # contract, so letting them in would project (and eventually invoice, via the same
+    # compute_overage the cron uses) charges for parses the product promises cost nothing.
+    _live_total, live_ok, _live_daily = state.audit.owner_usage(
+        owner, since_iso=since_iso, tier="live"
+    )
     tier = state.subscriptions.status_for_owner(owner).tier
-    report = compute_overage(tier=tier, period_parses=ok)
+    report = compute_overage(tier=tier, period_parses=live_ok)
     return OwnerUsageResponse(
         owner=owner,
         tier=report.tier,

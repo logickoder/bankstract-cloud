@@ -108,23 +108,35 @@ class AuditLog:
         return int(row["n"]) if row else 0
 
     def owner_usage(
-        self, owner: str, *, since_iso: str, until_iso: str | None = None
+        self,
+        owner: str,
+        *,
+        since_iso: str,
+        until_iso: str | None = None,
+        tier: str | None = None,
     ) -> tuple[int, int, list[tuple[str, int]]]:
         """Aggregate across all keys owned by `owner` over [since_iso, until_iso). `until_iso`
         is exclusive; None means open-ended (current cycle to now). Returns (total_attempts,
         successes, [(YYYY-MM-DD, success_count), ...]). The JOIN drops the anonymous demo key
         (no matching api_keys row), so this is owner-real only. A bounded window is what lets
         the overage cron bill a closed cycle without new-cycle parses leaking in.
+
+        `tier` bounds the count to keys of that tier. Every billing consumer MUST pass "live":
+        test and first_party parses are free by contract, so letting them into an overage count
+        would invoice an owner for parses the product promises cost nothing.
         """
-        upper = ""
+        clauses = ""
         extra: tuple[str, ...] = ()
         if until_iso is not None:
-            upper = " AND a.timestamp < ?"
-            extra = (until_iso,)
+            clauses += " AND a.timestamp < ?"
+            extra += (until_iso,)
+        if tier is not None:
+            clauses += " AND k.tier = ?"
+            extra += (tier,)
         totals = self._conn.execute(
             "SELECT COUNT(*) AS total, COALESCE(SUM(a.success), 0) AS ok "
             "FROM audit_log a JOIN api_keys k ON a.api_key_id = k.id "
-            "WHERE k.owner = ? AND a.timestamp >= ?" + upper,
+            "WHERE k.owner = ? AND a.timestamp >= ?" + clauses,
             (owner, since_iso, *extra),
         ).fetchone()
         total = int(totals["total"]) if totals else 0
@@ -132,7 +144,7 @@ class AuditLog:
         daily = self._conn.execute(
             "SELECT substr(a.timestamp, 1, 10) AS day, COUNT(*) AS n "
             "FROM audit_log a JOIN api_keys k ON a.api_key_id = k.id "
-            "WHERE k.owner = ? AND a.timestamp >= ?" + upper + " AND a.success = 1 "
+            "WHERE k.owner = ? AND a.timestamp >= ?" + clauses + " AND a.success = 1 "
             "GROUP BY day ORDER BY day",
             (owner, since_iso, *extra),
         ).fetchall()

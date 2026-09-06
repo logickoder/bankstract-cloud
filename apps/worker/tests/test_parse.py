@@ -170,3 +170,53 @@ def test_usage_starts_at_zero(harness: Harness) -> None:
     assert body["monthly_cap"] is None
     assert body["overage_parses"] == 0
     assert body["projected_overage_naira"] == "0.00"
+
+
+def _first_party_key(harness: Harness, owner: str = "fp_owner") -> str:
+    return harness.client.app.state.app_state.keystore.issue(
+        "fp", "first_party", owner=owner
+    ).raw_key
+
+
+def test_first_party_key_skips_subscription_and_test_cap(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # No subscription exists for the owner, and TEST_TIER_MONTHLY_CAP=3 is exceeded: a
+    # first_party key must keep doing real parses regardless (it is neither billable nor test).
+    monkeypatch.setattr("bankstract.parse", _success_parse())
+    key = _first_party_key(harness, owner="fp_gates")
+    headers = {**auth_header(key), "X-First-Party-Client-IP": "203.0.113.7"}
+    for _ in range(4):  # > test cap, no 402, no sample
+        resp = harness.client.post("/v1/parse", files=pdf_upload(), headers=headers)
+        assert resp.status_code == 200
+        assert "_sample" not in resp.json()
+
+
+def test_first_party_per_ip_cap_serves_sample(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # DEMO_RATE_LIMIT_MAX=5 applies per forwarded end-user IP. The 6th attempt from the same IP
+    # gets the canned sample (which the surface's proxy hard-fails into a friendly error); a
+    # different forwarded IP starts a fresh window.
+    monkeypatch.setattr("bankstract.parse", _success_parse())
+    key = _first_party_key(harness, owner="fp_cap")
+    capped = {**auth_header(key), "X-First-Party-Client-IP": "198.51.100.1"}
+    for _ in range(5):
+        resp = harness.client.post("/v1/parse", files=pdf_upload(), headers=capped)
+        assert resp.status_code == 200
+        assert "_sample" not in resp.json()
+    over = harness.client.post("/v1/parse", files=pdf_upload(), headers=capped)
+    assert over.status_code == 200
+    assert over.headers["X-Bankstract-Sample"] == "true"
+    fresh = {**auth_header(key), "X-First-Party-Client-IP": "198.51.100.2"}
+    ok = harness.client.post("/v1/parse", files=pdf_upload(), headers=fresh)
+    assert ok.status_code == 200
+    assert "_sample" not in ok.json()
+
+
+def test_revoked_first_party_key_rejected(harness: Harness) -> None:
+    store = harness.client.app.state.app_state.keystore
+    issued = store.issue("fp", "first_party", owner="fp_revoke")
+    store.revoke(issued.id)
+    resp = harness.client.post("/v1/parse", files=pdf_upload(), headers=auth_header(issued.raw_key))
+    assert resp.status_code == 401

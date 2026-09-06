@@ -6,7 +6,7 @@ import { CircleCheck } from 'lucide-react'
 import Link from 'next/link'
 import type { ComponentType, SVGProps } from 'react'
 
-import { EnvBadge, StatusBadge } from '@/components/KeyBadges'
+import { StatusBadge, TierBadge } from '@/components/KeyBadges'
 import { PageHeading } from '@/components/PageHeading'
 import { UsageChart, UsageChartSkeleton } from '@/components/UsageChart'
 import { fetchKeys, fetchUsage, hasUsageData } from '@/lib/dashboard-data'
@@ -113,7 +113,7 @@ export default async function OverviewPage() {
                     <div className="font-mono text-xs text-fg-tertiary">{k.prefix}</div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <EnvBadge env={k.env} />
+                    <TierBadge tier={k.tier} />
                     <StatusBadge revoked={Boolean(k.revoked_at)} />
                   </div>
                 </li>

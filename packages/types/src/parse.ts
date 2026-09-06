@@ -134,7 +134,6 @@ export interface KeyInfo {
   id: string
   name: string
   prefix: string
-  env: string
   tier: string
   owner: string | null
   created_at: string
@@ -147,7 +146,6 @@ export interface KeyCreatedResponse {
   key: string
   prefix: string
   name: string
-  env: string
   tier: string
 }
 

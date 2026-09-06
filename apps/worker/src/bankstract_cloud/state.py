@@ -91,9 +91,29 @@ def client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _hashed_ip_bucket(prefix: str, salt: str, ip: str) -> str:
+    """Rate-limit bucket key from an IP. The raw IP never reaches storage: the key is a salted
+    sha256 of it (Directive 1, data minimisation)."""
+    digest = hashlib.sha256(f"{salt}:{ip}".encode()).hexdigest()
+    return f"{prefix}:{digest[:32]}"
+
+
 def demo_bucket(request: Request, salt: str) -> str:
-    """Rate-limit bucket key for an anonymous demo visitor. The raw IP never reaches storage:
-    the key is a salted sha256 of it (Directive 1, data minimisation). Turnstile still gets the
-    real IP for its own bot check; we just don't persist it."""
-    digest = hashlib.sha256(f"{salt}:{client_ip(request)}".encode()).hexdigest()
-    return f"demo:{digest[:32]}"
+    """Bucket for an anonymous demo visitor. Turnstile still gets the real IP for its own bot
+    check; we just don't persist it."""
+    return _hashed_ip_bucket("demo", salt, client_ip(request))
+
+
+def first_party_bucket(request: Request, salt: str, key_id: str) -> str:
+    """Per-end-user-IP bucket for a first-party surface, namespaced by key id so two surfaces
+    never share windows.
+
+    The surface's proxy forwards the real end-user IP in X-First-Party-Client-IP (our own
+    network peer is only the proxy's egress IP, shared by every one of its users). Trusting a
+    client-supplied header is safe ONLY because first_party keys are minted exclusively to
+    surfaces we operate, which is why the header read lives inside this fp-namespaced builder
+    and nowhere else. A missing header degrades to the proxy's shared egress-IP bucket: the
+    surface rate-limits as one user, failing loud instead of silently unmetered."""
+    forwarded = request.headers.get("x-first-party-client-ip")
+    ip = forwarded.strip() if forwarded else client_ip(request)
+    return _hashed_ip_bucket(f"fp:{key_id}", salt, ip)

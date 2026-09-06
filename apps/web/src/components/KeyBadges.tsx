@@ -3,8 +3,8 @@
 
 import { Badge } from '@bankstract/ui'
 
-export function EnvBadge({ env }: { env: string }) {
-  return <Badge tone={env === 'live' ? 'accent' : 'muted'}>{env}</Badge>
+export function TierBadge({ tier }: { tier: string }) {
+  return <Badge tone={tier === 'live' ? 'accent' : 'muted'}>{tier}</Badge>
 }
 
 export function StatusBadge({ revoked }: { revoked: boolean }) {

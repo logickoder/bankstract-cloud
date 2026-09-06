@@ -47,14 +47,14 @@ describe('POST /api/keys (live)', () => {
     expect(mockWorkerFetch).not.toHaveBeenCalled()
   })
 
-  it('forces env=live and injects the owner', async () => {
+  it('injects the owner', async () => {
     mockRequireOwner.mockResolvedValue('user_1')
     mockWorkerFetch.mockResolvedValue(created())
     const res = await createLive(req({ name: 'prod' }))
     expect(res.status).toBe(201)
     const [path, init] = mockWorkerFetch.mock.calls[0]!
     expect(path).toBe('/v1/keys')
-    expect(JSON.parse(init!.body as string)).toEqual({ name: 'prod', env: 'live', owner: 'user_1' })
+    expect(JSON.parse(init!.body as string)).toEqual({ name: 'prod', owner: 'user_1' })
   })
 })
 
