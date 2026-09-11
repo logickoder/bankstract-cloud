@@ -27,7 +27,7 @@
     "better-auth": "^1.6.22",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.469.0",
-    "next": "16.2.11",
+    "next": "16.3.3",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "recharts": "^3.9.2",
