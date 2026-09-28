@@ -48,7 +48,7 @@ const data = await resp.json()
   "format_version": "fbn-2026-01",
   "metadata": { "bank": "fbn", "account_number_masked": "****1111", "...": "..." },
   "totals": { "credit": "500.00", "debit": "120.00" },
-  "row_wise_reconcilable": true,
+  "reconciliation": { "totals": "passed", "row_wise": "passed" },
   "transactions": [
     {
       "date": "2026-01-05T09:30:00",
@@ -57,12 +57,17 @@ const data = await resp.json()
       "credit": "500.00",
       "balance": "600.00",
       "reference": "REF1",
-      "currency": "NGN"
+      "currency": "NGN",
+      "has_time": true
     }
   ]
 }
 ```
 
 Money is always a **decimal string** (`"500.00"`), never a JSON number. Parse it with a decimal type, not a float, so you don't lose precision.
+
+`reconciliation` reports the two checks run on every parse. `totals` compares the debit and credit sums to the statement header. `row_wise` walks the running balance row by row. Each is `passed`, `not_available` (the statement lacks the data), or `disabled` (the bank's balance column can't be checked row by row). A failed check never returns 200. It returns a 422 `ReconciliationError`.
+
+`has_time` is `true` only when the statement printed a time for that row. When it is `false`, the time in `date` is `00:00:00` padding, not data.
 
 Next: [Authentication](/authentication), [response formats](/formats), and the [error envelope](/errors).

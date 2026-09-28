@@ -303,9 +303,9 @@ GET /v1/status                    public uptime + version info
 Cloud emits ONE canonical CSV shape from `/v1/parse?format=csv`. Downstream tools (`budgetbakers-wallet-importer`, hypothetical YNAB importer, etc.) target this shape, not the other way around.
 
 ```
-date,narration,debit,credit,balance,reference,currency
-2026-05-01T00:00:00,FBN ALERT,50.00,0,531085.04,X00000000,NGN
-2026-05-06T00:00:00,SALARY,0,300000.00,831085.04,X00000000,NGN
+date,narration,debit,credit,balance,reference,currency,has_time
+2026-05-01T00:00:00,FBN ALERT,50.00,0,531085.04,X00000000,NGN,false
+2026-05-06T00:00:00,SALARY,0,300000.00,831085.04,X00000000,NGN,false
 ```
 
 Schema rules:
@@ -319,6 +319,7 @@ Schema rules:
 | `balance` | decimal | string-encoded decimal | Empty string when statement omits running balance column (PalmPay) |
 | `reference` | string | bank transaction ID | Empty string when bank omits it |
 | `currency` | ISO-4217 | `NGN`, `USD`, etc. | Defaults to `NGN` |
+| `has_time` | boolean | `true` / `false` | `true` only when the statement printed a time for the row. `false` means the `date` time is `00:00:00` padding (FBN, Zenith). Added in engine 0.16.0 |
 
 Header row is required (column-name dispatch in consumer parsers, not positional).
 
