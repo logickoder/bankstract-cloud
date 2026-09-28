@@ -11,20 +11,13 @@ from dataclasses import dataclass
 import bankstract
 from bankstract import ParseError, ProgressCallback, ReconciliationError
 
-from .models import (
-    ParseResponse,
-    ReconciliationOut,
-    StatementMetadataOut,
-    TotalsOut,
-    TransactionOut,
-)
-
 ENGINE_VERSION: str = getattr(bankstract, "__version__", "unknown")
 
 
 class MappedEngineError(Exception):
     """An engine exception translated to a known HTTP outcome. Carries the fields
-    the error envelope surfaces: error_class, format_version, marker_coverage."""
+    the error envelope surfaces (error_class, format_version, marker_coverage) plus the
+    matched parser for the audit log (engine ParseError.bank; None when detection failed)."""
 
     def __init__(
         self,
@@ -33,11 +26,13 @@ class MappedEngineError(Exception):
         error_class: str,
         format_version: str | None = None,
         marker_coverage: float | None = None,
+        bank: str | None = None,
     ) -> None:
         super().__init__(message)
         self.error_class = error_class
         self.format_version = format_version
         self.marker_coverage = marker_coverage
+        self.bank = bank
 
 
 class UnsupportedStatementError(MappedEngineError):
@@ -57,7 +52,8 @@ def _translate_engine_errors() -> Generator[None, None, None]:
         raise UnsupportedStatementError(
             str(exc),
             error_class="ReconciliationError",
-            format_version=getattr(exc, "format_version", None),
+            format_version=exc.format_version,
+            bank=exc.bank,
         ) from exc
     except ParseError as exc:
         # ParseError is the base. type(exc).__name__ surfaces the specific subclass the engine
@@ -67,8 +63,9 @@ def _translate_engine_errors() -> Generator[None, None, None]:
         raise UnsupportedStatementError(
             str(exc),
             error_class=type(exc).__name__,
-            format_version=getattr(exc, "format_version", None),
+            format_version=exc.format_version,
             marker_coverage=getattr(exc, "marker_coverage", None),
+            bank=exc.bank,
         ) from exc
     except MappedEngineError:
         raise
@@ -78,12 +75,9 @@ def _translate_engine_errors() -> Generator[None, None, None]:
 
 @dataclass(frozen=True)
 class ParseOutcome:
-    response: ParseResponse
-    parser_detected: str | None
+    """Engine-serialized statement (JSON or CSV bytes). Holds transaction data: it leaves only in
+    the HTTP response and is never logged or persisted."""
 
-
-@dataclass(frozen=True)
-class CsvOutcome:
     data: bytes
     parser_detected: str | None
 
@@ -116,55 +110,28 @@ def list_supported_banks() -> list[str]:
     return list(bankstract.list_parsers())
 
 
-def _buffer_and_detect(data: bytes) -> tuple[io.BytesIO, str | None]:
-    """Wrap bytes in the single in-memory buffer (Directive 2) and advisory-detect the
-    bank. The buffer is rewound so the caller can hand it to the engine."""
-    buf = io.BytesIO(data)
-    detected = _detect(buf)
-    buf.seek(0)
-    return buf, detected
-
-
-def parse_pdf(
+def parse_statement(
     data: bytes,
     *,
+    fmt: bankstract.OutputFormat,
     bank: str | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> ParseOutcome:
-    """Parse PDF bytes entirely in memory. Directive 2: bytes never touch disk.
+    """Parse, reconcile, and serialize a statement entirely in memory (Directive 2).
 
-    bankstract.parse() does not reconcile; reconcile_result() runs the totals + row-wise checks
-    and returns a copy with `.reconciliation` set. A failed check (or none able to run) raises
-    ReconciliationError, which maps to the same 422 the CSV path returns. Two top-level engine
-    calls means the stream sees `done`, `reconcile`, `done`; only job state is terminal.
+    One path for both formats. parse() does not reconcile (the engine leaves that to the caller);
+    reconcile_result() runs the totals + row-wise checks and raises ReconciliationError (a 422)
+    on a failed check or when neither can run. serialize() emits the same bytes convert() and the
+    CLI do, so the /v1 wire shape is the pinned engine version's: an engine shape change reaches
+    clients only when the pin moves. Progress sees `done`, `reconcile`, `done` (two top-level
+    engine calls); only job state is terminal.
     """
-    buf, detected = _buffer_and_detect(data)
     with _translate_engine_errors():
         result = bankstract.reconcile_result(
-            bankstract.parse(buf, bank=bank, progress_callback=progress_callback),
+            bankstract.parse(io.BytesIO(data), bank=bank, progress_callback=progress_callback),
             progress_callback=progress_callback,
         )
-    return ParseOutcome(response=_to_response(result), parser_detected=detected)
-
-
-def parse_csv(
-    data: bytes,
-    *,
-    bank: str | None = None,
-    progress_callback: ProgressCallback | None = None,
-) -> CsvOutcome:
-    """Parse and serialize to CSV in one engine call.
-
-    bankstract.convert() parses, reconciles, and writes the chosen format in-memory and returns
-    bytes (no tempfile, Directive 2). The CSV holds transaction data, so it leaves
-    only in the HTTP response; it is never logged or persisted.
-    """
-    buf, detected = _buffer_and_detect(data)
-    with _translate_engine_errors():
-        csv_bytes = bankstract.convert(
-            buf, format="csv", bank=bank, progress_callback=progress_callback
-        )
-    return CsvOutcome(data=csv_bytes, parser_detected=detected)
+        return ParseOutcome(data=bankstract.serialize(result, fmt), parser_detected=result.bank)
 
 
 def redact_pdf(
@@ -179,7 +146,6 @@ def redact_pdf(
     in-memory (engine guarantees no tempfile). The worker streams them straight to
     the HTTP response; nothing is written to disk and no payload is logged.
     """
-    # No _detect() here. RedactResult already carries the matched bank.
     buf = io.BytesIO(data)
     with _translate_engine_errors():
         result = bankstract.redact(buf, bank=bank, progress_callback=progress_callback)
@@ -190,56 +156,4 @@ def redact_pdf(
         bank=result.bank,
         format_version=result.format_version,
         redactions=result.report.redactions,
-    )
-
-
-def _detect(buf: io.BytesIO) -> str | None:
-    try:
-        return bankstract.detect(buf)
-    except Exception:  # detection is advisory metadata only, never fatal
-        return None
-
-
-def _to_response(result: bankstract.ParseResult) -> ParseResponse:
-    report = result.reconciliation
-    if report is None:
-        # Only reachable if a caller skipped reconcile_result. Refuse rather than label an
-        # unchecked parse as reconciled.
-        raise EngineError("parse result was not reconciled", error_class="UnreconciledResult")
-
-    metadata = result.metadata
-    metadata_out = (
-        StatementMetadataOut(
-            bank=metadata.bank,
-            account_holder=metadata.account_holder,
-            account_number_masked=metadata.account_number_masked,
-            statement_period_start=metadata.statement_period_start,
-            statement_period_end=metadata.statement_period_end,
-            opening_balance=metadata.opening_balance,
-            closing_balance=metadata.closing_balance,
-        )
-        if metadata is not None
-        else None
-    )
-
-    transactions = [
-        TransactionOut(
-            date=t.date,
-            narration=t.narration,
-            debit=t.debit,
-            credit=t.credit,
-            balance=t.balance,
-            reference=t.reference,
-            currency=t.currency,
-            has_time=t.has_time,
-        )
-        for t in result.transactions
-    ]
-
-    return ParseResponse(
-        format_version=result.format_version,
-        metadata=metadata_out,
-        totals=TotalsOut(credit=result.total_credit, debit=result.total_debit),
-        reconciliation=ReconciliationOut(totals=report.totals, row_wise=report.row_wise),
-        transactions=transactions,
     )

@@ -10,26 +10,11 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from bankstract import ParseResult, ProgressCallback, ProgressEvent
+from bankstract import ProgressCallback, ProgressEvent
 from fastapi import HTTPException
 
 from bankstract_cloud.jobs import JobStore
-from tests.conftest import Harness, auth_header, empty_parse_result, pdf_upload
-
-
-def _success_parse(*events: tuple[str, int, int]) -> Callable[..., ParseResult]:
-    def _impl(
-        source: object,
-        *,
-        bank: str | None = None,
-        progress_callback: ProgressCallback | None = None,
-    ) -> ParseResult:
-        if progress_callback is not None:
-            for stage, current, total in events:
-                progress_callback(ProgressEvent(stage=stage, current=current, total=total))
-        return empty_parse_result()
-
-    return _impl
+from tests.conftest import Harness, auth_header, fake_parse, pdf_upload
 
 
 def _data_events(text: str) -> list[dict[str, Any]]:
@@ -80,7 +65,7 @@ def test_jobstore_sweep_evicts_and_clears_result() -> None:
 
 
 def test_submit_returns_202_with_urls(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("bankstract.parse", _success_parse(("open", 0, 1)))
+    monkeypatch.setattr("bankstract.parse", fake_parse(("open", 0, 1)))
     resp = harness.client.post(
         "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
@@ -94,7 +79,7 @@ def test_submit_returns_202_with_urls(harness: Harness, monkeypatch: pytest.Monk
 def test_stream_emits_progress_then_result(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("bankstract.parse", _success_parse(("open", 0, 1), ("walk_page", 1, 1)))
+    monkeypatch.setattr("bankstract.parse", fake_parse(("open", 0, 1), ("walk_page", 1, 1)))
     sub = harness.client.post(
         "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
@@ -110,7 +95,7 @@ def test_stream_emits_progress_then_result(
 
 
 def test_poll_snapshot_reaches_done(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     sub = harness.client.post(
         "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
@@ -139,7 +124,7 @@ def test_failed_job_surfaces_error(harness: Harness) -> None:
 
 
 def test_poll_requires_auth(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     sub = harness.client.post(
         "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
@@ -152,7 +137,7 @@ def test_demo_jobs_over_cap_serves_sample(
 ) -> None:
     # DEMO_RATE_LIMIT_MAX=5; submit is the metered point. Over cap the demo async path must still
     # return 202 (its UI expects a job), with the streamed result being the canned sample.
-    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     for _ in range(5):  # spend the per-IP budget on real jobs
         assert (
             harness.client.post(
@@ -203,22 +188,6 @@ def _redact_mock(
     return _impl
 
 
-def _csv_mock(payload: bytes = b"date,amount\n2026-01-01,100\n") -> Callable[..., bytes]:
-    def _impl(
-        source: object,
-        *,
-        format: str = "csv",
-        bank: str | None = None,
-        reconcile: bool = True,
-        progress_callback: ProgressCallback | None = None,
-    ) -> bytes:
-        if progress_callback is not None:
-            progress_callback(ProgressEvent(stage="walk_page", current=1, total=1))
-        return payload
-
-    return _impl
-
-
 def test_redact_job_streams_url_then_serves_bytes(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -247,7 +216,7 @@ def test_redact_job_streams_url_then_serves_bytes(
 
 
 def test_csv_job_serves_csv_bytes(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("bankstract.convert", _csv_mock())
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     sub = harness.client.post(
         "/v1/parse/jobs?format=csv", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
@@ -260,13 +229,15 @@ def test_csv_job_serves_csv_bytes(harness: Harness, monkeypatch: pytest.MonkeyPa
     got = harness.client.get(result["result_url"], headers=auth_header(harness.test_key))
     assert got.status_code == 200
     assert got.headers["content-type"].startswith("text/csv")
-    assert got.content == b"date,amount\n2026-01-01,100\n"
+    assert got.content.startswith(
+        b"date,narration,debit,credit,balance,reference,currency,has_time"
+    )
 
 
 def test_json_job_result_endpoint_returns_parse_response(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     sub = harness.client.post(
         "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
@@ -296,7 +267,7 @@ def test_anonymous_json_job_result_is_watermarked(
     # The demo drives async jobs anonymously; its json output must carry the free-demo envelope,
     # same as the sync path. Served via result_url (the byte channel), never inlined in the poll
     # snapshot (which would leak clean output).
-    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     sub = harness.client.post(
         "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.demo_key)
     )
@@ -312,7 +283,7 @@ def test_anonymous_json_job_result_is_watermarked(
 def test_authenticated_json_job_result_is_clean(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("bankstract.parse", _success_parse(("walk_page", 1, 1)))
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     sub = harness.client.post(
         "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
@@ -327,7 +298,7 @@ def test_authenticated_json_job_result_is_clean(
 def test_anonymous_csv_job_result_is_watermarked(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("bankstract.convert", _csv_mock())
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     sub = harness.client.post(
         "/v1/parse/jobs?format=csv", files=pdf_upload(), headers=auth_header(harness.demo_key)
     )

@@ -9,9 +9,10 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, PlainSerializer
 
-# The engine (bankstract) returns dataclasses (ParseResult, StatementMetadata) holding a
-# pydantic Transaction. It exposes no model_dump. We define our own response contract here
-# so the wire format is decoupled from engine internals across versions.
+# /v1 parse JSON is the engine's own bankstract.serialize(result, "json") bytes, not a worker
+# mapping (engine.parse_statement). These models DOCUMENT that shape for OpenAPI and type the job
+# snapshot. tests/test_contract.py fails CI if the pinned engine's JSON stops round-tripping through
+# them, so an engine shape change surfaces when the pin moves, before /v1 clients see it.
 # Money is serialized as strings. Decimal precision must survive JSON (no float drift).
 
 
@@ -64,6 +65,9 @@ CheckStatus = Literal["passed", "not_available", "disabled"]
 class ReconciliationOut(BaseModel):
     totals: CheckStatus
     row_wise: CheckStatus
+    # Why row-wise is disabled, from the parser (e.g. opay: OWealth moves break the running
+    # balance). Null unless row_wise is "disabled".
+    row_wise_reason: str | None
 
 
 class ParseResponse(BaseModel):

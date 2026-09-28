@@ -3,7 +3,7 @@
 
 """Canned free-tier sample. Served instead of a real parse once a free surface (demo per-IP, test
 per-owner) is over its cap. It is a FIXED synthetic statement, NOT a parse of the caller's upload:
-the engine never runs (no RAM cost) and no real data leaves memory. The `_sample` marker keeps it
+no upload is parsed (no RAM cost) and no real data leaves memory. The `_sample` marker keeps it
 honest (a client can tell it is not their parse) and the fixed shape keeps their integration code
 alive.
 
@@ -11,72 +11,66 @@ Synthetic data only (fixture rule): FOO / BAR / ACME, masked account, round amou
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from decimal import Decimal
 
-from .models import (
-    ParseResponse,
-    ReconciliationOut,
-    StatementMetadataOut,
-    TotalsOut,
-    TransactionOut,
-)
+import bankstract
+from bankstract import ParseResult, StatementMetadata, Transaction
 
 _UPGRADE_URL = "https://bankstract.logickoder.dev/pricing"
 _SAMPLE_REASON = "Free tier limit reached. This is sample data, not a parse of your file."
 
-SAMPLE_RESPONSE = ParseResponse(
-    format_version="sample-1",
-    metadata=StatementMetadataOut(
-        bank="fbn",
-        account_holder="FOO BAR",
-        account_number_masked="****1234",
-        statement_period_start=datetime(2026, 6, 1),
-        statement_period_end=datetime(2026, 6, 30),
-        opening_balance=Decimal("1000.00"),
-        closing_balance=Decimal("1210.00"),
-    ),
-    totals=TotalsOut(credit=Decimal("250.00"), debit=Decimal("40.00")),
-    reconciliation=ReconciliationOut(totals="passed", row_wise="passed"),
-    transactions=[
-        TransactionOut(
-            date=datetime(2026, 6, 1),
-            narration="Transfer from FOO",
-            debit=Decimal("0.00"),
-            credit=Decimal("250.00"),
-            balance=Decimal("1250.00"),
-            reference="REF001",
-            currency="NGN",
-            has_time=False,
+# Built once at import from engine types and run through the same reconcile + serialize as a real
+# parse, so the sample's JSON and CSV shapes cannot drift from live output (or from each other).
+_STATEMENT = bankstract.reconcile_result(
+    ParseResult(
+        format_version="sample-1",
+        metadata=StatementMetadata(
+            bank="fbn",
+            account_holder="FOO BAR",
+            account_number_masked="****1234",
+            statement_period_start=datetime(2026, 6, 1),
+            statement_period_end=datetime(2026, 6, 30),
+            opening_balance=Decimal("1000.00"),
+            closing_balance=Decimal("1210.00"),
         ),
-        TransactionOut(
-            date=datetime(2026, 6, 2),
-            narration="POS ACME STORES",
-            debit=Decimal("40.00"),
-            credit=Decimal("0.00"),
-            balance=Decimal("1210.00"),
-            reference="REF002",
-            currency="NGN",
-            has_time=False,
-        ),
-    ],
+        total_credit=Decimal("250.00"),
+        total_debit=Decimal("40.00"),
+        transactions=[
+            Transaction(
+                date=datetime(2026, 6, 1),
+                narration="Transfer from FOO",
+                credit=Decimal("250.00"),
+                balance=Decimal("1250.00"),
+                reference="REF001",
+            ),
+            Transaction(
+                date=datetime(2026, 6, 2),
+                narration="POS ACME STORES",
+                debit=Decimal("40.00"),
+                balance=Decimal("1210.00"),
+                reference="REF002",
+            ),
+        ],
+    )
 )
+
+_SAMPLE_JSON: dict[str, object] = json.loads(bankstract.serialize(_STATEMENT, "json"))
+
+# `#` is the de facto CSV comment prefix (pandas read_csv(comment='#') skips it).
+_SAMPLE_CSV = (
+    "# bankstract free tier limit reached. This is sample data, not a parse of your file.\n"
+    f"# Upgrade for real parses: {_UPGRADE_URL}\n"
+).encode() + bankstract.serialize(_STATEMENT, "csv")
 
 
 def sample_json_payload() -> dict[str, object]:
     return {
         "_sample": {"reason": _SAMPLE_REASON, "upgrade_url": _UPGRADE_URL},
-        **SAMPLE_RESPONSE.model_dump(mode="json"),
+        **_SAMPLE_JSON,
     }
 
 
 def sample_csv() -> bytes:
-    # `#` is the de facto CSV comment prefix (pandas read_csv(comment='#') skips it). The rows
-    # below are synthetic, matching SAMPLE_RESPONSE.
-    return (
-        "# bankstract free tier limit reached. This is sample data, not a parse of your file.\n"
-        f"# Upgrade for real parses: {_UPGRADE_URL}\n"
-        "date,narration,debit,credit,balance,reference,currency,has_time\n"
-        "2026-06-01T00:00:00,Transfer from FOO,0.00,250.00,1250.00,REF001,NGN,false\n"
-        "2026-06-02T00:00:00,POS ACME STORES,40.00,0.00,1210.00,REF002,NGN,false\n"
-    ).encode()
+    return _SAMPLE_CSV
