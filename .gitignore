@@ -58,3 +58,8 @@ apps/web/drizzle/
 
 # Local planning/handoff docs (not shipped)
 _handoff/
+
+# next dev (16.3+) writes these agent-instruction files into each app on start. Generated, not
+# ours: the repo charter is the root AGENTS.md + docs/rules.
+apps/*/AGENTS.md
+apps/*/CLAUDE.md
