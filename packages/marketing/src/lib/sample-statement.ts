@@ -222,6 +222,8 @@ export function generateSampleStatement(): ParseResponse {
       balance: fromKobo(runningKobo),
       reference: `SMP${String(i + 1).padStart(3, '0')}`,
       currency: 'NGN',
+      // isoDate pins every row to 09:00, a placeholder, not a printed time.
+      has_time: false,
     }
   })
 
@@ -246,7 +248,7 @@ export function generateSampleStatement(): ParseResponse {
     // Generated to reconcile by construction. The running balance IS the accumulation of
     // every row, never randomly broken, since the whole point of the panel is to show the
     // balance check working, not to simulate a failure mode.
-    row_wise_reconcilable: true,
+    reconciliation: { totals: 'passed', row_wise: 'passed' },
     transactions,
   }
 }
