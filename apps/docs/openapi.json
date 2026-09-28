@@ -2111,12 +2111,24 @@
               "disabled"
             ],
             "title": "Row Wise"
+          },
+          "row_wise_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Wise Reason"
           }
         },
         "type": "object",
         "required": [
           "totals",
-          "row_wise"
+          "row_wise",
+          "row_wise_reason"
         ],
         "title": "ReconciliationOut"
       },

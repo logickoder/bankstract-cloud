@@ -221,17 +221,19 @@ Subprocess-shell-out = slow (process spawn), fragile (CLI version drift), leaks 
 ### 2. PDF bytes never leave memory
 
 ```python
-# CORRECT
+# CORRECT (engine.parse_statement)
 @app.post("/v1/parse")
-async def parse(pdf: UploadFile, ...) -> ParseResponse:
+async def parse(pdf: UploadFile, ...) -> Response:
     buf = io.BytesIO(await pdf.read())
-    result = bankstract.parse(buf)
-    # ParseResult + StatementMetadata are dataclasses; only Transaction is
-    # pydantic. Wire format goes through our own pydantic response contract
-    # in apps/worker/src/bankstract_cloud/models.py. Decouples API surface
-    # from engine internals so the engine can evolve without breaking /v1/*
-    # clients. Never return result directly.
-    return ParseResponse.from_engine(result)
+    result = bankstract.reconcile_result(bankstract.parse(buf))
+    # The wire format is a versioned contract, never engine internals. It is
+    # the engine's PUBLIC canonical serialization (serialize(), the same bytes
+    # convert() and the CLI emit), frozen by the worker's engine pin: an engine
+    # shape change reaches /v1 clients only when we move the pin, so we migrate
+    # on our schedule (a breaking one means /v2 or holding the pin).
+    # models.py documents that shape for OpenAPI; tests/test_contract.py fails
+    # CI if the pinned engine's JSON stops round-tripping through it.
+    return Response(bankstract.serialize(result, "json"), media_type="application/json")
 
 # WRONG: writes to disk
 @app.post("/v1/parse")
@@ -245,7 +247,7 @@ async def parse(pdf: UploadFile, ...):
 @app.post("/v1/parse")
 async def parse(pdf: UploadFile, ...):
     result = bankstract.parse(buf)
-    return result.model_dump(mode="json")  # AttributeError: ParseResult is a dataclass
+    return dataclasses.asdict(result)  # internal dataclass layout, unreconciled, not the contract
 ```
 
 ### 3. B2B API consumers are first-class
@@ -261,7 +263,7 @@ POST /v1/parse
     redact=true      run redactor, returns redacted bytes (PDF or XLSX) directly w/ proper Content-Type
 
 Response:
-  200 → ParseResponse JSON (wire contract: apps/worker/src/.../models.py)
+  200 → ParseResponse JSON (engine serialize() at the pinned version; documented in apps/worker/src/.../models.py)
   401 → invalid / missing API key
   402 → billing failure (subscription inactive; error_class: subscription_inactive)
   413 → file too large (>50MB)
@@ -312,8 +314,8 @@ async def parse(pdf: UploadFile, redact: bool = False, bank: str | None = None) 
                 "X-Bankstract-Format-Version": result.format_version,
             },
         )
-    parse_result = bankstract.parse(buf, bank=bank)
-    return ParseResponse.from_engine(parse_result)
+    parse_result = bankstract.reconcile_result(bankstract.parse(buf, bank=bank))
+    return Response(bankstract.serialize(parse_result, "json"), media_type="application/json")
 ```
 
 **Privacy invariant still holds:** `bankstract.redact()` returns bytes in-memory, no tempfile (verified by engine's tempfile-invariant test via TMPDIR monkeypatch). Worker streams `result.data` straight to HTTP response. Engine pin must be `bankstract>=0.11.0`.
