@@ -11,7 +11,7 @@ Synthetic data only (fixture rule): FOO / BAR / ACME, masked account, round amou
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 
 from .models import (
@@ -31,8 +31,8 @@ SAMPLE_RESPONSE = ParseResponse(
         bank="fbn",
         account_holder="FOO BAR",
         account_number_masked="****1234",
-        statement_period_start=datetime(2026, 6, 1, tzinfo=UTC),
-        statement_period_end=datetime(2026, 6, 30, tzinfo=UTC),
+        statement_period_start=datetime(2026, 6, 1),
+        statement_period_end=datetime(2026, 6, 30),
         opening_balance=Decimal("1000.00"),
         closing_balance=Decimal("1210.00"),
     ),
@@ -40,7 +40,7 @@ SAMPLE_RESPONSE = ParseResponse(
     reconciliation=ReconciliationOut(totals="passed", row_wise="passed"),
     transactions=[
         TransactionOut(
-            date=datetime(2026, 6, 1, tzinfo=UTC),
+            date=datetime(2026, 6, 1),
             narration="Transfer from FOO",
             debit=Decimal("0.00"),
             credit=Decimal("250.00"),
@@ -50,7 +50,7 @@ SAMPLE_RESPONSE = ParseResponse(
             has_time=False,
         ),
         TransactionOut(
-            date=datetime(2026, 6, 2, tzinfo=UTC),
+            date=datetime(2026, 6, 2),
             narration="POS ACME STORES",
             debit=Decimal("40.00"),
             credit=Decimal("0.00"),
@@ -77,6 +77,6 @@ def sample_csv() -> bytes:
         "# bankstract free tier limit reached. This is sample data, not a parse of your file.\n"
         f"# Upgrade for real parses: {_UPGRADE_URL}\n"
         "date,narration,debit,credit,balance,reference,currency,has_time\n"
-        "2026-06-01,Transfer from FOO,0.00,250.00,1250.00,REF001,NGN,false\n"
-        "2026-06-02,POS ACME STORES,40.00,0.00,1210.00,REF002,NGN,false\n"
+        "2026-06-01T00:00:00,Transfer from FOO,0.00,250.00,1250.00,REF001,NGN,false\n"
+        "2026-06-02T00:00:00,POS ACME STORES,40.00,0.00,1210.00,REF002,NGN,false\n"
     ).encode()
