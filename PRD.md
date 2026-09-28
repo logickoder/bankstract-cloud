@@ -252,7 +252,7 @@ Bytes stay in memory and are dropped on completion / TTL eviction (Directive 1);
 
 **Wire format = the pinned engine's `serialize()`.** `/v1` parse JSON and CSV are the engine's own canonical bytes (`bankstract.serialize(result, fmt)`, the same the CLI emits), not a worker mapping. Engine JSON shape changes only ship in engine versions and reach `/v1` clients only when the worker's pin moves, so the cloud migrates on its own schedule. `apps/worker/src/bankstract_cloud/models.py` documents the shape for OpenAPI; `tests/test_contract.py` fails CI if the pinned engine's JSON stops round-tripping through it. A breaking engine shape change means a `/v2` (or holding the pin).
 
-**Redaction live as of engine 0.11.0.** `bankstract.redact(source, *, bank=None) -> RedactResult` returns in-memory bytes (no tempfile, no disk write, verified by engine tempfile-invariant test via TMPDIR monkeypatch). Worker streams `result.data` straight to HTTP response w/ Content-Type dispatch via `result.format`. Engine pin: `bankstract>=0.11.0` in `apps/worker/pyproject.toml`.
+**Redaction live as of engine 0.11.0.** `bankstract.redact(source, *, bank=None) -> RedactResult` returns in-memory bytes (no tempfile, no disk write, verified by engine tempfile-invariant test via TMPDIR monkeypatch). Worker streams `result.data` straight to HTTP response w/ Content-Type dispatch via `result.format`. Redaction needs engine 0.11.0+; the current pin (`apps/worker/pyproject.toml`) is `bankstract>=0.17.1`.
 
 ```
 GET /v1/banks

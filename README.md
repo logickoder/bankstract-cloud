@@ -10,7 +10,7 @@ curl -X POST https://bankstract.logickoder.dev/v1/parse \
   -F "pdf=@statement.pdf"
 ```
 
-Returns clean transactions, account metadata, and totals as JSON. The PDF is parsed in memory and never written to disk.
+Returns clean transactions, account metadata, totals, and the reconciliation result as JSON. A statement whose numbers don't reconcile returns a 422, not bad data. The PDF is parsed in memory and never written to disk.
 
 ## What this is
 
@@ -31,7 +31,7 @@ Need a specific bank added? [Sponsor the implementation](mailto:jeffery@logickod
 
 ## Privacy posture
 
-PDF bytes flow: client → worker → `BytesIO` → `bankstract.parse(stream)` → JSON response → garbage collected. No disk writes. No logging of file contents. The audit log is metadata only (filename, byte count, parser detected, success/fail timestamp). All source is public. Verify the claim, or self-host with `docker compose up`.
+PDF bytes flow: client → worker → `BytesIO` → `bankstract.parse` → `reconcile_result` → `serialize` → JSON response → garbage collected. No disk writes. No logging of file contents. The audit log is metadata only (filename, byte count, parser detected, success/fail timestamp). All source is public. Verify the claim, or self-host with `docker compose up`.
 
 API consumers interact over HTTP and do **not** inherit AGPL. A SaaS-hosted fork must open-source its modifications.
 
