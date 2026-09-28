@@ -18,24 +18,33 @@ const PREVIEW_ROWS = 10
 // A statement that fails a check never renders (the worker returns a 422 ReconciliationError),
 // so every reachable state here is at least one passed check. The engine also 422s when neither
 // check can run; the last branch only exists because the type allows it.
-function reconciliationCopy({ totals, row_wise }: Reconciliation) {
+function reconciliationCopy({ totals, row_wise, row_wise_reason }: Reconciliation) {
   if (row_wise === 'passed') {
-    return totals === 'passed'
-      ? { badge: 'reconciled', tip: 'Row balances and statement totals both check out.' }
-      : { badge: 'reconciled', tip: 'Row balances check out. Statement prints no totals.' }
+    return {
+      tone: 'accent',
+      badge: 'reconciled',
+      tip:
+        totals === 'passed'
+          ? 'Row balances and statement totals both check out.'
+          : 'Row balances check out. Statement prints no totals.',
+    } as const
   }
   if (totals === 'passed') {
-    return row_wise === 'disabled'
-      ? {
-          badge: 'reconciled (totals)',
-          tip: 'Running balance skips OWealth auto-save moves. Debit and credit sums match the header.',
-        }
-      : {
-          badge: 'reconciled (totals)',
-          tip: 'No per-row balances on this statement. Debit and credit sums match the header.',
-        }
+    return {
+      tone: 'accent',
+      badge: 'reconciled (totals)',
+      // A disabled row-wise check carries the parser's own reason, so the copy stays bank-agnostic.
+      tip:
+        row_wise === 'disabled'
+          ? (row_wise_reason ?? 'Running balance does not chain row to row. Statement totals checked instead.')
+          : 'No per-row balances on this statement. Debit and credit sums match the header.',
+    } as const
   }
-  return { badge: 'unverified', tip: 'No reconciliation check could run on this statement.' }
+  return {
+    tone: 'muted',
+    badge: 'unverified',
+    tip: 'No reconciliation check could run on this statement.',
+  } as const
 }
 
 export function TransactionTable({ data }: { data: ParseResponse }) {
@@ -60,9 +69,7 @@ export function TransactionTable({ data }: { data: ParseResponse }) {
             {displayDate(data.metadata?.statement_period_end ?? null)}
           </span>
           <span className="ml-auto">
-            <Badge tone={reconciliation.badge === 'unverified' ? 'muted' : 'accent'}>
-              {reconciliation.badge}
-            </Badge>
+            <Badge tone={reconciliation.tone}>{reconciliation.badge}</Badge>
           </span>
         </div>
         {/* Explain the reconciliation badge inline; a title tooltip is invisible to keyboard + touch. */}

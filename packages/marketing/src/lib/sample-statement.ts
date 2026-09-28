@@ -248,7 +248,7 @@ export function generateSampleStatement(): ParseResponse {
     // Generated to reconcile by construction. The running balance IS the accumulation of
     // every row, never randomly broken, since the whole point of the panel is to show the
     // balance check working, not to simulate a failure mode.
-    reconciliation: { totals: 'passed', row_wise: 'passed' },
+    reconciliation: { totals: 'passed', row_wise: 'passed', row_wise_reason: null },
     transactions,
   }
 }

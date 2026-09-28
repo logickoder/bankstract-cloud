@@ -46,6 +46,8 @@ export type CheckStatus = 'passed' | 'not_available' | 'disabled'
 export interface Reconciliation {
   totals: CheckStatus
   row_wise: CheckStatus
+  /** Parser's reason row-wise is disabled (e.g. opay's OWealth moves). Null unless disabled. */
+  row_wise_reason: string | null
 }
 
 export interface ParseResponse {

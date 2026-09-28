@@ -26,7 +26,7 @@ describe('generateSampleStatement', () => {
 
   it('always reports both reconciliation checks as passed', () => {
     for (const sample of samples) {
-      expect(sample.reconciliation).toEqual({ totals: 'passed', row_wise: 'passed' })
+      expect(sample.reconciliation).toEqual({ totals: 'passed', row_wise: 'passed', row_wise_reason: null })
     }
   })
 

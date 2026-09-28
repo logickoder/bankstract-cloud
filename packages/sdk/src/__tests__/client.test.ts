@@ -7,7 +7,7 @@ import { TimeoutError } from '../errors'
 
 import { API_KEY, captureError, jsonResponse, mockClient } from './helpers'
 
-const OK = { format_version: null, metadata: null, totals: {}, reconciliation: { totals: 'passed', row_wise: 'passed' }, transactions: [] }
+const OK = { format_version: null, metadata: null, totals: {}, reconciliation: { totals: 'passed', row_wise: 'passed', row_wise_reason: null }, transactions: [] }
 
 describe('client', () => {
   it('defaults the base URL when omitted', async () => {

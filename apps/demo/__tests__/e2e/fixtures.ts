@@ -18,7 +18,7 @@ export const FIXTURE_RESPONSE: ParseResponse = {
     closing_balance: '250.50',
   },
   totals: { credit: '500.00', debit: '120.00' },
-  reconciliation: { totals: 'passed', row_wise: 'passed' },
+  reconciliation: { totals: 'passed', row_wise: 'passed', row_wise_reason: null },
   transactions: [
     {
       date: '2026-01-05T09:30:00',

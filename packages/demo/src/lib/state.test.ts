@@ -12,7 +12,7 @@ const response: ParseResponse = {
   format_version: 'fbn-2026-01',
   metadata: null,
   totals: { credit: '500.00', debit: '0' },
-  reconciliation: { totals: 'passed', row_wise: 'passed' },
+  reconciliation: { totals: 'passed', row_wise: 'passed', row_wise_reason: null },
   transactions: [],
 }
 

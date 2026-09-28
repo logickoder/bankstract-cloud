@@ -9,7 +9,7 @@ const PARSE_BODY = {
   format_version: '1.0',
   metadata: null,
   totals: { credit: null, debit: null },
-  reconciliation: { totals: 'passed', row_wise: 'passed' },
+  reconciliation: { totals: 'passed', row_wise: 'passed', row_wise_reason: null },
   transactions: [],
 }
 
