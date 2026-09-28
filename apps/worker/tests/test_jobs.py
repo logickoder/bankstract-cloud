@@ -10,24 +10,24 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from bankstract import ProgressCallback, ProgressEvent
+from bankstract import ParseResult, ProgressCallback, ProgressEvent
 from fastapi import HTTPException
 
 from bankstract_cloud.jobs import JobStore
-from tests.conftest import Harness, auth_header, pdf_upload
+from tests.conftest import Harness, auth_header, empty_parse_result, pdf_upload
 
 
-def _success_parse(*events: tuple[str, int, int]) -> Callable[..., SimpleNamespace]:
+def _success_parse(*events: tuple[str, int, int]) -> Callable[..., ParseResult]:
     def _impl(
         source: object,
         *,
         bank: str | None = None,
         progress_callback: ProgressCallback | None = None,
-    ) -> SimpleNamespace:
+    ) -> ParseResult:
         if progress_callback is not None:
             for stage, current, total in events:
                 progress_callback(ProgressEvent(stage=stage, current=current, total=total))
-        return SimpleNamespace(transactions=[], metadata=None)
+        return empty_parse_result()
 
     return _impl
 
@@ -247,7 +247,7 @@ def test_redact_job_streams_url_then_serves_bytes(
 
 
 def test_csv_job_serves_csv_bytes(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("bankstract.parse_to", _csv_mock())
+    monkeypatch.setattr("bankstract.convert", _csv_mock())
     sub = harness.client.post(
         "/v1/parse/jobs?format=csv", files=pdf_upload(), headers=auth_header(harness.test_key)
     )
@@ -327,7 +327,7 @@ def test_authenticated_json_job_result_is_clean(
 def test_anonymous_csv_job_result_is_watermarked(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("bankstract.parse_to", _csv_mock())
+    monkeypatch.setattr("bankstract.convert", _csv_mock())
     sub = harness.client.post(
         "/v1/parse/jobs?format=csv", files=pdf_upload(), headers=auth_header(harness.demo_key)
     )

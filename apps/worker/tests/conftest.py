@@ -5,10 +5,12 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 
 import httpx
 import pytest
+from bankstract import ParseResult
 from fastapi.testclient import TestClient
 
 from tests.fixtures import MINIMAL_PDF
@@ -39,6 +41,13 @@ PAYSTACK_SECRET = "sk_test_paystack_dummy"  # signs webhook fixtures; never a re
 PAYSTACK_PLAN_STARTER = "PLN_starter_test"
 PAYSTACK_PLAN_STARTER_ANNUAL = "PLN_starter_annual_test"
 MAX_BYTES = 2000
+
+
+def empty_parse_result() -> ParseResult:
+    """Zero-row ParseResult for fakes of bankstract.parse. Zero header totals give the real
+    reconcile_result() evidence to pass (totals passed, row_wise not_available); with no
+    totals it would raise the no-evidence ReconciliationError."""
+    return ParseResult(total_credit=Decimal("0"), total_debit=Decimal("0"))
 
 
 def auth_header(key: str) -> dict[str, str]:

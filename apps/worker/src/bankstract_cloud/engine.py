@@ -13,6 +13,7 @@ from bankstract import ParseError, ProgressCallback, ReconciliationError
 
 from .models import (
     ParseResponse,
+    ReconciliationOut,
     StatementMetadataOut,
     TotalsOut,
     TransactionOut,
@@ -130,10 +131,19 @@ def parse_pdf(
     bank: str | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> ParseOutcome:
-    """Parse PDF bytes entirely in memory. Directive 2: bytes never touch disk."""
+    """Parse PDF bytes entirely in memory. Directive 2: bytes never touch disk.
+
+    bankstract.parse() does not reconcile; reconcile_result() runs the totals + row-wise checks
+    and returns a copy with `.reconciliation` set. A failed check (or none able to run) raises
+    ReconciliationError, which maps to the same 422 the CSV path returns. Two top-level engine
+    calls means the stream sees `done`, `reconcile`, `done`; only job state is terminal.
+    """
     buf, detected = _buffer_and_detect(data)
     with _translate_engine_errors():
-        result = bankstract.parse(buf, bank=bank, progress_callback=progress_callback)
+        result = bankstract.reconcile_result(
+            bankstract.parse(buf, bank=bank, progress_callback=progress_callback),
+            progress_callback=progress_callback,
+        )
     return ParseOutcome(response=_to_response(result), parser_detected=detected)
 
 
@@ -145,13 +155,13 @@ def parse_csv(
 ) -> CsvOutcome:
     """Parse and serialize to CSV in one engine call.
 
-    bankstract.parse_to() parses and writes the chosen format in-memory and returns
+    bankstract.convert() parses, reconciles, and writes the chosen format in-memory and returns
     bytes (no tempfile, Directive 2). The CSV holds transaction data, so it leaves
     only in the HTTP response; it is never logged or persisted.
     """
     buf, detected = _buffer_and_detect(data)
     with _translate_engine_errors():
-        csv_bytes = bankstract.parse_to(
+        csv_bytes = bankstract.convert(
             buf, format="csv", bank=bank, progress_callback=progress_callback
         )
     return CsvOutcome(data=csv_bytes, parser_detected=detected)
@@ -190,8 +200,14 @@ def _detect(buf: io.BytesIO) -> str | None:
         return None
 
 
-def _to_response(result: object) -> ParseResponse:
-    metadata = getattr(result, "metadata", None)
+def _to_response(result: bankstract.ParseResult) -> ParseResponse:
+    report = result.reconciliation
+    if report is None:
+        # Only reachable if a caller skipped reconcile_result. Refuse rather than label an
+        # unchecked parse as reconciled.
+        raise EngineError("parse result was not reconciled", error_class="UnreconciledResult")
+
+    metadata = result.metadata
     metadata_out = (
         StatementMetadataOut(
             bank=metadata.bank,
@@ -215,17 +231,15 @@ def _to_response(result: object) -> ParseResponse:
             balance=t.balance,
             reference=t.reference,
             currency=t.currency,
+            has_time=t.has_time,
         )
-        for t in getattr(result, "transactions", [])
+        for t in result.transactions
     ]
 
     return ParseResponse(
-        format_version=getattr(result, "format_version", None),
+        format_version=result.format_version,
         metadata=metadata_out,
-        totals=TotalsOut(
-            credit=getattr(result, "total_credit", None),
-            debit=getattr(result, "total_debit", None),
-        ),
-        row_wise_reconcilable=bool(getattr(result, "row_wise_reconcilable", False)),
+        totals=TotalsOut(credit=result.total_credit, debit=result.total_debit),
+        reconciliation=ReconciliationOut(totals=report.totals, row_wise=report.row_wise),
         transactions=transactions,
     )

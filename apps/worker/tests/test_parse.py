@@ -4,15 +4,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from types import SimpleNamespace
+from datetime import datetime
+from decimal import Decimal
 
 import pytest
-from bankstract import ProgressCallback
+from bankstract import ParseResult, ProgressCallback, Transaction
 
-from tests.conftest import Harness, auth_header, pdf_upload
+from bankstract_cloud import engine
+from tests.conftest import Harness, auth_header, empty_parse_result, pdf_upload
 
 
-def _success_parse() -> Callable[..., SimpleNamespace]:
+def _success_parse() -> Callable[..., ParseResult]:
     # Minimal stand-in for bankstract.parse: succeeds so the parse records a success (which the
     # test-tier cap counts), without a real statement PDF.
     def _impl(
@@ -20,13 +22,13 @@ def _success_parse() -> Callable[..., SimpleNamespace]:
         *,
         bank: str | None = None,
         progress_callback: ProgressCallback | None = None,
-    ) -> SimpleNamespace:
-        return SimpleNamespace(transactions=[], metadata=None)
+    ) -> ParseResult:
+        return empty_parse_result()
 
     return _impl
 
 
-def _success_parse_to(
+def _success_convert(
     source: object,
     *,
     format: str = "csv",
@@ -35,6 +37,18 @@ def _success_parse_to(
     progress_callback: ProgressCallback | None = None,
 ) -> bytes:
     return b"date\n2026-01-01\n"
+
+
+def _parse_returning(result: ParseResult) -> Callable[..., ParseResult]:
+    def _impl(
+        source: object,
+        *,
+        bank: str | None = None,
+        progress_callback: ProgressCallback | None = None,
+    ) -> ParseResult:
+        return result
+
+    return _impl
 
 
 def _owner_test_key(harness: Harness, owner: str) -> str:
@@ -61,6 +75,67 @@ def test_parse_unsupported_pdf_returns_422(harness: Harness) -> None:
     body = resp.json()
     assert body["error_class"] == "ParseError"
     assert "error" in body
+
+
+def test_json_response_carries_reconciliation_and_has_time(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The real reconcile_result runs on the faked parse: header totals + a chained balance column.
+    result = ParseResult(
+        transactions=[
+            Transaction(
+                date=datetime(2026, 1, 5, 9, 30),
+                narration="FOO TRANSFER",
+                credit=Decimal("500.00"),
+                balance=Decimal("600.00"),
+                has_time=True,
+            ),
+            Transaction(
+                date=datetime(2026, 1, 6),
+                narration="ACME POS",
+                debit=Decimal("100.00"),
+                balance=Decimal("500.00"),
+            ),
+        ],
+        total_credit=Decimal("500.00"),
+        total_debit=Decimal("100.00"),
+    )
+    monkeypatch.setattr("bankstract.parse", _parse_returning(result))
+    resp = harness.client.post(
+        "/v1/parse", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["reconciliation"] == {"totals": "passed", "row_wise": "passed"}
+    assert "row_wise_reconcilable" not in body
+    assert [t["has_time"] for t in body["transactions"]] == [True, False]
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        # Header totals disagree with the rows.
+        ParseResult(total_credit=Decimal("1.00"), total_debit=Decimal("0")),
+        # Neither check has evidence: no totals, no rows with balances.
+        ParseResult(),
+    ],
+    ids=["totals_mismatch", "no_evidence"],
+)
+def test_json_reconciliation_failure_returns_422(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch, result: ParseResult
+) -> None:
+    monkeypatch.setattr("bankstract.parse", _parse_returning(result))
+    resp = harness.client.post(
+        "/v1/parse", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error_class"] == "ReconciliationError"
+
+
+def test_to_response_refuses_unreconciled_result() -> None:
+    # A result that skipped reconcile_result must never be labelled reconciled on the wire.
+    with pytest.raises(engine.EngineError):
+        engine._to_response(empty_parse_result())  # pyright: ignore[reportPrivateUsage]
 
 
 def test_parse_oversize_returns_413(harness: Harness) -> None:
@@ -136,7 +211,7 @@ def test_test_key_failed_parses_do_not_count(harness: Harness) -> None:
 def test_test_key_csv_over_cap_serves_sample_csv(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("bankstract.parse_to", _success_parse_to)
+    monkeypatch.setattr("bankstract.convert", _success_convert)
     key = _owner_test_key(harness, "owner_csv")
     for _ in range(3):
         assert (

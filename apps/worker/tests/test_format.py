@@ -8,12 +8,12 @@ import pytest
 from tests.conftest import Harness, auth_header, pdf_upload
 
 _FAKE_CSV = (
-    b"date,narration,debit,credit,balance,reference,currency\n"
-    b"2026-01-05T09:30:00,FOO TRANSFER,0,500.00,600.00,REF1,NGN\n"
+    b"date,narration,debit,credit,balance,reference,currency,has_time\n"
+    b"2026-01-05T09:30:00,FOO TRANSFER,0,500.00,600.00,REF1,NGN,true\n"
 )
 
 
-def _fake_parse_to(payload: bytes):  # type: ignore[no-untyped-def]
+def _fake_convert(payload: bytes):  # type: ignore[no-untyped-def]
     def _impl(
         source: object,
         *,
@@ -27,15 +27,16 @@ def _fake_parse_to(payload: bytes):  # type: ignore[no-untyped-def]
     return _impl
 
 
-def test_engine_parse_to_resolves() -> None:
-    # Guards against an engine reshuffle dropping the parse+serialize entrypoint.
+def test_engine_convert_resolves() -> None:
+    # Guards against an engine reshuffle dropping the parse+serialize entrypoint (0.16.0 renamed
+    # parse_to to convert with no alias).
     import bankstract
 
-    assert callable(bankstract.parse_to)
+    assert callable(bankstract.convert)
 
 
 def test_parse_format_csv_round_trip(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("bankstract.parse_to", _fake_parse_to(_FAKE_CSV))
+    monkeypatch.setattr("bankstract.convert", _fake_convert(_FAKE_CSV))
 
     resp = harness.client.post(
         "/v1/parse?format=csv",

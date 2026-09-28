@@ -35,6 +35,9 @@ class TransactionOut(BaseModel):
     balance: OptionalMoney
     reference: str | None
     currency: str
+    # True only when the statement printed a real time for this row. False means `date` carries a
+    # padded 00:00:00 (fbn, zenith) and the time is not data.
+    has_time: bool
 
 
 class StatementMetadataOut(BaseModel):
@@ -52,11 +55,22 @@ class TotalsOut(BaseModel):
     debit: OptionalMoney
 
 
+# totals: not_available when the statement prints no header totals. row_wise: not_available when
+# some row has no balance, disabled when the parser opts out (opay: OWealth auto-save moves break
+# the running balance). "failed" is not a status: a failed check is a 422 ReconciliationError.
+CheckStatus = Literal["passed", "not_available", "disabled"]
+
+
+class ReconciliationOut(BaseModel):
+    totals: CheckStatus
+    row_wise: CheckStatus
+
+
 class ParseResponse(BaseModel):
     format_version: str | None
     metadata: StatementMetadataOut | None
     totals: TotalsOut
-    row_wise_reconcilable: bool
+    reconciliation: ReconciliationOut
     transactions: list[TransactionOut]
 
 
@@ -66,7 +80,7 @@ class ErrorResponse(BaseModel):
     - `EncryptedSourceError`: source is password-protected
     - `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)
     - `LayoutDriftError`: bank detected, structure broke
-    - `ReconciliationError`: totals don't match the statement
+    - `ReconciliationError`: a totals or running-balance check failed, or none could run
     - `ParseError`: last-resort parse failure
     - `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /
       `WorkerError`: framework concerns
