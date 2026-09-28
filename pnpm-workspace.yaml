@@ -51,8 +51,12 @@ overrides:
   # response-desync issues, all fixed together at 7.29.0. Reaches us via vitest>jsdom's fetch
   # polyfill (test-only), not a runtime dependency.
   undici: ">=7.29.0 <8"
-  # GHSA-f88m-g3jw-g9cj: sharp <0.35.0 inherited libvips CVEs.
-  sharp: ">=0.35.0 <0.36"
+  # GHSA-f88m-g3jw-g9cj: sharp <0.35.0 inherited libvips CVEs. GHSA-rgj7-g3m4-5g8c: libheif CVEs
+  # (GHSA-g89c-p67h-r497, GHSA-2jg2-4ch7-h545), fixed in 0.35.4.
+  sharp: ">=0.35.4 <0.36"
+  # baseline-browser-mapping <2.11.0: process termination on invalid input (DoS). Pulled by next's
+  # browser-target build step, not the request path.
+  baseline-browser-mapping: ">=2.11.0 <3"
   # GHSA-c83g-rgw3-j3cx / GHSA-73wf-gq98-2v4g: browserslist <=4.28.6 unbounded query cache OOM +
   # prototype write via untrusted custom stats. Build-time only (babel/webpack targets), never on
   # the runtime path.

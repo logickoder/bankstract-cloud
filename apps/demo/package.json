@@ -21,7 +21,7 @@
     "@bankstract/ui": "workspace:*",
     "@marsidev/react-turnstile": "1.5.3",
     "@sentry/nextjs": "^10.59.0",
-    "next": "16.2.11",
+    "next": "16.3.6",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   },
@@ -36,6 +36,6 @@
     "eslint": "^9.17.0",
     "tailwindcss": "4.3.1",
     "typescript": "^5.7.2",
-    "vitest": "^3.0.0"
+    "vitest": "^4.1.11"
   }
 }
