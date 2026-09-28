@@ -77,7 +77,7 @@ cd apps/worker && uv run ruff check . && uv run pyright . && uv run pytest
 
 - [`PRD.md`](./PRD.md): product spec
 - [`DESIGN.md`](./DESIGN.md): visual design system
-- [`CLAUDE.md`](./CLAUDE.md) / [`AGENTS.md`](./AGENTS.md): agent operating charter
+- [`AGENTS.md`](./AGENTS.md) + [`docs/rules/`](./docs/rules): agent operating charter and per-topic rules
 - [`SECURITY.md`](./SECURITY.md): vulnerability disclosure
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md): PR + commit conventions
 

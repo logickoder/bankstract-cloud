@@ -162,8 +162,8 @@ bankstract-cloud/
 ├── CONTRIBUTING.md               PR + commit conventions
 ├── CODE_OF_CONDUCT.md            standard
 ├── PRD.md                        this file
-├── AGENTS.md                     AI agent quick-ref
-├── CLAUDE.md                     Claude Code charter
+├── AGENTS.md                     agent charter (directives, layout, rule index)
+├── docs/rules/                   agent rules, one topic per file (.claude/rules/ wraps them)
 ├── README.md                     human entry point
 ├── package.json                  root, pnpm workspaces + Turbo scripts
 ├── pnpm-workspace.yaml
