@@ -36,9 +36,9 @@ class Job:
         default_factory=lambda: asyncio.Queue[dict[str, Any]]()
     )
     state: JobState = "queued"
-    result: Any = None  # ParseOutcome | CsvOutcome | RedactOutcome while alive; None once swept
+    result: Any = None  # ParseOutcome | RedactOutcome while alive; None once swept
     result_kind: ResultKind = "json"
-    media_type: str | None = None  # Content-Type for a bytes result (csv/redact); None for json
+    media_type: str | None = None  # redact only; json and csv content types are fixed
     redactions: int | None = None  # redact only
     last_event: dict[str, Any] | None = None
     error_class: str | None = None

@@ -19,7 +19,7 @@ curl -X POST "https://bankstract.logickoder.dev/v1/parse?format=csv" \
   -F "pdf=@statement.pdf" -o statement.csv
 ```
 
-Columns: `date, narration, debit, credit, balance, reference, currency`.
+Columns: `date, narration, debit, credit, balance, reference, currency, has_time`. `has_time` is `true` or `false`.
 
 ## Redaction
 

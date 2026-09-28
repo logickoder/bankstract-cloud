@@ -3,38 +3,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from types import SimpleNamespace
+from datetime import datetime
+from decimal import Decimal
 
 import pytest
-from bankstract import ProgressCallback
+from bankstract import ParseResult
 
-from tests.conftest import Harness, auth_header, pdf_upload
-
-
-def _success_parse() -> Callable[..., SimpleNamespace]:
-    # Minimal stand-in for bankstract.parse: succeeds so the parse records a success (which the
-    # test-tier cap counts), without a real statement PDF.
-    def _impl(
-        source: object,
-        *,
-        bank: str | None = None,
-        progress_callback: ProgressCallback | None = None,
-    ) -> SimpleNamespace:
-        return SimpleNamespace(transactions=[], metadata=None)
-
-    return _impl
-
-
-def _success_parse_to(
-    source: object,
-    *,
-    format: str = "csv",
-    bank: str | None = None,
-    reconcile: bool = True,
-    progress_callback: ProgressCallback | None = None,
-) -> bytes:
-    return b"date\n2026-01-01\n"
+from tests.conftest import (
+    Harness,
+    auth_header,
+    empty_parse_result,
+    fake_parse,
+    pdf_upload,
+    txn,
+)
 
 
 def _owner_test_key(harness: Harness, owner: str) -> str:
@@ -61,6 +43,78 @@ def test_parse_unsupported_pdf_returns_422(harness: Harness) -> None:
     body = resp.json()
     assert body["error_class"] == "ParseError"
     assert "error" in body
+
+
+def test_json_response_carries_reconciliation_and_has_time(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The real reconcile_result runs on the faked parse: header totals + a chained balance column.
+    result = ParseResult(
+        transactions=[
+            txn(credit="500.00"),
+            txn("500.00", debit="100.00", has_time=False, date=datetime(2026, 1, 6)),
+        ],
+        total_credit=Decimal("500.00"),
+        total_debit=Decimal("100.00"),
+    )
+    monkeypatch.setattr("bankstract.parse", fake_parse(result=result))
+    resp = harness.client.post(
+        "/v1/parse", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["reconciliation"] == {
+        "totals": "passed",
+        "row_wise": "passed",
+        "row_wise_reason": None,
+    }
+    assert "row_wise_reconcilable" not in body
+    assert [t["has_time"] for t in body["transactions"]] == [True, False]
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        # Header totals disagree with the rows.
+        ParseResult(total_credit=Decimal("1.00"), total_debit=Decimal("0"), format_version="fv-1"),
+        # Neither check has evidence: no totals, no rows with balances.
+        ParseResult(format_version="fv-1"),
+    ],
+    ids=["totals_mismatch", "no_evidence"],
+)
+def test_json_reconciliation_failure_returns_422(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch, result: ParseResult
+) -> None:
+    monkeypatch.setattr("bankstract.parse", fake_parse(result=result))
+    resp = harness.client.post(
+        "/v1/parse", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    assert resp.status_code == 422
+    body = resp.json()
+    assert body["error_class"] == "ReconciliationError"
+    # Engine 0.17.1 stamps the checked result's format_version on ReconciliationError.
+    assert body["format_version"] == "fv-1"
+
+
+def test_sync_parse_holds_the_engine_semaphore(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # parse_max_concurrent caps engine threads (pdfplumber RAM) across sync + async parses. The
+    # sync route runs the engine in a thread, so it must take a slot like _run_job does.
+    sem = harness.client.app.state.app_state.jobs.semaphore
+    free = sem._value  # pyright: ignore[reportPrivateUsage]
+    seen: list[int] = []
+
+    def _parse(source: object, **_: object) -> ParseResult:
+        seen.append(sem._value)  # pyright: ignore[reportPrivateUsage]
+        return empty_parse_result()
+
+    monkeypatch.setattr("bankstract.parse", _parse)
+    resp = harness.client.post(
+        "/v1/parse", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    assert resp.status_code == 200
+    assert seen == [free - 1]
 
 
 def test_parse_oversize_returns_413(harness: Harness) -> None:
@@ -92,7 +146,7 @@ def test_anonymous_demo_over_cap_serves_sample(harness: Harness) -> None:
 
 def test_test_key_over_cap_serves_sample(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     # TEST_TIER_MONTHLY_CAP=3. A test key with an owner gets 3 real parses, then the canned sample.
-    monkeypatch.setattr("bankstract.parse", _success_parse())
+    monkeypatch.setattr("bankstract.parse", fake_parse())
     key = _owner_test_key(harness, "owner_cap")
     for _ in range(3):
         resp = harness.client.post("/v1/parse", files=pdf_upload(), headers=auth_header(key))
@@ -107,7 +161,7 @@ def test_test_key_over_cap_serves_sample(harness: Harness, monkeypatch: pytest.M
 def test_test_cap_survives_regenerate(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     # The cap is per-owner: rolling the test key (a fresh key id) must NOT reset the count, or an
     # owner could regenerate to mint another 25 free parses (the bypass the review caught).
-    monkeypatch.setattr("bankstract.parse", _success_parse())
+    monkeypatch.setattr("bankstract.parse", fake_parse())
     admin = auth_header(harness.admin_token)
     first = harness.client.post("/v1/keys/test", json={"owner": "o_regen"}, headers=admin).json()
     for _ in range(3):
@@ -136,7 +190,7 @@ def test_test_key_failed_parses_do_not_count(harness: Harness) -> None:
 def test_test_key_csv_over_cap_serves_sample_csv(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("bankstract.parse_to", _success_parse_to)
+    monkeypatch.setattr("bankstract.parse", fake_parse())
     key = _owner_test_key(harness, "owner_csv")
     for _ in range(3):
         assert (
@@ -183,7 +237,7 @@ def test_first_party_key_skips_subscription_and_test_cap(
 ) -> None:
     # No subscription exists for the owner, and TEST_TIER_MONTHLY_CAP=3 is exceeded: a
     # first_party key must keep doing real parses regardless (it is neither billable nor test).
-    monkeypatch.setattr("bankstract.parse", _success_parse())
+    monkeypatch.setattr("bankstract.parse", fake_parse())
     key = _first_party_key(harness, owner="fp_gates")
     headers = {**auth_header(key), "X-First-Party-Client-IP": "203.0.113.7"}
     for _ in range(4):  # > test cap, no 402, no sample
@@ -198,7 +252,7 @@ def test_first_party_per_ip_cap_serves_sample(
     # DEMO_RATE_LIMIT_MAX=5 applies per forwarded end-user IP. The 6th attempt from the same IP
     # gets the canned sample (which the surface's proxy hard-fails into a friendly error); a
     # different forwarded IP starts a fresh window.
-    monkeypatch.setattr("bankstract.parse", _success_parse())
+    monkeypatch.setattr("bankstract.parse", fake_parse())
     key = _first_party_key(harness, owner="fp_cap")
     capped = {**auth_header(key), "X-First-Party-Client-IP": "198.51.100.1"}
     for _ in range(5):

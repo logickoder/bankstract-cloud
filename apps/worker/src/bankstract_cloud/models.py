@@ -9,9 +9,10 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, PlainSerializer
 
-# The engine (bankstract) returns dataclasses (ParseResult, StatementMetadata) holding a
-# pydantic Transaction. It exposes no model_dump. We define our own response contract here
-# so the wire format is decoupled from engine internals across versions.
+# /v1 parse JSON is the engine's own bankstract.serialize(result, "json") bytes, not a worker
+# mapping (engine.parse_statement). These models DOCUMENT that shape for OpenAPI and type the job
+# snapshot. tests/test_contract.py fails CI if the pinned engine's JSON stops round-tripping through
+# them, so an engine shape change surfaces when the pin moves, before /v1 clients see it.
 # Money is serialized as strings. Decimal precision must survive JSON (no float drift).
 
 
@@ -35,6 +36,9 @@ class TransactionOut(BaseModel):
     balance: OptionalMoney
     reference: str | None
     currency: str
+    # True only when the statement printed a real time for this row. False means `date` carries a
+    # padded 00:00:00 (fbn, zenith) and the time is not data.
+    has_time: bool
 
 
 class StatementMetadataOut(BaseModel):
@@ -52,11 +56,25 @@ class TotalsOut(BaseModel):
     debit: OptionalMoney
 
 
+# totals: not_available when the statement prints no header totals. row_wise: not_available when
+# some row has no balance, disabled when the parser opts out (opay: OWealth auto-save moves break
+# the running balance). "failed" is not a status: a failed check is a 422 ReconciliationError.
+CheckStatus = Literal["passed", "not_available", "disabled"]
+
+
+class ReconciliationOut(BaseModel):
+    totals: CheckStatus
+    row_wise: CheckStatus
+    # Why row-wise is disabled, from the parser (e.g. opay: OWealth moves break the running
+    # balance). Null unless row_wise is "disabled".
+    row_wise_reason: str | None
+
+
 class ParseResponse(BaseModel):
     format_version: str | None
     metadata: StatementMetadataOut | None
     totals: TotalsOut
-    row_wise_reconcilable: bool
+    reconciliation: ReconciliationOut
     transactions: list[TransactionOut]
 
 
@@ -66,7 +84,7 @@ class ErrorResponse(BaseModel):
     - `EncryptedSourceError`: source is password-protected
     - `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)
     - `LayoutDriftError`: bank detected, structure broke
-    - `ReconciliationError`: totals don't match the statement
+    - `ReconciliationError`: a totals or running-balance check failed, or none could run
     - `ParseError`: last-resort parse failure
     - `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /
       `WorkerError`: framework concerns

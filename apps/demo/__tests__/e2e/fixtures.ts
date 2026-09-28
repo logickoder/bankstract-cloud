@@ -18,7 +18,7 @@ export const FIXTURE_RESPONSE: ParseResponse = {
     closing_balance: '250.50',
   },
   totals: { credit: '500.00', debit: '120.00' },
-  row_wise_reconcilable: true,
+  reconciliation: { totals: 'passed', row_wise: 'passed', row_wise_reason: null },
   transactions: [
     {
       date: '2026-01-05T09:30:00',
@@ -28,6 +28,7 @@ export const FIXTURE_RESPONSE: ParseResponse = {
       balance: '600.00',
       reference: 'REF1',
       currency: 'NGN',
+      has_time: true,
     },
     {
       date: '2026-01-06T12:00:00',
@@ -37,6 +38,7 @@ export const FIXTURE_RESPONSE: ParseResponse = {
       balance: '480.00',
       reference: 'REF2',
       currency: 'NGN',
+      has_time: true,
     },
   ],
 }

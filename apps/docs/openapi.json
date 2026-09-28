@@ -1563,7 +1563,7 @@
           "error_class"
         ],
         "title": "ErrorResponse",
-        "description": "Error envelope for all non-2xx responses. `error_class` is one of:\n\n- `EncryptedSourceError`: source is password-protected\n- `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)\n- `LayoutDriftError`: bank detected, structure broke\n- `ReconciliationError`: totals don't match the statement\n- `ParseError`: last-resort parse failure\n- `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /\n  `WorkerError`: framework concerns\n\n`marker_coverage` is populated only for `EmptyStatementError`: high coverage with\nzero rows \u2248 legitimately empty; lower coverage \u2248 silent layout drift."
+        "description": "Error envelope for all non-2xx responses. `error_class` is one of:\n\n- `EncryptedSourceError`: source is password-protected\n- `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)\n- `LayoutDriftError`: bank detected, structure broke\n- `ReconciliationError`: a totals or running-balance check failed, or none could run\n- `ParseError`: last-resort parse failure\n- `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /\n  `WorkerError`: framework concerns\n\n`marker_coverage` is populated only for `EmptyStatementError`: high coverage with\nzero rows \u2248 legitimately empty; lower coverage \u2248 silent layout drift."
       },
       "FunnelResponse": {
         "properties": {
@@ -2021,9 +2021,8 @@
           "totals": {
             "$ref": "#/components/schemas/TotalsOut"
           },
-          "row_wise_reconcilable": {
-            "type": "boolean",
-            "title": "Row Wise Reconcilable"
+          "reconciliation": {
+            "$ref": "#/components/schemas/ReconciliationOut"
           },
           "transactions": {
             "items": {
@@ -2038,7 +2037,7 @@
           "format_version",
           "metadata",
           "totals",
-          "row_wise_reconcilable",
+          "reconciliation",
           "transactions"
         ],
         "title": "ParseResponse"
@@ -2092,6 +2091,46 @@
           "database"
         ],
         "title": "ReadyResponse"
+      },
+      "ReconciliationOut": {
+        "properties": {
+          "totals": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "not_available",
+              "disabled"
+            ],
+            "title": "Totals"
+          },
+          "row_wise": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "not_available",
+              "disabled"
+            ],
+            "title": "Row Wise"
+          },
+          "row_wise_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Wise Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "totals",
+          "row_wise",
+          "row_wise_reason"
+        ],
+        "title": "ReconciliationOut"
       },
       "StatementMetadataOut": {
         "properties": {
@@ -2413,6 +2452,10 @@
           "currency": {
             "type": "string",
             "title": "Currency"
+          },
+          "has_time": {
+            "type": "boolean",
+            "title": "Has Time"
           }
         },
         "type": "object",
@@ -2423,7 +2466,8 @@
           "credit",
           "balance",
           "reference",
-          "currency"
+          "currency",
+          "has_time"
         ],
         "title": "TransactionOut"
       },

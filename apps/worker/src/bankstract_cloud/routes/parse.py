@@ -20,8 +20,7 @@ from ..auth import AuthContext
 from ..engine import (
     EngineError,
     UnsupportedStatementError,
-    parse_csv,
-    parse_pdf,
+    parse_statement,
     redact_pdf,
 )
 from ..jobs import TERMINAL_STAGE, Job
@@ -89,7 +88,8 @@ async def parse(
 
     try:
         if redact:
-            redacted = redact_pdf(data, bank=bank)
+            async with state.jobs.semaphore:
+                redacted = await asyncio.to_thread(redact_pdf, data, bank=bank)
             _record_success(state, ctx, pdf.filename, byte_count, redacted.bank)
             return _redact_response(
                 redacted.data,
@@ -99,13 +99,13 @@ async def parse(
             )
         # Free-demo (anonymous tier) outputs are watermarked; paid/test pass through.
         wm_tier = DEMO_TIER if ctx.is_anonymous else ctx.tier
-        if fmt == "csv":
-            csv_outcome = parse_csv(data, bank=bank)
-            _record_success(state, ctx, pdf.filename, byte_count, csv_outcome.parser_detected)
-            return _csv_response(watermark_csv(csv_outcome.data, tier=wm_tier))
-        outcome = parse_pdf(data, bank=bank)
+        # Off the event loop so a long parse can't stall SSE streams and polls, but under the job
+        # semaphore: parse_max_concurrent caps engine threads (and pdfplumber RAM) across the sync
+        # and async surfaces together.
+        async with state.jobs.semaphore:
+            outcome = await asyncio.to_thread(parse_statement, data, fmt=fmt, bank=bank)
     except UnsupportedStatementError as exc:
-        _audit(state, ctx, pdf.filename, byte_count, None, False, exc.error_class)
+        _audit(state, ctx, pdf.filename, byte_count, exc.bank, False, exc.error_class)
         # error_class carries the specific engine failure (encrypted / empty / drift /
         # reconcile / parse); marker_coverage rides along for EmptyStatementError.
         return error_response(
@@ -116,20 +116,18 @@ async def parse(
             marker_coverage=exc.marker_coverage,
         )
     except EngineError as exc:
-        _audit(state, ctx, pdf.filename, byte_count, None, False, exc.error_class)
+        _audit(state, ctx, pdf.filename, byte_count, exc.bank, False, exc.error_class)
         return error_response(500, str(exc), exc.error_class, format_version=exc.format_version)
     finally:
         del data  # drop PDF bytes promptly (Directive 1)
 
     _record_success(state, ctx, pdf.filename, byte_count, outcome.parser_detected)
+    if fmt == "csv":
+        return _csv_response(watermark_csv(outcome.data, tier=wm_tier))
     if wm_tier == DEMO_TIER:
-        enveloped = watermark_json(
-            outcome.response.model_dump(mode="json"),
-            tier=wm_tier,
-            generated_at=datetime.now(UTC).isoformat(),
-        )
-        return JSONResponse(content=enveloped)
-    return outcome.response
+        return JSONResponse(content=_demo_json(outcome.data))
+    # Engine bytes as-is: the wire shape is the pinned engine's serialize() (see parse_statement).
+    return Response(content=outcome.data, media_type="application/json")
 
 
 @router.post(
@@ -262,6 +260,9 @@ async def job_result(
     # (never rendering synthetic rows as the user's statement) must work on both surfaces.
     sample_headers = {"X-Bankstract-Sample": "true"} if job.is_sample else None
     if job.result_kind == "json":
+        if job.result is not None and not job.is_anonymous:
+            # Nothing to add (no _demo, no _sample): serve the engine bytes without a decode.
+            return Response(content=job.result.data, media_type="application/json")
         return JSONResponse(content=_json_payload(job), headers=sample_headers)
     if job.result_kind == "csv":
         response = _csv_response(_csv_payload(job))
@@ -307,29 +308,21 @@ async def _run_job(
                 job.format_version = redacted.format_version
                 job.redactions = redacted.redactions
                 parser_detected = redacted.bank
-            elif fmt == "csv":
-                csv_outcome = await asyncio.to_thread(
-                    parse_csv, data, bank=bank, progress_callback=callback
-                )
-                job.result = csv_outcome
-                job.result_kind = "csv"
-                job.media_type = "text/csv"
-                parser_detected = csv_outcome.parser_detected
             else:
                 parsed = await asyncio.to_thread(
-                    parse_pdf, data, bank=bank, progress_callback=callback
+                    parse_statement, data, fmt=fmt, bank=bank, progress_callback=callback
                 )
                 job.result = parsed
-                job.result_kind = "json"
+                job.result_kind = fmt
                 parser_detected = parsed.parser_detected
         job.state = "done"
         _record_success(state, ctx, job.filename, job.byte_count, parser_detected)
     except UnsupportedStatementError as exc:
         _fail_job(job, exc.error_class, str(exc), exc.format_version, exc.marker_coverage)
-        _audit(state, ctx, job.filename, job.byte_count, None, False, exc.error_class)
+        _audit(state, ctx, job.filename, job.byte_count, exc.bank, False, exc.error_class)
     except EngineError as exc:
         _fail_job(job, exc.error_class, str(exc), exc.format_version, None)
-        _audit(state, ctx, job.filename, job.byte_count, None, False, exc.error_class)
+        _audit(state, ctx, job.filename, job.byte_count, exc.bank, False, exc.error_class)
     except Exception as exc:  # never leave a job stuck "running"
         _fail_job(job, type(exc).__name__, str(exc), None, None)
         _audit(state, ctx, job.filename, job.byte_count, None, False, type(exc).__name__)
@@ -390,12 +383,16 @@ def _json_payload(job: Job) -> dict[str, object]:
         return sample_json_payload()
     # Anonymous (demo) json is watermarked, matching the sync /v1/parse path. Applied at serve
     # time so the demo cannot get clean output via the async job surface.
-    payload: dict[str, object] = job.result.response.model_dump(mode="json")
     if job.is_anonymous:
-        payload = watermark_json(
-            payload, tier=DEMO_TIER, generated_at=datetime.now(UTC).isoformat()
-        )
-    return payload
+        return _demo_json(job.result.data)
+    return json.loads(job.result.data)
+
+
+def _demo_json(data: bytes) -> dict[str, object]:
+    # The one place demo JSON gets its _demo envelope, for the sync and async surfaces alike.
+    return watermark_json(
+        json.loads(data), tier=DEMO_TIER, generated_at=datetime.now(UTC).isoformat()
+    )
 
 
 def _csv_payload(job: Job) -> bytes:
@@ -442,7 +439,7 @@ def _snapshot(job: Job) -> JobSnapshot:
         result_kind=job.result_kind,
         progress=progress,
         result=(
-            job.result.response
+            ParseResponse.model_validate_json(job.result.data)
             # Anonymous json is served watermarked via result_url (the byte channel), never inlined
             # raw here. Authenticated callers get the typed response directly.
             if (

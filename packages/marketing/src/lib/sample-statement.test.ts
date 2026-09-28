@@ -24,8 +24,10 @@ describe('generateSampleStatement', () => {
   // every parse), so it must hold across many independently-random generations, not just once.
   const samples = Array.from({ length: 200 }, () => generateSampleStatement())
 
-  it('always reports row_wise_reconcilable', () => {
-    for (const sample of samples) expect(sample.row_wise_reconcilable).toBe(true)
+  it('always reports both reconciliation checks as passed', () => {
+    for (const sample of samples) {
+      expect(sample.reconciliation).toEqual({ totals: 'passed', row_wise: 'passed', row_wise_reason: null })
+    }
   })
 
   it('running balance is the accumulation of every row, opening balance to closing balance', () => {

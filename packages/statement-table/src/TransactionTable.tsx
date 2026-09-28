@@ -4,7 +4,7 @@
 'use client'
 
 import { displayDate, displayMoney, displayNaira, signedNaira } from '@bankstract/format'
-import type { ParseResponse, Transaction } from '@bankstract/types'
+import type { ParseResponse, Reconciliation, Transaction } from '@bankstract/types'
 import { Badge, linkClass } from '@bankstract/ui'
 import { useState } from 'react'
 
@@ -15,15 +15,44 @@ import { useState } from 'react'
 // handled by the same expand/collapse logic below with no extra prop needed.
 const PREVIEW_ROWS = 10
 
-const RECONCILED_TIP = 'Row balances and statement totals both check out.'
-const FALLBACK_TIP =
-  "This statement doesn't ship per-row balances. We verified by matching debit + credit sums to the statement header. Same math, different proof."
+// A statement that fails a check never renders (the worker returns a 422 ReconciliationError),
+// so every reachable state here is at least one passed check. The engine also 422s when neither
+// check can run; the last branch only exists because the type allows it.
+function reconciliationCopy({ totals, row_wise, row_wise_reason }: Reconciliation) {
+  if (row_wise === 'passed') {
+    return {
+      tone: 'accent',
+      badge: 'reconciled',
+      tip:
+        totals === 'passed'
+          ? 'Row balances and statement totals both check out.'
+          : 'Row balances check out. Statement prints no totals.',
+    } as const
+  }
+  if (totals === 'passed') {
+    return {
+      tone: 'accent',
+      badge: 'reconciled (totals)',
+      // A disabled row-wise check carries the parser's own reason, so the copy stays bank-agnostic.
+      tip:
+        row_wise === 'disabled'
+          ? (row_wise_reason ?? 'Running balance does not chain row to row. Statement totals checked instead.')
+          : 'No per-row balances on this statement. Debit and credit sums match the header.',
+    } as const
+  }
+  return {
+    tone: 'muted',
+    badge: 'unverified',
+    tip: 'No reconciliation check could run on this statement.',
+  } as const
+}
 
 export function TransactionTable({ data }: { data: ParseResponse }) {
   const [expanded, setExpanded] = useState(false)
   const total = data.transactions.length
   const rows = expanded ? data.transactions : data.transactions.slice(0, PREVIEW_ROWS)
   const hasMore = total > PREVIEW_ROWS
+  const reconciliation = reconciliationCopy(data.reconciliation)
 
   return (
     <div className="w-full overflow-hidden rounded-lg border border-border bg-bg-secondary">
@@ -40,16 +69,12 @@ export function TransactionTable({ data }: { data: ParseResponse }) {
             {displayDate(data.metadata?.statement_period_end ?? null)}
           </span>
           <span className="ml-auto">
-            {data.row_wise_reconcilable ? (
-              <Badge tone="accent">reconciled</Badge>
-            ) : (
-              <Badge tone="muted">unverified totals</Badge>
-            )}
+            <Badge tone={reconciliation.tone}>{reconciliation.badge}</Badge>
           </span>
         </div>
         {/* Explain the reconciliation badge inline; a title tooltip is invisible to keyboard + touch. */}
         <p className="mt-2 text-xs text-fg-tertiary">
-          {data.row_wise_reconcilable ? RECONCILED_TIP : FALLBACK_TIP}
+          {reconciliation.tip}
         </p>
       </div>
 

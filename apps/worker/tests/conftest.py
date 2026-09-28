@@ -3,12 +3,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
 import httpx
 import pytest
+from bankstract import ParseResult, ProgressCallback, ProgressEvent, Transaction
 from fastapi.testclient import TestClient
 
 from tests.fixtures import MINIMAL_PDF
@@ -39,6 +42,54 @@ PAYSTACK_SECRET = "sk_test_paystack_dummy"  # signs webhook fixtures; never a re
 PAYSTACK_PLAN_STARTER = "PLN_starter_test"
 PAYSTACK_PLAN_STARTER_ANNUAL = "PLN_starter_annual_test"
 MAX_BYTES = 2000
+
+
+def empty_parse_result() -> ParseResult:
+    """Zero-row ParseResult for fakes of bankstract.parse. Zero header totals give the real
+    reconcile_result() evidence to pass (totals passed, row_wise not_available); with no
+    totals it would raise the no-evidence ReconciliationError."""
+    return ParseResult(total_credit=Decimal("0"), total_debit=Decimal("0"))
+
+
+def txn(
+    balance: str | None = "600.00",
+    *,
+    credit: str = "0",
+    debit: str = "0",
+    has_time: bool = True,
+    date: datetime = datetime(2026, 1, 5, 9, 30),
+    narration: str = "FOO TRANSFER",
+) -> Transaction:
+    """Synthetic engine Transaction (fixture rule: FOO / ACME, round amounts)."""
+    return Transaction(
+        date=date,
+        narration=narration,
+        credit=Decimal(credit),
+        debit=Decimal(debit),
+        balance=None if balance is None else Decimal(balance),
+        reference="REF1",
+        has_time=has_time,
+    )
+
+
+def fake_parse(
+    *events: tuple[str, int, int], result: ParseResult | None = None
+) -> Callable[..., ParseResult]:
+    """Stand-in for bankstract.parse: fires `events` on the callback, then returns `result`
+    (default empty_parse_result()). The real reconcile_result still runs on what it returns."""
+
+    def _impl(
+        source: object,
+        *,
+        bank: str | None = None,
+        progress_callback: ProgressCallback | None = None,
+    ) -> ParseResult:
+        if progress_callback is not None:
+            for stage, current, total in events:
+                progress_callback(ProgressEvent(stage=stage, current=current, total=total))
+        return result if result is not None else empty_parse_result()
+
+    return _impl
 
 
 def auth_header(key: str) -> dict[str, str]:

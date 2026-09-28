@@ -204,8 +204,8 @@ POST /v1/parse
     redact=true          run redactor, returns redacted file bytes (PDF or XLSX) directly
 
 Response 200 (default, no redact):
-  ParseResponse JSON (wire contract: apps/worker/src/bankstract_cloud/models.py,
-  decoupled from engine ParseResult dataclass internals)
+  ParseResponse JSON (the pinned engine's serialize() output, not ParseResult
+  dataclass internals; documented in apps/worker/src/bankstract_cloud/models.py)
   {
     "format_version": "fbn-2026-01",
     "metadata": { ... },
@@ -250,7 +250,7 @@ GET  /v1/parse/jobs/{id}/result  the ParseResponse JSON, or the CSV / redacted b
 
 Bytes stay in memory and are dropped on completion / TTL eviction (Directive 1); the worker stays single-process (the job store is in-memory).
 
-**Wire format ≠ engine internals.** Engine `ParseResult` + `StatementMetadata` are Python dataclasses (only `Transaction` is pydantic). Worker defines its own `ParseResponse` pydantic model in `apps/worker/src/bankstract_cloud/models.py` and serializes via `ParseResponse.from_engine(result)`. Decouples API surface from engine internals. Engine can rev internal types without breaking `/v1/*` clients.
+**Wire format = the pinned engine's `serialize()`.** `/v1` parse JSON and CSV are the engine's own canonical bytes (`bankstract.serialize(result, fmt)`, the same the CLI emits), not a worker mapping. Engine JSON shape changes only ship in engine versions and reach `/v1` clients only when the worker's pin moves, so the cloud migrates on its own schedule. `apps/worker/src/bankstract_cloud/models.py` documents the shape for OpenAPI; `tests/test_contract.py` fails CI if the pinned engine's JSON stops round-tripping through it. A breaking engine shape change means a `/v2` (or holding the pin).
 
 **Redaction live as of engine 0.11.0.** `bankstract.redact(source, *, bank=None) -> RedactResult` returns in-memory bytes (no tempfile, no disk write, verified by engine tempfile-invariant test via TMPDIR monkeypatch). Worker streams `result.data` straight to HTTP response w/ Content-Type dispatch via `result.format`. Engine pin: `bankstract>=0.11.0` in `apps/worker/pyproject.toml`.
 
@@ -303,9 +303,9 @@ GET /v1/status                    public uptime + version info
 Cloud emits ONE canonical CSV shape from `/v1/parse?format=csv`. Downstream tools (`budgetbakers-wallet-importer`, hypothetical YNAB importer, etc.) target this shape, not the other way around.
 
 ```
-date,narration,debit,credit,balance,reference,currency
-2026-05-01T00:00:00,FBN ALERT,50.00,0,531085.04,X00000000,NGN
-2026-05-06T00:00:00,SALARY,0,300000.00,831085.04,X00000000,NGN
+date,narration,debit,credit,balance,reference,currency,has_time
+2026-05-01T00:00:00,FBN ALERT,50.00,0,531085.04,X00000000,NGN,false
+2026-05-06T00:00:00,SALARY,0,300000.00,831085.04,X00000000,NGN,false
 ```
 
 Schema rules:
@@ -319,6 +319,7 @@ Schema rules:
 | `balance` | decimal | string-encoded decimal | Empty string when statement omits running balance column (PalmPay) |
 | `reference` | string | bank transaction ID | Empty string when bank omits it |
 | `currency` | ISO-4217 | `NGN`, `USD`, etc. | Defaults to `NGN` |
+| `has_time` | boolean | `true` / `false` | `true` only when the statement printed a time for the row. `false` means the `date` time is `00:00:00` padding (FBN, Zenith). Added in engine 0.16.0 |
 
 Header row is required (column-name dispatch in consumer parsers, not positional).
 

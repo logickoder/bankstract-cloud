@@ -19,6 +19,8 @@ export interface Transaction {
   balance: DecimalString | null
   reference: string | null
   currency: string
+  /** True only when the statement printed a real time for this row (not a padded 00:00:00). */
+  has_time: boolean
 }
 
 export interface StatementMetadata {
@@ -36,11 +38,23 @@ export interface Totals {
   debit: DecimalString | null
 }
 
+// totals: not_available when the statement prints no header totals. row_wise: not_available when
+// some row has no balance, disabled when the parser opts out (OPay's OWealth moves break the
+// running balance). A failed check never reaches here: it is a 422 ReconciliationError.
+export type CheckStatus = 'passed' | 'not_available' | 'disabled'
+
+export interface Reconciliation {
+  totals: CheckStatus
+  row_wise: CheckStatus
+  /** Parser's reason row-wise is disabled (e.g. opay's OWealth moves). Null unless disabled. */
+  row_wise_reason: string | null
+}
+
 export interface ParseResponse {
   format_version: string | null
   metadata: StatementMetadata | null
   totals: Totals
-  row_wise_reconcilable: boolean
+  reconciliation: Reconciliation
   transactions: Transaction[]
 }
 
