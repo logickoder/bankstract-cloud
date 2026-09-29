@@ -1,166 +1,140 @@
-# AGENTS.md: bankstract-cloud
+# bankstract-cloud - Agent Operating Charter
 
-Quick-reference for AI coding agents (Cursor, Claude Code, GPT, Codex, Cline, etc).
-Authoritative deep-dive: `CLAUDE.md` (charter) and `PRD.md` (product spec).
-
-## What this repo is
-
-Public AGPL-3.0 SaaS layer on top of the `bankstract` MIT engine (sibling repo: `github.com/logickoder/bankstract`).
-
-Primary product: B2B statement parsing API at `/v1/parse` for Nigerian fintechs / bookkeeping SaaS / tax-prep startups.
-Secondary surface: free browser drag-drop demo at `bankstract.dev/demo`.
+You are working inside `bankstract-cloud`, the public AGPL-3.0 SaaS layer over the `bankstract` engine. Primary product: a B2B statement-parsing API (`/v1/parse`) for Nigerian fintechs, bookkeeping SaaS, and tax-prep startups. Secondary surface: a free drag-drop demo at `/demo`.
 
 Owner: Jeffery Orazulike (github.com/logickoder).
 
-## Repo shape
+Sibling repo: github.com/logickoder/bankstract (the Python engine, MIT). This repo consumes it from PyPI. Never vendor or fork the engine source. Parsers and new banks live there.
+
+## CORE DIRECTIVES
+
+Short form. Each links to the full rule in `docs/rules/`. Read the linked rule before working in its area.
+
+1. **Privacy is the product.** PDF bytes stay in memory. Nothing from a statement is logged or stored. [privacy](docs/rules/privacy.md)
+2. **Secrets never commit.** Public repo. Env only. [secrets](docs/rules/secrets.md)
+3. **AGPL-3.0, respect the copyleft.** Headers on every source file. [license](docs/rules/license.md)
+4. **Human in the loop.** No commit, push, PR, merge, publish, or deploy without an explicit owner command. [workflow](docs/rules/workflow.md)
+5. **Surgical edits.** Touch the app or package under request. Surfaces stay decoupled. [workflow](docs/rules/workflow.md)
+6. **Zero hallucination on business logic.** Read the code, point at the constant. [workflow](docs/rules/workflow.md)
+7. **No boilerplate comments.** [code-style](docs/rules/code-style.md)
+8. **Tone.** Direct, technical, honest. [voice](docs/rules/voice.md), [workflow](docs/rules/workflow.md)
+9. **Strict type-checking is green or bust.** TS strict, pyright strict, zero warnings. [code-style](docs/rules/code-style.md)
+
+## REPO LAYOUT
 
 ```
-apps/
-  web/          Next.js 16: ONE runtime - marketing /, demo /demo, dashboard /dashboard + /sign-in + /sign-up + /api/*
-  marketing/    Next.js 16: thin extractable shell over packages/marketing
-  demo/         Next.js 16: thin shell over packages/demo (the deployable demo in the infra/ self-host bundle)
-  docs/         Fumadocs: API docs; deploys to Cloudflare Pages, surfaced at /docs (Caddy proxy + Next basePath /docs)
-  worker/       FastAPI: imports `bankstract` engine, exposes /v1/parse (+ async /v1/parse/jobs)
-packages/
-  marketing/    marketing surface (home, sections, metadata) - consumed by apps/web + the thin shell
-  demo/         demo surface (home, components, API handlers) - consumed by apps/web + the thin shell
-  ui/           shadcn components shared across Next.js apps
-  seo/          shared metadata + OG image + favicon helpers
-  types/        shared TS types mirroring engine ParseResult
-  tsconfig/     shared tsconfig presets
-  eslint-config/ shared ESLint config (incl. the @stylistic quote/semi guard; no prettier)
-infra/
-  docker-compose.yml   public self-host bundle (worker + thin demo; verifies AGPL claim)
-  Caddyfile            reverse proxy config
-infra-prod/            owner's prod stack (worker + web behind an internal Caddy + a shared proxy)
+bankstract-cloud/
+├── AGENTS.md                  this charter
+├── PRD.md                     product spec (public)
+├── DESIGN.md                  visual system: tokens, components, page structure
+├── README.md / CONTRIBUTING.md / SECURITY.md / CHANGELOG.md
+├── LICENSE / LICENSE_HEADER.txt   AGPL-3.0 + the short source-file notice
+├── package.json / pnpm-workspace.yaml / turbo.json   pnpm workspaces + Turbo (overrides pin advisories)
+├── .env.example               documented env vars
+├── apps/
+│   ├── web/                   Next.js 16: THE prod runtime. Route groups (marketing) / (demo) / (app):
+│   │                          marketing /, demo /demo, dashboard + /sign-in + /api/*
+│   ├── marketing/             thin shell over packages/marketing (extractable, off the prod path)
+│   ├── demo/                  thin shell over packages/demo (the infra/ self-host deploy target)
+│   ├── docs/                  Fumadocs: guides + openapi.json. Cloudflare Pages, served at /docs
+│   └── worker/                FastAPI over the engine: /v1/parse (+ jobs), keys, billing, audit
+│       └── src/bankstract_cloud/
+│           ├── engine.py      parse_statement (parse → reconcile_result → serialize), error mapping
+│           ├── routes/        parse, keys, billing, account, health
+│           ├── models.py      documents the /v1 wire shape (OpenAPI + contract test)
+│           ├── jobs.py        in-memory JobStore + the engine semaphore
+│           └── migrations/    hand-written Alembic, no ORM
+├── packages/
+│   ├── marketing/ demo/       surface code, consumed by apps/web + the thin shells
+│   ├── statement-table/       the parsed-statement table (demo + /for-lenders)
+│   ├── types/                 TS wire types mirroring models.py
+│   ├── sdk/                   @logickoder/bankstract TypeScript SDK
+│   ├── format/                money + date display helpers
+│   ├── ui/ seo/               shadcn components; metadata, robots, OG
+│   └── tsconfig/ eslint-config/
+├── infra/                     public self-host bundle (worker + thin demo): the AGPL claim
+├── infra-prod/                owner prod stack (worker + web + Caddy + R2 backup)
+└── docs/rules/                agent rules, one topic per file
 ```
 
-## Hard rules (non-negotiable)
-
-### 1. PDF bytes never touch disk
-PDF flow: client → FastAPI worker → `BytesIO` → `bankstract.parse(stream)` → JSON response. No `Path.write_bytes`, no `NamedTemporaryFile(delete=False)`, no caching layers. PDF content never logged.
-
-### 2. No secrets in source
-Public repo. `.env.production` gitignored. `.env.example` documents env vars. Pre-commit scans for `sk_live_`, `pk_live_`, `PAYSTACK_SECRET_KEY=` and similar. Halt commit on match. `sk_live_`/`pk_live_` are Paystack live keys. Use `bsk_test_` for dev keys, never `bsk_live_`.
-
-### 3. AGPL-3.0 headers on source files
-All `.ts`, `.tsx`, `.py` files in `apps/` and `packages/` start with the short notice from `LICENSE_HEADER.txt`. Engine import (`bankstract`, MIT) is a runtime dependency, no header inheritance.
-
-### 4. Worker imports the engine, never subprocess
-```python
-# CORRECT
-import bankstract
-result = bankstract.parse(stream)
-
-# WRONG
-subprocess.run(["bankstract", ...])
-```
-
-### 5. Audit log = metadata only
-Schema: `(id, timestamp, api_key_id_or_anonymous, filename, byte_count, parser_detected, success, error_class)`. No payload fields. No transaction details. No account info.
-
-### 6. Versioned API URLs
-`/v1/parse`, `/v1/banks`, `/v1/usage` from day 1. Breaking changes → `/v2/`. Never bare `/parse`.
-
-### 7. Human in the loop
-No `git commit`, `git push`, `git tag`, `gh pr create`, `gh release`, `pnpm publish`, `docker push`, or deploy ops without explicit owner command in the current turn.
-
-## Code style
-
-### TypeScript
-- `strict: true` + `noUncheckedIndexedAccess: true`
-- Zero `any` (use `unknown` + narrow)
-- Zero `@ts-ignore` (use `@ts-expect-error` with explanation)
-- Zero unused vars (ESLint errors not warns)
-- Prefer named exports over default exports
-- React Server Components by default; mark `'use client'` only when needed
-
-### Python (apps/worker)
-- Python 3.11+
-- `pyright` strict mode, zero errors / zero warnings
-- `ruff` lint + format
-- `pydantic` v2 for request/response models
-- Type-hint all public functions; no untyped boundaries past the FastAPI handler
-
-### Comments
-- No `# parse the PDF` above `parse()`. No JSDoc on obvious functions.
-- Comment earns its place when removing it would confuse a future reader:
-
-```ts
-// Cloudflare Turnstile sends the token via formData NOT JSON body.
-// Don't fetch req.json(). The multipart parser eats the PDF.
-const formData = await req.formData()
-```
-
-### Tone in commits + PRs + docs
-- Direct, technical. No "I've gone ahead and...", no "Let me know if...".
-- Conventional Commits (see CONTRIBUTING.md): `feat:`, `fix:`, `perf:`, `chore:`, `docs:`, `refactor:`, `test:`, `ci:`, `style:`, `build:`, `revert:`.
-
-## Commands
+## COMMANDS
 
 ```bash
-# install
+# install (TS + Python)
 pnpm install
 cd apps/worker && uv sync --all-extras && cd ../..
 
-# dev (all apps)
-pnpm dev
+# dev: the prod-shaped local stack (worker :8000 + web)
+pnpm dev:all
 
-# dev single app
-pnpm --filter web dev     # the one runtime: marketing /, demo /demo, dashboard
+# dev: one app
+pnpm --filter web dev
 pnpm --filter docs dev
 cd apps/worker && uv run uvicorn bankstract_cloud.main:app --reload
 
-# lint + types
+# lint + types (MUST pass clean, directive 9)
 pnpm lint
 pnpm typecheck
-cd apps/worker && uv run ruff check . && uv run pyright .
+cd apps/worker && uv run ruff check . && uv run ruff format --check . && uv run pyright .
 
 # test
 pnpm test
+pnpm --filter demo test:e2e
+pnpm --filter web test:e2e
 cd apps/worker && uv run pytest
 
-# build
-pnpm build
+# after a wire change: regenerate the docs spec (CI diffs it)
+cd apps/worker && uv run python scripts/export_openapi.py
 
-# self-host bundle (verifies AGPL self-host claim)
+# build + dependency gate (CI runs both)
+pnpm build
+pnpm audit --audit-level=moderate
+
+# self-host bundle (verifies the AGPL claim)
 docker compose -f infra/docker-compose.yml up --build
 ```
 
-## Testing
+## OUT OF SCOPE - DO NOT ADD
 
-- TS unit tests under `apps/<app>/__tests__/` or co-located `*.test.ts`
-- Python tests under `apps/worker/tests/`
-- E2E (Playwright) for marketing + demo critical flows: hero render, demo upload, signup
-- Integration tests for `/v1/parse` use synthetic PDFs in `apps/worker/tests/fixtures/`
-- **NO real bank PDFs ever in this repo.** Use synthetic generators or call into engine's own committed redacted fixtures via local mount in dev.
-- Fixture content rule: no real names, account numbers, BVN, addresses inline. Use `FOO`, `BAR`, `ACME`, `1111 2222`.
+- Category inference (rule-based or ML). Downstream concern.
+- Mobile native client. Not v1.
+- Multi-tenant org accounts. Not v1.
+- Whitelabel for accounting firms. Not v1.
+- Direct bank API integrations (Mono / Okra wrappers). Different product.
+- Pyodide / WASM in-browser parsing. v2 if usage justifies.
+- Categorization, budgeting, dashboards on top of parsed data. Downstream concern.
+- Direct push to BudgetBakers / YNAB / Notion / Google Sheets. Cloud returns JSON; integrations belong in customer code.
+- Statement-download automation (logging into bank portals). Separate tool.
 
-## Out of scope (push back if asked)
+If asked to add any of the above, push back. Name the item and refer to PRD.md § Out of scope.
 
-- Category inference / ML transaction tagging
-- Mobile native client (v1)
-- Multi-tenant orgs (v1)
-- Whitelabel for accounting firms
-- Direct bank API integrations (Mono / Okra wrappers)
-- Categorization, budgeting, dashboards on top of parsed data
-- Push to BudgetBakers / YNAB / Notion / Google Sheets (customer code handles integrations)
-- Statement-download automation (logging into bank portals)
-- Pyodide / WASM in-browser parsing (v2 if usage justifies)
+## RULES
 
-If a request matches any of the above, state which item, refer to PRD.md § Out of scope.
+One topic per file in `docs/rules/`, the single source of truth. `.claude/rules/` holds thin wrappers (frontmatter plus an `@` import) that Claude Code loads by path. Edit the source in `docs/rules/`, never the wrapper.
 
-## Where to look first
+| Rule | Covers |
+|---|---|
+| [privacy](docs/rules/privacy.md) | in-memory PDF flow, what is never logged or stored, audit schema |
+| [secrets](docs/rules/secrets.md) | env-only secrets, pre-commit live-key block, test prefixes |
+| [license](docs/rules/license.md) | AGPL headers, what inherits and what doesn't, self-host bundle |
+| [worker](docs/rules/worker.md) | engine import, one parse path, serialize() wire contract, concurrency, jobs, redaction, migrations |
+| [api](docs/rules/api.md) | `/v1/parse` shape, error envelope, free-tier cap (no 429), API keys, wire types |
+| [billing](docs/rules/billing.md) | Paystack NGN tiers, overage, 402 gate, webhooks |
+| [frontend](docs/rules/frontend.md) | one web runtime, surface packages, auth, Turnstile |
+| [code-style](docs/rules/code-style.md) | strict types, TS idiom (no prettier), comments |
+| [testing](docs/rules/testing.md) | test layout, shared fakes, e2e, fixture privacy |
+| [workflow](docs/rules/workflow.md) | human in the loop, surgical edits, commits, PRs, response format |
+| [voice](docs/rules/voice.md) | copy, docs, errors, commits. No em-dashes |
+| [infra](docs/rules/infra.md) | prod box, routing, deploy workflows, self-host |
+
+## WHERE TO LOOK FIRST
 
 | Question | File |
-|----------|------|
+|---|---|
 | Why does this product exist? | `PRD.md` § What + Why |
-| What's the API shape? | `PRD.md` § API surface |
-| How do I add an export format? | `apps/worker/src/bankstract_cloud/writers/` |
-| How is auth wired? | `apps/web/src/lib/auth.ts` + `proxy.ts` (Better Auth; sessions in `apps/web/data/auth.db`, gitignored, self-host bundle intact) + `apps/worker/src/bankstract_cloud/auth.py` (separate API-key bearer path) |
-| How is billing wired? | Paystack NGN subscriptions (PRD § Pricing). Worker: `paystack.py` (client + HMAC webhook verify), `subscriptions.py` (state store + webhook dispatch), `usage.py` (overage), `routes/billing.py` (endpoints). 402 gate in `routes/parse.py`. `apps/web` proxies via `/api/billing/init`; worker holds the secret. |
-| What's the privacy posture? | `CLAUDE.md` § Directive 1 + `PRD.md` § Privacy posture |
-| Why AGPL not MIT? | `CLAUDE.md` § Directive 3 + `PRD.md` § License |
-| How do I add a new bank? | NOT here. Engine repo: `github.com/logickoder/bankstract` § CONTRIBUTING |
-| Why aren't there bank-parser files? | Same answer. Engine repo owns the parsers; Cloud consumes via PyPI |
-| Visual brand reference | `DESIGN.md` (tokens, components, page structure, references, anti-patterns) |
+| What's the API shape? | [api](docs/rules/api.md), `apps/docs/openapi.json`, `PRD.md` § API surface |
+| How is auth wired? | `apps/web/src/lib/auth.ts` (Better Auth, dashboard sessions) + `apps/worker/src/bankstract_cloud/auth.py` (API-key bearer) |
+| How is billing wired? | [billing](docs/rules/billing.md) |
+| Why AGPL, not MIT? | [license](docs/rules/license.md) + `PRD.md` § License |
+| How do I add a bank? | Not here. The engine repo, § CONTRIBUTING |
+| Visual brand reference | `DESIGN.md` |

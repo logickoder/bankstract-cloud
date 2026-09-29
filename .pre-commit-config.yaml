@@ -1,4 +1,4 @@
-# Mirrors the repo gates (CLAUDE.md Directive 9 + Directive 2):
+# Mirrors the repo gates (AGENTS.md directives 9 + 2; docs/rules/code-style.md, secrets.md):
 #  - TS/TSX: eslint + tsc + vitest via turbo. NO prettier: the repo has no prettier config and
 #    its idiom is single-quote / no-semicolon; running prettier would mangle it.
 #  - Python worker: ruff + pyright + pytest via uv, run inside apps/worker (the uv project).

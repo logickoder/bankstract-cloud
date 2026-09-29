@@ -2,7 +2,7 @@
 
 Single source of truth for visual design system: tokens, components, layout structure, references, anti-patterns.
 
-Authoritative for any UI work in this repo. PRD.md + CLAUDE.md + AGENTS.md REFERENCE this file, do not duplicate.
+Authoritative for any UI work in this repo. PRD.md + AGENTS.md + docs/rules REFERENCE this file, do not duplicate.
 
 Inspired by [google-labs-code/design.md](https://github.com/google-labs-code/design.md): structured spec, not prose marketing.
 
@@ -347,7 +347,7 @@ bank-coverage-cell:
     textColor: "{fg.tertiary}"
 ```
 
-The ONLY component that uses emoji indicators. Justified because: coverage-matrix legibility > brand-purity. Per CLAUDE.md voice rule, no other emoji ships.
+The ONLY component that uses emoji indicators. Justified because: coverage-matrix legibility > brand-purity. Per the voice rule (docs/rules/voice.md), no other emoji ships.
 
 ---
 
@@ -425,7 +425,7 @@ landing-sections:
       shipped-banks-render: "from engine: fbn, opay, palmpay, zenith as of engine 0.10.0; one cell each, indicator: shipped"
       planned-banks-render: "from roadmap.yaml: gtb, kuda, sparkle, alat, stanbic, wise; indicator: in-progress or wanted with version target"
       sla-microcopy: "Format drift fixed in 48h or you don't pay"
-      directive: "CLAUDE.md Directive 6. Zero hallucination on business logic. Coverage matrix reflects engine truth, NOT marketing wishlist. If engine ships 4 parsers, grid renders 4 shipped cells. The planned cells reveal the roadmap honestly without overclaiming current support."
+      directive: "AGENTS.md directive 6 (docs/rules/workflow.md). Zero hallucination on business logic. Coverage matrix reflects engine truth, NOT marketing wishlist. If engine ships 4 parsers, grid renders 4 shipped cells. The planned cells reveal the roadmap honestly without overclaiming current support."
 
   - id: compliance
     component: ComplianceSection
