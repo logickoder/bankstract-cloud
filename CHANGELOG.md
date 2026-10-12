@@ -7,7 +7,13 @@ All notable changes to bankstract-cloud. Format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+
+- `POST /v1/inspect`: evidence about whether a statement file was edited (engine `inspect()`, engine pin `bankstract>=0.18.0`). Returns an `IntegrityReport` (`bank`, `format_version`, `signals[]`, `clean`). Evidence, never a verdict: HTTP 200 with error signals is a normal outcome. Same auth, size and subscription gates as `/v1/parse`. One inspect counts as one parse for caps and overage, except a file the parser could not read (an `unparseable` signal): that is a 200 report audited as a failure, so it never counts or bills. The anonymous demo key gets `403`. Over a free cap it returns `402 free_limit_reached` and never a canned sample, because a made-up clean report would read as a real pass. `IntegritySignal.detail` quotes the statement, so it is returned to the caller and never logged or audited; the audit row is metadata only. New migration `0005_audit_endpoint` adds `audit_log.endpoint` (default `parse`). SDK: `client.inspect()` and `ForbiddenError` (403). Types: `IntegrityReport`, `IntegritySignal`. Docs: new Inspect page.
+
 ### Changed
+
+- Every engine call (parse, redact) now runs in a killable child process (`isolate=True`). A crafted PDF can cost gigabytes inside one mupdf call, and an in-process call cannot be stopped. Engine pin `bankstract>=0.18.0`, pymupdf 1.28.2 or newer. New settings `isolate_timeout_seconds` (60) and `isolate_memory_mb` (1024, Linux only). A file that passes either limit returns `422` with `error_class: ResourceLimitError` and a fixed message. It is never a clean or partial result. No wire change for existing calls. The first isolated call after boot costs about 0.4s, later ones about 0.07s (measured under `uvicorn` on macOS).
 
 - **Breaking (wire):** JSON parse responses are now reconciled. Engine pin `bankstract>=0.16.1`. Before, `format=json` (sync and async jobs) called `bankstract.parse()`, which never reconciled; only the CSV path checked totals and running balance. `engine.parse_pdf` now runs `bankstract.reconcile_result()`, so a failed check (or a statement with evidence for neither) returns the same `422 ReconciliationError` as CSV. `ParseResponse.row_wise_reconcilable` is removed (it was a parser flag, not a check result) and replaced by `reconciliation: { totals, row_wise }`, each `passed` / `not_available` / `disabled`. No deprecation window. The demo badge and tip now read from `reconciliation`, and the "unverified totals" badge is gone.
 - Engine `parse_to()` renamed to `convert()` (engine 0.16.0, no alias). Worker CSV path updated.
