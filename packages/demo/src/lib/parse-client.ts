@@ -3,7 +3,7 @@
 
 import type { ParseResponse } from '@bankstract/types'
 
-import { codeForResponse, type DemoErrorCode } from './errors'
+import { codeForJobFailure, codeForResponse, type DemoErrorCode } from './errors'
 
 export type ParseResult =
   // overLimit: the worker served a canned sample because the free demo cap is spent (an additive
@@ -83,11 +83,12 @@ function streamResult(
           state: string
           result?: ParseResponse
           error_class?: string
+          marker_coverage?: number | null
         }
         if (final.state === 'done' && final.result) {
           finish({ ok: true, data: final.result, overLimit: '_sample' in final.result })
         } else {
-          finish({ ok: false, code: codeForResponse(422, final.error_class, null) })
+          finish({ ok: false, code: codeForJobFailure(final) })
         }
       } catch {
         finish({ ok: false, code: 'network' })
