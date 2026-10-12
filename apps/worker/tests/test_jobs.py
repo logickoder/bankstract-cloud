@@ -174,6 +174,7 @@ def _redact_mock(
         *,
         bank: str | None = None,
         progress_callback: ProgressCallback | None = None,
+        **_isolation: object,
     ) -> SimpleNamespace:
         if progress_callback is not None:
             progress_callback(ProgressEvent(stage="redact_page", current=1, total=1))

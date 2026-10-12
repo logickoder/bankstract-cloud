@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     # pdfplumber peaks ~150-300MB per large statement, so keep this low on the shared 4GB box
     # (web coexists). job_ttl retains a terminal job + its result in RAM for the poll fallback.
     parse_max_concurrent: int = 2
+    # Every engine call runs in a killable child process (engine isolate=True): a crafted PDF can
+    # cost gigabytes inside one mupdf call and nothing in-process can stop it. The time limit
+    # counts from the engine call. The memory limit is per child and Linux only (macOS/Windows get
+    # the time limit alone). It is 1024 MB, not the engine's 2048 default: parse_max_concurrent
+    # children x 2048 MB would be the whole 4GB box. Genuine statements peak at 150-300MB.
+    isolate_timeout_seconds: float = 60.0
+    isolate_memory_mb: int = 1024
     job_ttl_seconds: int = 300
     sse_throttle_ms: int = 150  # min interval between progress events streamed to a client
 

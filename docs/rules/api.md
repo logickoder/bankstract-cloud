@@ -24,6 +24,24 @@ Non-2xx bodies use one envelope: `{ error, error_class, format_version, marker_c
 
 Async variant: `POST /v1/parse/jobs` → 202 `{ job_id, stream_url, poll_url }`, same gates. See [worker](worker.md).
 
+## POST /v1/inspect
+
+```
+Authorization: Bearer bsk_live_xxx
+Content-Type: multipart/form-data
+body: pdf=<file>   optional: bank=<name>
+
+200 → IntegrityReport JSON ({ bank, format_version, signals[], clean })
+401 → invalid / missing key
+402 → subscription inactive, or a free cap reached (free_limit_reached)
+403 → the anonymous demo key (inspect has no demo surface)
+413 → over 50 MB
+422 → encrypted, unsupported, or ResourceLimitError (a file stopped at the processing limits)
+500 → internal error
+```
+
+Evidence, never a verdict. HTTP 200 with error signals is a normal outcome. One inspect counts as one parse for caps and overage (every count query sums `success` rows with no endpoint filter; `audit_log.endpoint` only keeps the two distinguishable). A file the engine could not parse comes back as a 200 report with an `unparseable` error signal and is audited as a failure, so it never counts. Over a free cap it returns 402 and never a canned sample, because a made-up clean report would read as a real pass. `IntegritySignal.detail` quotes the statement: return it to the caller, never log or audit it. The audit row is metadata only, never signal codes.
+
 ## Free-tier cap: no 429
 
 Over a free cap the response is a 200 canned synthetic sample (`sample.py`). The engine does not run. It carries an additive `_sample` marker and an `X-Bankstract-Sample: true` header. 429 is unused product-wide.

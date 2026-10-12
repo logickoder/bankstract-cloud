@@ -13,6 +13,7 @@ from fastapi import Depends, Header, HTTPException, Request
 from .audit import AuditLog
 from .auth import AuthContext, KeyStore
 from .config import Settings
+from .engine import IsolationLimits
 from .jobs import JobStore
 from .overage_ledger import CycleTierStore, OverageLedger
 from .paystack import PaystackClient
@@ -31,6 +32,8 @@ class AppState:
     cycle_tiers: CycleTierStore
     overage_ledger: OverageLedger
     jobs: JobStore
+    # Every engine call runs in a killable child under these limits (built once from Settings).
+    isolation: IsolationLimits
     # The shared SQLite connection, exposed for cross-table operations (e.g. owner erasure).
     conn: sqlite3.Connection
 

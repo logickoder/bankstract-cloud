@@ -14,13 +14,10 @@ from tests.conftest import (
     auth_header,
     empty_parse_result,
     fake_parse,
+    owner_test_key,
     pdf_upload,
     txn,
 )
-
-
-def _owner_test_key(harness: Harness, owner: str) -> str:
-    return harness.client.app.state.app_state.keystore.issue("t", "test", owner=owner).raw_key
 
 
 def test_parse_requires_api_key(harness: Harness) -> None:
@@ -147,7 +144,7 @@ def test_anonymous_demo_over_cap_serves_sample(harness: Harness) -> None:
 def test_test_key_over_cap_serves_sample(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     # TEST_TIER_MONTHLY_CAP=3. A test key with an owner gets 3 real parses, then the canned sample.
     monkeypatch.setattr("bankstract.parse", fake_parse())
-    key = _owner_test_key(harness, "owner_cap")
+    key = owner_test_key(harness, "owner_cap")
     for _ in range(3):
         resp = harness.client.post("/v1/parse", files=pdf_upload(), headers=auth_header(key))
         assert resp.status_code == 200
@@ -181,7 +178,7 @@ def test_test_cap_survives_regenerate(harness: Harness, monkeypatch: pytest.Monk
 def test_test_key_failed_parses_do_not_count(harness: Harness) -> None:
     # Real engine on the synthetic pdf fails (422). Failures never accrue toward the cap, so the
     # key keeps returning 422 (never the canned sample) past the cap count.
-    key = _owner_test_key(harness, "owner_fail")
+    key = owner_test_key(harness, "owner_fail")
     for _ in range(5):  # > TEST_TIER_MONTHLY_CAP (3)
         resp = harness.client.post("/v1/parse", files=pdf_upload(), headers=auth_header(key))
         assert resp.status_code == 422
@@ -191,7 +188,7 @@ def test_test_key_csv_over_cap_serves_sample_csv(
     harness: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr("bankstract.parse", fake_parse())
-    key = _owner_test_key(harness, "owner_csv")
+    key = owner_test_key(harness, "owner_csv")
     for _ in range(3):
         assert (
             harness.client.post(

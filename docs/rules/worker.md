@@ -1,6 +1,6 @@
 # Worker
 
-`apps/worker`: FastAPI over the `bankstract` engine. Python 3.11+, `uv`, current engine pin `bankstract>=0.17.1` (`pyproject.toml`).
+`apps/worker`: FastAPI over the `bankstract` engine. Python 3.11+, `uv`, current engine pin `bankstract>=0.18.0` (`pyproject.toml`).
 
 ## Import the engine, never shell out
 
@@ -38,6 +38,9 @@ Never vendor or fork engine source. Parsers live in the engine repo (github.com/
 
 - The engine runs in `asyncio.to_thread` on every path, sync and async. A long parse must not block SSE streams and polls.
 - Every engine call holds `state.jobs.semaphore`. `parse_max_concurrent` (config.py) caps engine threads across sync and async together: pdfplumber peaks at 150-300MB on a large statement, on a shared 4GB box.
+- Every engine call passes `isolate=True`, `timeout` and `memory_mb` (`Settings.isolate_*`, via `IsolationLimits`). The call runs in a child process the worker can kill, because a crafted PDF can cost gigabytes inside one mupdf call. Bytes cross to the child over a pipe, never a temp file (`tests/test_isolation.py` pins it).
+- `ResourceLimitError` is not a `ParseError`. `_translate_engine_errors` maps it to a 422 with a fixed message, never a clean or partial result. The memory limit is 1024MB, not the engine's 2048: `parse_max_concurrent` children at 2048 would fill the box. It is enforced on Linux only.
+- The engine's child re-imports `__main__`, so the entrypoint must be guarded (`uvicorn` is). The first isolated call after boot costs about 0.4s (it starts the helper), later ones about 0.07s.
 - The worker MUST stay single-process (no uvicorn `--workers`). The job store is in memory.
 
 ## Async jobs

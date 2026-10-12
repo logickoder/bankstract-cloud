@@ -20,13 +20,14 @@ from .auth import KeyStore
 from .billing_cron import billing_scheduler
 from .config import get_settings
 from .db import connect, run_migrations
+from .engine import IsolationLimits
 from .jobs import JobStore
 from .observability import init_sentry
 from .overage_ledger import CycleTierStore, OverageLedger
 from .paystack import PaystackClient
 from .rate_limit import RateLimiter
 from .responses import class_for_status, error_response
-from .routes import account, billing, health, keys, parse
+from .routes import account, billing, health, inspect, keys, parse
 from .state import AppState
 from .subscriptions import SubscriptionStore
 
@@ -44,7 +45,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # SpooledTemporaryFile that ROLLS TO DISK past spool_max_size (default 1MB) during multipart
     # parsing, before the worker ever holds the bytes. Bank PDFs routinely exceed 1MB, so the
     # default writes the statement to a temp file. Raise the ceiling to the upload cap so the whole
-    # file stays in memory; anything larger is rejected in _admit_upload before it can matter. Set
+    # file stays in memory; anything larger is rejected in admit_upload before it can matter. Set
     # here (not at import) so it tracks the settings the app actually runs with.
     MultiPartParser.spool_max_size = settings.max_upload_bytes
     run_migrations(settings.audit_db_path)
@@ -61,6 +62,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         jobs=JobStore(
             max_concurrent=settings.parse_max_concurrent,
             ttl_seconds=settings.job_ttl_seconds,
+        ),
+        isolation=IsolationLimits(
+            timeout_seconds=settings.isolate_timeout_seconds,
+            memory_mb=settings.isolate_memory_mb,
         ),
         conn=conn,
     )
@@ -133,7 +138,14 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     return response
 
 
-for _router in (health.router, account.router, keys.router, billing.router, parse.router):
+for _router in (
+    health.router,
+    account.router,
+    keys.router,
+    billing.router,
+    parse.router,
+    inspect.router,
+):
     app.include_router(_router)
 
 app.add_middleware(

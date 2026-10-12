@@ -54,6 +54,8 @@ class AuditEntry:
     parser_detected: str | None
     success: bool
     error_class: str | None
+    # Which route made the call. Counts ignore it (see docs/rules/api.md); it keeps rows separable.
+    endpoint: str = "parse"
 
 
 class AuditLog:
@@ -63,8 +65,8 @@ class AuditLog:
     def record(self, entry: AuditEntry) -> None:
         self._conn.execute(
             "INSERT INTO audit_log (id, timestamp, api_key_id, filename, "
-            "byte_count, parser_detected, success, error_class) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "byte_count, parser_detected, success, error_class, endpoint) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 uuid.uuid4().hex,
                 utcnow_iso(),
@@ -74,6 +76,7 @@ class AuditLog:
                 entry.parser_detected,
                 int(entry.success),
                 entry.error_class,
+                entry.endpoint,
             ),
         )
         self._conn.commit()

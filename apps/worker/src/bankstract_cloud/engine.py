@@ -9,9 +9,23 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 import bankstract
-from bankstract import ParseError, ProgressCallback, ReconciliationError
+from bankstract import (
+    IntegrityReport,
+    ParseError,
+    ProgressCallback,
+    ReconciliationError,
+    ResourceLimitError,
+)
 
 ENGINE_VERSION: str = getattr(bankstract, "__version__", "unknown")
+
+
+@dataclass(frozen=True)
+class IsolationLimits:
+    """Per-call limits for the engine's isolated child process (see Settings.isolate_*)."""
+
+    timeout_seconds: float
+    memory_mb: int
 
 
 class MappedEngineError(Exception):
@@ -36,7 +50,8 @@ class MappedEngineError(Exception):
 
 
 class UnsupportedStatementError(MappedEngineError):
-    """No registered parser/redactor matched, or the layout drifted. Maps to HTTP 422."""
+    """Any 422 outcome: no parser matched, the layout drifted, a check failed, or the file
+    passed the processing limits (ResourceLimitError). `error_class` says which."""
 
 
 class EngineError(MappedEngineError):
@@ -66,6 +81,16 @@ def _translate_engine_errors() -> Generator[None, None, None]:
             format_version=exc.format_version,
             marker_coverage=getattr(exc, "marker_coverage", None),
             bank=exc.bank,
+        ) from exc
+    except ResourceLimitError as exc:
+        # The isolated child passed its time or memory limit, or died. ResourceLimitError is not a
+        # ParseError, so it needs its own arm. It is never a clean result: refuse the file. The
+        # message is fixed (the engine's text can name a script path) and follows the error rule
+        # `<what>. <why>. <do this>.`
+        raise UnsupportedStatementError(
+            "Statement exceeded processing limits. The file took too long or too much memory to "
+            "read. Send the original bank export, not an edited or re-saved copy.",
+            error_class="ResourceLimitError",
         ) from exc
     except MappedEngineError:
         raise
@@ -114,6 +139,7 @@ def parse_statement(
     data: bytes,
     *,
     fmt: bankstract.OutputFormat,
+    limits: IsolationLimits,
     bank: str | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> ParseOutcome:
@@ -128,15 +154,46 @@ def parse_statement(
     """
     with _translate_engine_errors():
         result = bankstract.reconcile_result(
-            bankstract.parse(io.BytesIO(data), bank=bank, progress_callback=progress_callback),
+            bankstract.parse(
+                io.BytesIO(data),
+                bank=bank,
+                progress_callback=progress_callback,
+                isolate=True,
+                timeout=limits.timeout_seconds,
+                memory_mb=limits.memory_mb,
+            ),
             progress_callback=progress_callback,
         )
         return ParseOutcome(data=bankstract.serialize(result, fmt), parser_detected=result.bank)
 
 
+def inspect_statement(
+    data: bytes,
+    *,
+    limits: IsolationLimits,
+    bank: str | None = None,
+) -> IntegrityReport:
+    """Check a statement for tamper signals, entirely in memory, in the killable child.
+
+    The report is evidence, never a verdict. Its signals' `detail` quotes the statement, so it
+    leaves only in the HTTP response and is never logged or persisted. A file the engine cannot
+    parse is an `unparseable` error signal in the report, not an exception; encrypted sources and
+    resource limits still raise and map like any other call.
+    """
+    with _translate_engine_errors():
+        return bankstract.inspect(
+            io.BytesIO(data),
+            bank=bank,
+            isolate=True,
+            timeout=limits.timeout_seconds,
+            memory_mb=limits.memory_mb,
+        )
+
+
 def redact_pdf(
     data: bytes,
     *,
+    limits: IsolationLimits,
     bank: str | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> RedactOutcome:
@@ -148,7 +205,14 @@ def redact_pdf(
     """
     buf = io.BytesIO(data)
     with _translate_engine_errors():
-        result = bankstract.redact(buf, bank=bank, progress_callback=progress_callback)
+        result = bankstract.redact(
+            buf,
+            bank=bank,
+            progress_callback=progress_callback,
+            isolate=True,
+            timeout=limits.timeout_seconds,
+            memory_mb=limits.memory_mb,
+        )
 
     return RedactOutcome(
         data=result.data,

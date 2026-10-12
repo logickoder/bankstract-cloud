@@ -1386,6 +1386,116 @@
           }
         }
       }
+    },
+    "/v1/inspect": {
+      "post": {
+        "tags": [
+          "Inspect"
+        ],
+        "summary": "Check a statement for tamper signals",
+        "description": "Upload a statement and get evidence about whether the file was edited: reconciliation, revisions, producer, fonts, overlays drawn over text, and date order. This is evidence, never a verdict. A forger who regenerates the file with the bank's own library and recomputes every balance passes every check. `clean` means no signals; a `checks_skipped` warning means a check could not run on part of the file. HTTP 200 with error signals is a normal outcome. Counts as one parse for your plan. The file is read in memory and never written to disk.",
+        "operationId": "inspect_v1_inspect_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_inspect_v1_inspect_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrityReportOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Payment Required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1423,6 +1533,31 @@
           "engine_version"
         ],
         "title": "BanksResponse"
+      },
+      "Body_inspect_v1_inspect_post": {
+        "properties": {
+          "pdf": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Pdf"
+          },
+          "bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pdf"
+        ],
+        "title": "Body_inspect_v1_inspect_post"
       },
       "Body_parse_v1_parse_post": {
         "properties": {
@@ -1563,7 +1698,7 @@
           "error_class"
         ],
         "title": "ErrorResponse",
-        "description": "Error envelope for all non-2xx responses. `error_class` is one of:\n\n- `EncryptedSourceError`: source is password-protected\n- `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)\n- `LayoutDriftError`: bank detected, structure broke\n- `ReconciliationError`: a totals or running-balance check failed, or none could run\n- `ParseError`: last-resort parse failure\n- `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /\n  `WorkerError`: framework concerns\n\n`marker_coverage` is populated only for `EmptyStatementError`: high coverage with\nzero rows \u2248 legitimately empty; lower coverage \u2248 silent layout drift."
+        "description": "Error envelope for all non-2xx responses. `error_class` is one of:\n\n- `EncryptedSourceError`: source is password-protected\n- `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)\n- `LayoutDriftError`: bank detected, structure broke\n- `ReconciliationError`: a totals or running-balance check failed, or none could run\n- `ResourceLimitError`: the file passed the processing time or memory limit and was stopped\n- `ParseError`: last-resort parse failure\n- `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /\n  `WorkerError`: framework concerns\n\n`marker_coverage` is populated only for `EmptyStatementError`: high coverage with\nzero rows \u2248 legitimately empty; lower coverage \u2248 silent layout drift."
       },
       "FunnelResponse": {
         "properties": {
@@ -1619,6 +1754,100 @@
           "status"
         ],
         "title": "HealthResponse"
+      },
+      "IntegrityReportOut": {
+        "properties": {
+          "bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank"
+          },
+          "format_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format Version"
+          },
+          "signals": {
+            "items": {
+              "$ref": "#/components/schemas/IntegritySignalOut"
+            },
+            "type": "array",
+            "title": "Signals"
+          },
+          "clean": {
+            "type": "boolean",
+            "title": "Clean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "signals",
+          "clean"
+        ],
+        "title": "IntegrityReportOut",
+        "description": "Evidence about whether a statement file was edited. Never a verdict: a forger who regenerates\nthe file with the bank's own library and recomputes every balance passes every check. `clean`\nmeans no signals. A `checks_skipped` warning means a check could not run on part of the file,\nso it is not a clean bill either."
+      },
+      "IntegritySignalOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "warn",
+              "error"
+            ],
+            "title": "Severity"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "detail"
+        ],
+        "title": "IntegritySignalOut",
+        "description": "One piece of evidence about a statement file. `code` is a string, not an enum: the engine can\nadd codes in a minor release and a client must not break on one it has not seen. Known codes:\n`unparseable`, `checks_skipped`, `reconciliation_failed`, `incremental_update`,\n`modified_after_create`, `unexpected_producer`, `unexpected_font`, `id_changed`,\n`font_size_outlier`, `overlay_over_text`, `date_out_of_order`, `date_outside_period`.\n\n`detail` quotes the statement (amounts, balances, covered text). It is the caller's own data,\nreturned to them and never logged or audited."
       },
       "JobAccepted": {
         "properties": {
