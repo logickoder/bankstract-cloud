@@ -9,15 +9,16 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
+from ..audit import Endpoint
 from ..auth import AuthContext
 from ..engine import EngineError, UnsupportedStatementError, inspect_statement
 from ..models import ErrorResponse, IntegrityReportOut
 from ..state import AppState, get_state, require_auth
-from .admission import ServeSample, admit_upload, audit_request, fail_response, free_cap_refusal
+from .admission import admit_without_sample, audit_request, fail_response
 
 router = APIRouter(tags=["Inspect"])
 
-_ENDPOINT = "inspect"
+_ENDPOINT: Endpoint = "inspect"
 _UNREADABLE = "unparseable"
 _UNREADABLE_REPORT = EngineError(
     "Engine returned a report the API could not read. This is a bug on our side. "
@@ -64,11 +65,9 @@ async def inspect(
             ),
         )
 
-    admitted = await admit_upload(request, pdf, ctx, state, None)
-    if isinstance(admitted, ServeSample):
-        # No canned inspect result: a made-up "clean" report would read as a real pass, which is the
-        # one thing inspect must never do. Refuse, like redact.
-        return free_cap_refusal(state, ctx, pdf.filename, _ENDPOINT)
+    # No canned inspect result: a made-up "clean" report would read as a real pass, which is the one
+    # thing inspect must never do. Over a free cap the caller is refused, like redact.
+    admitted = await admit_without_sample(request, pdf, ctx, state, None, _ENDPOINT)
     if isinstance(admitted, JSONResponse):
         return admitted
     data, byte_count = admitted

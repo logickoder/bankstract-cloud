@@ -122,6 +122,11 @@ _MEDIA_TYPES: dict[str, str] = {
 }
 
 
+# Every media type a redacted document can have. The OpenAPI entry for /v1/redact reads this, so a
+# new format cannot be added to the engine map and missed in the spec.
+REDACTED_MEDIA_TYPES: tuple[str, ...] = tuple(_MEDIA_TYPES.values())
+
+
 def media_type_for(fmt: str) -> str:
     media = _MEDIA_TYPES.get(fmt)
     if media is None:
@@ -195,7 +200,6 @@ def redact_pdf(
     *,
     limits: IsolationLimits,
     bank: str | None = None,
-    progress_callback: ProgressCallback | None = None,
 ) -> RedactOutcome:
     """Redact a statement in memory and return the redacted document bytes.
 
@@ -208,7 +212,6 @@ def redact_pdf(
         result = bankstract.redact(
             buf,
             bank=bank,
-            progress_callback=progress_callback,
             isolate=True,
             timeout=limits.timeout_seconds,
             memory_mb=limits.memory_mb,

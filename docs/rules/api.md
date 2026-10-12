@@ -9,10 +9,9 @@ Authorization: Bearer bsk_live_xxx
 Content-Type: multipart/form-data
 body: pdf=<file>
 optional: bank=<name>   skip auto-detect
-          redact=true   return the redacted PDF/XLSX bytes
 query:    format=json (default) | csv
 
-200 → ParseResponse JSON (see worker rule), CSV, or redacted bytes
+200 → ParseResponse JSON (see worker rule) or CSV
 401 → invalid / missing key
 402 → subscription inactive (error_class: subscription_inactive)
 413 → over 50 MB
@@ -23,6 +22,10 @@ query:    format=json (default) | csv
 Non-2xx bodies use one envelope: `{ error, error_class, format_version, marker_coverage }` (`models.ErrorResponse`).
 
 Async variant: `POST /v1/parse/jobs` → 202 `{ job_id, stream_url, poll_url }`, same gates. See [worker](worker.md).
+
+## POST /v1/redact
+
+Same body, auth, gates and error envelope as `/v1/parse`. 200 → the redacted PDF/XLSX bytes with `X-Bankstract-Redactions` and `X-Bankstract-Format-Version`. It counts as one parse. There is no canned sample for a redacted document, so over a free cap it returns 402 `free_limit_reached` (`free_cap_refusal`). Its own route since the alpha break: one route, one response shape, so OpenAPI is accurate. There is no async redact: a request holds one of the `parse_max_concurrent` engine slots for the length of the redaction, up to `isolate_timeout_seconds`, like sync parse and inspect. The old `redact=true` field on `/v1/parse` and `/v1/parse/jobs` fails closed: it returns 422 `removed_parameter` before admission and the engine run, because ignoring it would hand back the unmasked statement with a 200.
 
 ## POST /v1/inspect
 

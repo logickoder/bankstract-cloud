@@ -978,7 +978,7 @@
           "Parse"
         ],
         "summary": "Parse a bank statement",
-        "description": "Upload a PDF (or XLSX) statement and get structured transactions back. `?format=json` (default) returns ParseResponse; `?format=csv` returns the engine-serialized CSV. `redact=true` returns the redacted document bytes. The file is parsed in memory and never written to disk.",
+        "description": "Upload a PDF (or XLSX) statement and get structured transactions back. `?format=json` (default) returns ParseResponse; `?format=csv` returns the engine-serialized CSV. Redaction is its own route, POST /v1/redact. The file is parsed in memory and never written to disk.",
         "operationId": "parse_v1_parse_post",
         "parameters": [
           {
@@ -1092,7 +1092,7 @@
           "Parse"
         ],
         "summary": "Submit a long parse as an async job",
-        "description": "Queue a statement parse and stream engine progress over Server-Sent Events. Returns 202 with a job_id, an SSE stream_url, and a poll_url fallback. Mirrors /v1/parse: `?format=csv` and `redact=true` are supported. json rides the SSE result event; csv and redact bytes are fetched from /v1/parse/jobs/{id}/result. Use this for large statements; small ones are faster on the synchronous /v1/parse.",
+        "description": "Queue a statement parse and stream engine progress over Server-Sent Events. Returns 202 with a job_id, an SSE stream_url, and a poll_url fallback. Mirrors /v1/parse: `?format=csv` is supported. json rides the SSE result event; csv bytes are fetched from /v1/parse/jobs/{id}/result. Use this for large statements; small ones are faster on the synchronous /v1/parse.",
         "operationId": "submit_job_v1_parse_jobs_post",
         "parameters": [
           {
@@ -1316,7 +1316,7 @@
           "Parse"
         ],
         "summary": "Download a finished job's result",
-        "description": "The byte channel for csv/redact jobs (the SSE result event carries JSON only). Returns the ParseResponse JSON for a json job, or the CSV / redacted bytes for csv / redact. 404 until the job is done, or after its result is swept.",
+        "description": "The byte channel for csv jobs (the SSE result event carries JSON only). Returns the ParseResponse JSON for a json job, or the CSV bytes for a csv job. 404 until the job is done, or after its result is swept.",
         "operationId": "job_result_v1_parse_jobs__job_id__result_get",
         "parameters": [
           {
@@ -1383,6 +1383,127 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/v1/redact": {
+      "post": {
+        "tags": [
+          "Redact"
+        ],
+        "summary": "Redact a bank statement",
+        "description": "Upload a PDF (or XLSX) statement and get the same document back with names, account numbers and BVN masked in place. The response body is the redacted file. The file is read in memory and never written to disk. Counts as one parse for your plan. Over a free cap it returns 402: there is no canned sample for a redacted document. Sync only: a request holds one of the worker's engine slots for the length of the redaction.",
+        "operationId": "redact_v1_redact_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_redact_v1_redact_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The redacted document, in the format of the upload.",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "headers": {
+              "X-Bankstract-Redactions": {
+                "description": "How many redactions were applied.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Bankstract-Format-Version": {
+                "description": "The statement layout version the redactor matched.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Payment Required"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         }
       }
@@ -1577,10 +1698,48 @@
             ],
             "title": "Bank"
           },
+          "turnstile_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turnstile Token"
+          },
           "redact": {
             "type": "boolean",
             "title": "Redact",
-            "default": false
+            "description": "Removed. Redaction is POST /v1/redact. A true value is refused with 422 removed_parameter before the statement is admitted or parsed.",
+            "default": false,
+            "deprecated": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "pdf"
+        ],
+        "title": "Body_parse_v1_parse_post"
+      },
+      "Body_redact_v1_redact_post": {
+        "properties": {
+          "pdf": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Pdf"
+          },
+          "bank": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank"
           },
           "turnstile_token": {
             "anyOf": [
@@ -1598,7 +1757,7 @@
         "required": [
           "pdf"
         ],
-        "title": "Body_parse_v1_parse_post"
+        "title": "Body_redact_v1_redact_post"
       },
       "Body_submit_job_v1_parse_jobs_post": {
         "properties": {
@@ -1618,11 +1777,6 @@
             ],
             "title": "Bank"
           },
-          "redact": {
-            "type": "boolean",
-            "title": "Redact",
-            "default": false
-          },
           "turnstile_token": {
             "anyOf": [
               {
@@ -1633,6 +1787,13 @@
               }
             ],
             "title": "Turnstile Token"
+          },
+          "redact": {
+            "type": "boolean",
+            "title": "Redact",
+            "description": "Removed. Redaction is POST /v1/redact. A true value is refused with 422 removed_parameter before the statement is admitted or parsed.",
+            "default": false,
+            "deprecated": true
           }
         },
         "type": "object",
@@ -1893,8 +2054,7 @@
             "type": "string",
             "enum": [
               "json",
-              "csv",
-              "redact"
+              "csv"
             ],
             "title": "Result Kind",
             "default": "json"
@@ -1930,28 +2090,6 @@
             ],
             "title": "Result Url"
           },
-          "format_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Format Version"
-          },
-          "redactions": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Redactions"
-          },
           "sample": {
             "type": "boolean",
             "title": "Sample",
@@ -1978,6 +2116,28 @@
               }
             ],
             "title": "Error Class"
+          },
+          "format_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format Version"
+          },
+          "marker_coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marker Coverage"
           }
         },
         "type": "object",
@@ -1986,7 +2146,7 @@
           "state"
         ],
         "title": "JobSnapshot",
-        "description": "Poll fallback for an async parse job. For a `json` job, `result` is the ParseResponse once\n`done`. For `csv`/`redact`, the bytes are not inlined: fetch them from `result_url`. The error\nfields are populated once `failed`."
+        "description": "Poll fallback for an async parse job. For a `json` job, `result` is the ParseResponse once\n`done`. For `csv`, the bytes are not inlined: fetch them from `result_url`. The error\nfields are populated once `failed`."
       },
       "KeyCreateRequest": {
         "properties": {

@@ -27,7 +27,7 @@ from .overage_ledger import CycleTierStore, OverageLedger
 from .paystack import PaystackClient
 from .rate_limit import RateLimiter
 from .responses import class_for_status, error_response
-from .routes import account, billing, health, inspect, keys, parse
+from .routes import account, billing, health, inspect, keys, parse, redact
 from .state import AppState
 from .subscriptions import SubscriptionStore
 
@@ -144,6 +144,7 @@ for _router in (
     keys.router,
     billing.router,
     parse.router,
+    redact.router,
     inspect.router,
 ):
     app.include_router(_router)

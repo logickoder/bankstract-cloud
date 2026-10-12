@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 
-"""Admission and audit shared by the routes that take a customer upload (/v1/parse, /v1/inspect).
+"""Admission and audit shared by the routes that take a customer upload: /v1/parse, /v1/redact and
+/v1/inspect.
 
 One place for the charter ordering (size, human check, subscription gate, free cap, then read), so
 a new upload route cannot drift from it.
@@ -12,7 +13,7 @@ from __future__ import annotations
 from fastapi import HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
-from ..audit import AuditEntry, current_period_start_iso
+from ..audit import AuditEntry, Endpoint, current_period_start_iso
 from ..auth import AuthContext
 from ..engine import EngineError, UnsupportedStatementError
 from ..responses import error_response
@@ -121,6 +122,22 @@ def _enforce_size_header(request: Request, max_bytes: int) -> None:
         raise HTTPException(status_code=413, detail="file too large")
 
 
+async def admit_without_sample(
+    request: Request,
+    pdf: UploadFile,
+    ctx: AuthContext,
+    state: AppState,
+    turnstile_token: str | None,
+    endpoint: Endpoint,
+) -> tuple[bytes, int] | JSONResponse:
+    """admit_upload for a route with no canned sample (redact, inspect): over a free cap the caller
+    is refused with the 402 instead of being handed a ServeSample to convert."""
+    admitted = await admit_upload(request, pdf, ctx, state, turnstile_token)
+    if isinstance(admitted, ServeSample):
+        return free_cap_refusal(state, ctx, pdf.filename, endpoint)
+    return admitted
+
+
 def audit_request(
     state: AppState,
     ctx: AuthContext,
@@ -129,7 +146,7 @@ def audit_request(
     parser_detected: str | None,
     success: bool,
     error_class: str | None,
-    endpoint: str = "parse",
+    endpoint: Endpoint = "parse",
 ) -> None:
     state.audit.record(
         AuditEntry(
@@ -145,7 +162,7 @@ def audit_request(
 
 
 def audit_free_cap(
-    state: AppState, ctx: AuthContext, filename: str | None, endpoint: str = "parse"
+    state: AppState, ctx: AuthContext, filename: str | None, endpoint: Endpoint = "parse"
 ) -> None:
     """Audit a request that was sampled or refused because the caller is over a free cap. Success is
     False, so it is funnel-visible and never counts toward the cap."""
@@ -153,7 +170,7 @@ def audit_free_cap(
 
 
 def free_cap_refusal(
-    state: AppState, ctx: AuthContext, filename: str | None, endpoint: str = "parse"
+    state: AppState, ctx: AuthContext, filename: str | None, endpoint: Endpoint = "parse"
 ) -> JSONResponse:
     """The 402 for a route with no meaningful canned sample (redact, inspect). A made-up result
     would read as a real one, so the caller is refused instead."""
@@ -167,7 +184,7 @@ def fail_response(
     filename: str | None,
     byte_count: int,
     exc: UnsupportedStatementError | EngineError,
-    endpoint: str = "parse",
+    endpoint: Endpoint = "parse",
 ) -> JSONResponse:
     """Audit an engine failure and build its envelope: 422 for a statement the engine refused
     (error_class carries the specific failure; marker_coverage rides along for EmptyStatementError),

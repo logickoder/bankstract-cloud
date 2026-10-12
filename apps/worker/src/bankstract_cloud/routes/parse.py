@@ -8,7 +8,6 @@ import json
 import time
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from typing import Literal
 
 import bankstract
 from bankstract import ProgressCallback, ProgressEvent
@@ -20,10 +19,17 @@ from ..engine import (
     EngineError,
     UnsupportedStatementError,
     parse_statement,
-    redact_pdf,
 )
 from ..jobs import TERMINAL_STAGE, Job
-from ..models import ErrorResponse, JobAccepted, JobSnapshot, ParseResponse, ProgressSnapshot
+from ..models import (
+    ErrorResponse,
+    JobAccepted,
+    JobSnapshot,
+    ParseResponse,
+    ProgressSnapshot,
+    ResultFormat,
+)
+from ..responses import error_response
 from ..sample import sample_csv, sample_json_payload
 from ..state import (
     AppState,
@@ -37,7 +43,6 @@ from .admission import (
     audit_free_cap,
     audit_request,
     fail_response,
-    free_cap_refusal,
 )
 
 router = APIRouter(tags=["Parse"])
@@ -57,7 +62,7 @@ router = APIRouter(tags=["Parse"])
     description=(
         "Upload a PDF (or XLSX) statement and get structured transactions back. "
         "`?format=json` (default) returns ParseResponse; `?format=csv` returns the "
-        "engine-serialized CSV. `redact=true` returns the redacted document bytes. "
+        "engine-serialized CSV. Redaction is its own route, POST /v1/redact. "
         "The file is parsed in memory and never written to disk."
     ),
 )
@@ -66,31 +71,28 @@ async def parse(
     pdf: UploadFile,
     ctx: AuthContext = Depends(require_auth),
     bank: str | None = Form(default=None),
-    redact: bool = Form(default=False),
     turnstile_token: str | None = Form(default=None),
-    fmt: Literal["json", "csv"] = Query(default="json", alias="format"),
+    redact: bool = Form(
+        default=False,
+        deprecated=True,
+        description=(
+            "Removed. Redaction is POST /v1/redact. A true value is refused with 422 "
+            "removed_parameter before the statement is admitted or parsed."
+        ),
+    ),
+    fmt: ResultFormat = Query(default="json", alias="format"),
     state: AppState = Depends(get_state),
 ) -> ParseResponse | Response:
+    if redact:
+        return _removed_redact()
     admitted = await admit_upload(request, pdf, ctx, state, turnstile_token)
     if isinstance(admitted, ServeSample):
-        return _canned_response(fmt, redact, state, ctx, pdf.filename)
+        return _canned_response(fmt, state, ctx, pdf.filename)
     if isinstance(admitted, JSONResponse):
         return admitted
     data, byte_count = admitted
 
     try:
-        if redact:
-            async with state.jobs.semaphore:
-                redacted = await asyncio.to_thread(
-                    redact_pdf, data, bank=bank, limits=state.isolation
-                )
-            _record_success(state, ctx, pdf.filename, byte_count, redacted.bank)
-            return _redact_response(
-                redacted.data,
-                media_type=redacted.media_type,
-                redactions=redacted.redactions,
-                format_version=redacted.format_version,
-            )
         # Free-demo (anonymous tier) outputs are watermarked; paid/test pass through.
         wm_tier = DEMO_TIER if ctx.is_anonymous else ctx.tier
         # Off the event loop so a long parse can't stall SSE streams and polls, but under the job
@@ -128,9 +130,9 @@ async def parse(
     description=(
         "Queue a statement parse and stream engine progress over Server-Sent Events. Returns 202 "
         "with a job_id, an SSE stream_url, and a poll_url fallback. Mirrors /v1/parse: "
-        "`?format=csv` and `redact=true` are supported. json rides the SSE result event; csv and "
-        "redact bytes are fetched from /v1/parse/jobs/{id}/result. Use this for large statements; "
-        "small ones are faster on the synchronous /v1/parse."
+        "`?format=csv` is supported. json rides the SSE result event; csv bytes are fetched from "
+        "/v1/parse/jobs/{id}/result. Use this for large statements; small ones are faster on the "
+        "synchronous /v1/parse."
     ),
 )
 async def submit_job(
@@ -138,18 +140,24 @@ async def submit_job(
     pdf: UploadFile,
     ctx: AuthContext = Depends(require_auth),
     bank: str | None = Form(default=None),
-    redact: bool = Form(default=False),
     turnstile_token: str | None = Form(default=None),
-    fmt: Literal["json", "csv"] = Query(default="json", alias="format"),
+    redact: bool = Form(
+        default=False,
+        deprecated=True,
+        description=(
+            "Removed. Redaction is POST /v1/redact. A true value is refused with 422 "
+            "removed_parameter before the statement is admitted or parsed."
+        ),
+    ),
+    fmt: ResultFormat = Query(default="json", alias="format"),
     state: AppState = Depends(get_state),
 ) -> JobAccepted | Response:
+    if redact:
+        return _removed_redact()
     admitted = await admit_upload(request, pdf, ctx, state, turnstile_token)
     if isinstance(admitted, ServeSample):
         # Over a free cap. The demo drives this async path, so preserve the 202 + job contract: a
-        # canned sample job is created already done (no engine, no _run_job). redact has no
-        # meaningful sample, so it is a hard nudge served inline.
-        if redact:
-            return _canned_response(fmt, redact, state, ctx, pdf.filename)
+        # canned sample job is created already done (no engine, no _run_job).
         job = state.jobs.create(
             owner_key=ctx.api_key_id,
             filename=pdf.filename,
@@ -177,7 +185,7 @@ async def submit_job(
     )
     # Runs to completion after this 202 returns. _run_job owns the bytes from here and drops them
     # when done (Directive 1). The task is held on the job so the loop never garbage-collects it.
-    job.task = asyncio.create_task(_run_job(state, ctx, job, data, bank, redact, fmt))
+    job.task = asyncio.create_task(_run_job(state, ctx, job, data, bank, fmt))
     return JobAccepted(
         job_id=job.id,
         stream_url=f"/v1/parse/jobs/{job.id}/stream",
@@ -228,8 +236,8 @@ async def poll_job(
     responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
     summary="Download a finished job's result",
     description=(
-        "The byte channel for csv/redact jobs (the SSE result event carries JSON only). Returns "
-        "the ParseResponse JSON for a json job, or the CSV / redacted bytes for csv / redact. "
+        "The byte channel for csv jobs (the SSE result event carries JSON only). Returns "
+        "the ParseResponse JSON for a json job, or the CSV bytes for a csv job. "
         "404 until the job is done, or after its result is swept."
     ),
 )
@@ -249,18 +257,10 @@ async def job_result(
             # Nothing to add (no _demo, no _sample): serve the engine bytes without a decode.
             return Response(content=job.result.data, media_type="application/json")
         return JSONResponse(content=_json_payload(job), headers=sample_headers)
-    if job.result_kind == "csv":
-        response = _csv_response(_csv_payload(job))
-        if job.is_sample:
-            response.headers["X-Bankstract-Sample"] = "true"
-        return response
-    assert job.result is not None  # redact is never an is_sample job (json/csv only)
-    return _redact_response(
-        job.result.data,
-        media_type=job.media_type or "application/octet-stream",
-        redactions=job.redactions or 0,
-        format_version=job.format_version or "",
-    )
+    response = _csv_response(_csv_payload(job))
+    if job.is_sample:
+        response.headers["X-Bankstract-Sample"] = "true"
+    return response
 
 
 async def _run_job(
@@ -269,8 +269,7 @@ async def _run_job(
     job: Job,
     data: bytes,
     bank: str | None,
-    redact: bool,
-    fmt: Literal["json", "csv"],
+    fmt: ResultFormat,
 ) -> None:
     loop = asyncio.get_running_loop()
     # Throttle the stream so the browser sees start + end of each phase, not every page event.
@@ -280,37 +279,21 @@ async def _run_job(
     try:
         async with state.jobs.semaphore:
             job.state = "running"
-            # Same branch order as the sync /v1/parse. The result is stored raw; anonymous (demo)
-            # json/csv is watermarked at serve time (_json_payload / _csv_payload) so the demo
-            # cannot get clean output through the async surface.
-            if redact:
-                redacted = await asyncio.to_thread(
-                    redact_pdf,
-                    data,
-                    bank=bank,
-                    limits=state.isolation,
-                    progress_callback=callback,
-                )
-                job.result = redacted
-                job.result_kind = "redact"
-                job.media_type = redacted.media_type
-                job.format_version = redacted.format_version
-                job.redactions = redacted.redactions
-                parser_detected = redacted.bank
-            else:
-                parsed = await asyncio.to_thread(
-                    parse_statement,
-                    data,
-                    fmt=fmt,
-                    bank=bank,
-                    limits=state.isolation,
-                    progress_callback=callback,
-                )
-                job.result = parsed
-                job.result_kind = fmt
-                parser_detected = parsed.parser_detected
+            # The result is stored raw; anonymous (demo) json/csv is watermarked at serve time
+            # (_json_payload / _csv_payload) so the demo cannot get clean output through the async
+            # surface.
+            parsed = await asyncio.to_thread(
+                parse_statement,
+                data,
+                fmt=fmt,
+                bank=bank,
+                limits=state.isolation,
+                progress_callback=callback,
+            )
+            job.result = parsed
+            job.result_kind = fmt
         job.state = "done"
-        _record_success(state, ctx, job.filename, job.byte_count, parser_detected)
+        _record_success(state, ctx, job.filename, job.byte_count, parsed.parser_detected)
     except UnsupportedStatementError as exc:
         _fail_job(job, exc.error_class, str(exc), exc.format_version, exc.marker_coverage)
         audit_request(state, ctx, job.filename, job.byte_count, exc.bank, False, exc.error_class)
@@ -400,6 +383,11 @@ def _sse_result(job: Job) -> str:
     final: dict[str, object] = {"state": job.state, "error_class": job.error_class}
     if job.error_message is not None:
         final["error"] = job.error_message
+    if job.state == "failed":
+        # Same detail as the sync error envelope: format_version goes in a drift report, and
+        # marker_coverage tells a legitimately empty statement from silent layout drift.
+        final["format_version"] = job.format_version
+        final["marker_coverage"] = job.marker_coverage
     if job.state == "done" and (job.result is not None or job.is_sample):
         final["kind"] = job.result_kind
         # Sample marker on the event itself: the json payload carries _sample, but csv consumers
@@ -407,14 +395,10 @@ def _sse_result(job: Job) -> str:
         if job.is_sample:
             final["sample"] = True
         if job.result_kind == "json":
-            # json rides the event; csv/redact bytes are fetched from result_url.
+            # json rides the event; csv bytes are fetched from result_url.
             final["result"] = _json_payload(job)
         else:
             final["result_url"] = _result_url(job)
-            if job.format_version is not None:
-                final["format_version"] = job.format_version
-            if job.result_kind == "redact" and job.redactions is not None:
-                final["redactions"] = job.redactions
     return f"event: result\ndata: {json.dumps(final)}\n\n"
 
 
@@ -445,24 +429,32 @@ def _snapshot(job: Job) -> JobSnapshot:
             else None
         ),
         result_url=_result_url(job) if is_done else None,
-        format_version=job.format_version if (is_done and job.result_kind == "redact") else None,
-        redactions=job.redactions if (is_done and job.result_kind == "redact") else None,
         sample=job.is_sample,
         error=job.error_message,
         error_class=job.error_class,
+        format_version=job.format_version if job.state == "failed" else None,
+        marker_coverage=job.marker_coverage if job.state == "failed" else None,
+    )
+
+
+def _removed_redact() -> Response:
+    # The old `redact=true` field asked for masking. Ignoring it would hand back the unmasked
+    # statement with a 200, so a stale caller fails closed instead. It runs before admission and the
+    # engine; Starlette has already buffered the body in memory by then (spool_max_size, main.py).
+    return error_response(
+        422,
+        "The redact field was removed. Redaction is its own route now. "
+        "Send the file to POST /v1/redact.",
+        "removed_parameter",
     )
 
 
 def _canned_response(
-    fmt: Literal["json", "csv"],
-    redact: bool,
+    fmt: ResultFormat,
     state: AppState,
     ctx: AuthContext,
     filename: str | None,
 ) -> Response:
-    # Over a free cap: return the canned sample instead of running the engine. redact has none.
-    if redact:
-        return free_cap_refusal(state, ctx, filename)
     audit_free_cap(state, ctx, filename)
     if fmt == "csv":
         response = _csv_response(sample_csv())
@@ -490,19 +482,4 @@ def _csv_response(content: bytes) -> Response:
         content=content,
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=statement.csv"},
-    )
-
-
-def _redact_response(
-    content: bytes, *, media_type: str, redactions: int, format_version: str
-) -> Response:
-    # Shared redacted-document wire response (sync redact + the job /result download). Bytes stream
-    # straight out: no disk, no payload log.
-    return Response(
-        content=content,
-        media_type=media_type,
-        headers={
-            "X-Bankstract-Redactions": str(redactions),
-            "X-Bankstract-Format-Version": format_version,
-        },
     )

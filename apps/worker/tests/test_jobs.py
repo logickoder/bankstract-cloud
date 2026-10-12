@@ -5,12 +5,15 @@ from __future__ import annotations
 
 import json
 import time
-from collections.abc import Callable
-from types import SimpleNamespace
-from typing import Any
+from typing import Any, get_args
 
 import pytest
-from bankstract import ProgressCallback, ProgressEvent
+from bankstract import (
+    EmptyStatementError,
+    EncryptedSourceError,
+    LayoutDriftError,
+    OutputFormat,
+)
 from fastapi import HTTPException
 
 from bankstract_cloud.jobs import JobStore
@@ -123,6 +126,70 @@ def test_failed_job_surfaces_error(harness: Harness) -> None:
     assert result["error_class"]
 
 
+@pytest.mark.parametrize(
+    ("exc", "format_version", "marker_coverage"),
+    [
+        (
+            EmptyStatementError("no rows", format_version="fbn-2026-01", marker_coverage=0.97),
+            "fbn-2026-01",
+            0.97,
+        ),
+        (LayoutDriftError("layout broke", format_version="zenith-2025-11"), "zenith-2025-11", None),
+        (EncryptedSourceError("password protected"), None, None),
+    ],
+    ids=["empty", "drift", "encrypted"],
+)
+def test_a_failed_job_carries_the_same_detail_as_the_sync_envelope(
+    harness: Harness,
+    monkeypatch: pytest.MonkeyPatch,
+    exc: Exception,
+    format_version: str | None,
+    marker_coverage: float | None,
+) -> None:
+    # marker_coverage is how a client tells a legitimately empty statement from silent layout drift,
+    # and format_version is what goes in a drift report. The async path used to drop both.
+    def _raise(source: object, **_: object) -> object:
+        raise exc
+
+    monkeypatch.setattr("bankstract.parse", _raise)
+    key = auth_header(harness.test_key)
+
+    sync = harness.client.post("/v1/parse", files=pdf_upload(), headers=key).json()
+    sub = harness.client.post("/v1/parse/jobs", files=pdf_upload(), headers=key)
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        event = _result_event("".join(resp.iter_text()))
+    snap = harness.client.get(sub.json()["poll_url"], headers=key).json()
+
+    assert (sync["format_version"], sync["marker_coverage"]) == (format_version, marker_coverage)
+    for surface in (event, snap):
+        assert surface["state"] == "failed"
+        assert surface["error_class"] == sync["error_class"]
+        assert (surface["format_version"], surface["marker_coverage"]) == (
+            format_version,
+            marker_coverage,
+        )
+
+
+def test_the_wire_formats_stay_a_subset_of_the_engines() -> None:
+    from bankstract_cloud.models import ResultFormat
+
+    assert set(get_args(ResultFormat)) <= set(get_args(OutputFormat))
+
+
+def test_a_done_job_carries_no_failure_detail(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
+    key = auth_header(harness.test_key)
+    sub = harness.client.post("/v1/parse/jobs", files=pdf_upload(), headers=key)
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        "".join(resp.iter_text())
+
+    snap = harness.client.get(sub.json()["poll_url"], headers=key).json()
+    assert snap["state"] == "done"
+    assert (snap["format_version"], snap["marker_coverage"]) == (None, None)
+
+
 def test_poll_requires_auth(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
     sub = harness.client.post(
@@ -164,56 +231,6 @@ def test_demo_jobs_over_cap_serves_sample(
     res = harness.client.get(snap["result_url"], headers=demo)
     assert res.status_code == 200
     assert res.headers["X-Bankstract-Sample"] == "true"
-
-
-def _redact_mock(
-    data: bytes = b"%PDF-redacted", redactions: int = 5
-) -> Callable[..., SimpleNamespace]:
-    def _impl(
-        source: object,
-        *,
-        bank: str | None = None,
-        progress_callback: ProgressCallback | None = None,
-        **_isolation: object,
-    ) -> SimpleNamespace:
-        if progress_callback is not None:
-            progress_callback(ProgressEvent(stage="redact_page", current=1, total=1))
-        return SimpleNamespace(
-            data=data,
-            bank="fbn",
-            format="pdf",
-            format_version="fbn-2026-01",
-            report=SimpleNamespace(redactions=redactions),
-        )
-
-    return _impl
-
-
-def test_redact_job_streams_url_then_serves_bytes(
-    harness: Harness, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr("bankstract.redact", _redact_mock())
-    sub = harness.client.post(
-        "/v1/parse/jobs",
-        files=pdf_upload(),
-        data={"redact": "true"},
-        headers=auth_header(harness.test_key),
-    )
-    assert sub.status_code == 202
-
-    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
-        text = "".join(resp.iter_text())
-    result = _result_event(text)
-    assert result["state"] == "done"
-    assert result["kind"] == "redact"
-    assert "result" not in result  # bytes are not inlined in the SSE event
-    assert result["redactions"] == 5
-
-    got = harness.client.get(result["result_url"], headers=auth_header(harness.test_key))
-    assert got.status_code == 200
-    assert got.headers["content-type"].startswith("application/pdf")
-    assert got.headers["X-Bankstract-Redactions"] == "5"
-    assert got.content == b"%PDF-redacted"
 
 
 def test_csv_job_serves_csv_bytes(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:

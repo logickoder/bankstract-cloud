@@ -43,12 +43,13 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.flake8-bugbear]
-# FastAPI's Depends/Form/Header/File belong in argument defaults by design.
+# FastAPI's Depends/Form/Header/File/Query belong in argument defaults by design.
 extend-immutable-calls = [
     "fastapi.Depends",
     "fastapi.Form",
     "fastapi.Header",
     "fastapi.File",
+    "fastapi.Query",
 ]
 
 [tool.pyright]

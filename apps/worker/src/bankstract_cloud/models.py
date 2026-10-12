@@ -61,6 +61,10 @@ class TotalsOut(BaseModel):
 # the running balance). "failed" is not a status: a failed check is a 422 ReconciliationError.
 CheckStatus = Literal["passed", "not_available", "disabled"]
 
+# The formats /v1/parse can return. Its own type, not the engine's OutputFormat: if the engine ever
+# widens that, the wire must not change with it. tests/test_jobs.py checks it stays a subset.
+ResultFormat = Literal["json", "csv"]
+
 
 class ReconciliationOut(BaseModel):
     totals: CheckStatus
@@ -148,22 +152,23 @@ class ProgressSnapshot(BaseModel):
 
 class JobSnapshot(BaseModel):
     """Poll fallback for an async parse job. For a `json` job, `result` is the ParseResponse once
-    `done`. For `csv`/`redact`, the bytes are not inlined: fetch them from `result_url`. The error
+    `done`. For `csv`, the bytes are not inlined: fetch them from `result_url`. The error
     fields are populated once `failed`."""
 
     job_id: str
     state: Literal["queued", "running", "done", "failed"]
-    result_kind: Literal["json", "csv", "redact"] = "json"
+    result_kind: ResultFormat = "json"
     progress: ProgressSnapshot | None = None
     result: ParseResponse | None = None  # json only
-    result_url: str | None = None  # download URL for the bytes (csv/redact), present once done
-    format_version: str | None = None
-    redactions: int | None = None  # redact only
+    result_url: str | None = None  # download URL for the csv bytes, present once done
     # True when the job served the over-cap canned sample (engine never ran). Mirrors the sync
     # path's X-Bankstract-Sample header so poll consumers can gate without fetching the result.
     sample: bool = False
     error: str | None = None
     error_class: str | None = None
+    # Failure detail, the same fields as the sync error envelope. Null unless the job failed.
+    format_version: str | None = None
+    marker_coverage: float | None = None
 
 
 class BankInfo(BaseModel):

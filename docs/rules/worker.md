@@ -49,12 +49,13 @@ Never vendor or fork engine source. Parsers live in the engine repo (github.com/
 
 - The engine's `progress_callback` (throttled via `bankstract.throttle`) marshals events onto the job queue.
 - The stream sees `done`, `reconcile`, `done` (two top-level engine calls). Only job state is terminal.
+- A failed job reports the same detail as the sync error envelope: `error`, `error_class`, `format_version`, `marker_coverage`, on both the SSE `result` event and the poll snapshot (`_fail_job` stores them, `_sse_result` / `_snapshot` surface them). `tests/test_jobs.py` pins async == sync for each typed engine failure. Without `marker_coverage` a client cannot tell a legitimately empty statement from layout drift.
 - The SSE stream takes no Authorization header: the unguessable `job_id` is the capability (EventSource cannot send headers). One consumer per job.
 - The demo drives jobs through same-origin `/api/parse/jobs` proxies (`packages/demo/src/api/jobs.ts`) so `DEMO_API_KEY` stays server-side.
 
 ## Redaction
 
-`bankstract.redact(buf, bank=bank)` → `RedactResult(data, bank, format, format_version, report)`. Return `result.data` with the matching Content-Type and `X-Bankstract-Redactions` / `X-Bankstract-Format-Version` headers.
+`POST /v1/redact` (`routes/redact.py`): `bankstract.redact(buf, bank=bank)` → `RedactResult(data, bank, format, format_version, report)`. It is sync only and shares the `state.jobs.semaphore` slots with parse and inspect. Return `result.data` with the matching Content-Type and `X-Bankstract-Redactions` / `X-Bankstract-Format-Version` headers.
 
 ## Storage
 
