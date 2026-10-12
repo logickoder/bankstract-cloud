@@ -33,13 +33,22 @@ overrides:
   # changed to a named export and crashes minimatch 3.x). A resolved-version range catches the
   # stubborn v5 minimatch edge that the bare `@5` selector missed. Build-time glob only, off the
   # runtime path. A 1.x patch (1.1.18) now exists, so both majors are fixable in place.
-  brace-expansion@1: ">=1.1.18 <2"
-  brace-expansion@5: ">=5.0.9 <6"
+  # GHSA-qhr7-859c-m2p7 / GHSA-q2hr-2g5m-vwhr: further brace-expansion DoS, fixed at 1.1.21 and
+  # 5.0.12.
+  brace-expansion@1: ">=1.1.21 <2"
+  brace-expansion@5: ">=5.0.12 <6"
   # GHSA-52cp-r559-cp3m / GHSA-5p4m-2wfm-xmqj: js-yaml <4.3.1 quadratic CPU (merge-key chains,
   # then a !!omap follow-up).
   js-yaml: ">=4.3.1 <5"
   # GHSA-395f-4hp3-45gv: shell-quote <=1.8.4 quadratic-complexity DoS in parse().
-  shell-quote: ">=1.8.5 <2"
+  # GHSA-pqg4-j6r4-53mv (critical): shell-quote >=1.8.4 <1.11.0, fixed at 1.11.0.
+  shell-quote: ">=1.11.0 <2"
+  # GHSA-68fv-2mgg-jv7q: source-map-js <1.2.2, fixed at 1.2.2. Build-time (postcss).
+  source-map-js: ">=1.2.2 <2"
+  # GHSA-g2v6-rqmx-r4w6: @vue/server-renderer <3.5.42. Reaches us through the docs app only
+  # (fumadocs-openapi > @scalar > vue). vue and its renderer are version-locked, so both move.
+  vue: ">=3.5.42 <4"
+  "@vue/server-renderer": ">=3.5.42 <4"
   # GHSA-v2hh-gcrm-f6hx / GHSA-4c8g-83qw-93j6 / GHSA-7p8r-x3mc-p8w7: fast-uri <3.1.5 host
   # confusion (backslash authority introducer is the latest variant). GHSA-qw65-cvwx-89v3 /
   # GHSA-58mr-gqgx-xq4g: authority injection via an unvalidated port in serialize (<3.1.7, and 3.1.6
@@ -71,5 +80,15 @@ overrides:
   esbuild@<0.25.0: ">=0.25.0"
   # GHSA-gpj5-g38j-94v9: drizzle-orm <0.45.2 SQL identifier-injection (reachable via auth DB).
   drizzle-orm@<0.45.2: ">=0.45.2"
+
+# Advisories we accept because nothing can be bumped. Each entry says why, and when to remove it.
+auditConfig:
+  ignoreGhsas:
+    # GHSA-vfj7-8cjw-p6xm: braces <=3.0.3 stack-exhaustion DoS on deeply nested patterns. There is
+    # no patched version upstream (the advisory's first_patched_version is null, npm's latest is
+    # 3.0.3, last published 2024), so there is nothing to bump to. It reaches us only at lint time,
+    # through eslint-config > @next/eslint-plugin-next > fast-glob > micromatch, with our own
+    # trusted globs, never on user input. Delete this entry when braces publishes a fix.
+    - GHSA-vfj7-8cjw-p6xm
 
 # apps/worker is Python (uv-managed) and has no package.json. pnpm skips it.
