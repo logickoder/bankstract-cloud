@@ -3,7 +3,7 @@ title: Response formats
 description: JSON, CSV, and redacted output.
 ---
 
-`POST /v1/parse` shapes its output with the `format` query param and the `redact` form field.
+`POST /v1/parse` shapes its output with the `format` query param. Redaction is its own route, `POST /v1/redact`.
 
 ## JSON (default)
 
@@ -23,16 +23,18 @@ Columns: `date, narration, debit, credit, balance, reference, currency, has_time
 
 ## Redaction
 
-`redact=true` runs the NDPR-aware redactor and returns the **redacted document bytes** (PDF or XLSX), not JSON, with the matching `Content-Type` and two headers:
+`POST /v1/redact` runs the NDPR-aware redactor and returns the **redacted document bytes** (PDF or XLSX), not JSON, with the matching `Content-Type` and two headers:
 
 - `X-Bankstract-Redactions`: count of redactions applied
 - `X-Bankstract-Format-Version`: engine format version
 
 ```bash
-curl -X POST https://bankstract.logickoder.dev/v1/parse \
+curl -X POST https://bankstract.logickoder.dev/v1/redact \
   -H "Authorization: Bearer bsk_live_xxx" \
-  -F "pdf=@statement.pdf" -F "redact=true" -o redacted.pdf
+  -F "pdf=@statement.pdf" -o redacted.pdf
 ```
+
+Same key, same 50 MB limit, optional `bank`. It counts as one parse. Over a free cap it returns `402` with `error_class: "free_limit_reached"`: there is no canned sample for a redacted document. The old `redact=true` field on `/v1/parse` is gone. A request that still sends it gets `422` with `error_class: "removed_parameter"`, never an unredacted statement.
 
 ## Optional inputs
 

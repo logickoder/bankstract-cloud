@@ -15,8 +15,13 @@ An interactive, always-current reference generated from the OpenAPI spec is comi
 Parse a statement. `multipart/form-data` with `pdf=<file>`.
 
 - Query: `format=json|csv` (default `json`)
-- Form: `bank=<name>` (optional), `redact=true` (optional)
-- `200` → `ParseResponse` JSON, or CSV / redacted bytes · `401` `402` `413` `422` `500`
+- Form: `bank=<name>` (optional)
+- `200` → `ParseResponse` JSON, or CSV bytes · `401` `402` `413` `422` `500`
+
+### `POST /v1/redact`
+Redact a statement. `multipart/form-data` with `pdf=<file>`, optional `bank=<name>`.
+
+- `200` → the redacted document bytes (PDF or XLSX) with `X-Bankstract-Redactions` and `X-Bankstract-Format-Version` headers · `401` `402` `413` `422` `500`
 
 ## Account
 

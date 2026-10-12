@@ -24,7 +24,7 @@ curl -X POST http://localhost/v1/parse \
 
 | Service | Image | Role |
 |---------|-------|------|
-| `worker` | built from `apps/worker` | FastAPI: `/v1/parse`, redact, `?format=csv`, auth, metadata-only audit |
+| `worker` | built from `apps/worker` | FastAPI: `/v1/parse`, `/v1/redact`, `/v1/inspect`, `?format=csv`, auth, metadata-only audit |
 | `demo` | built from `apps/demo` | Next.js consumer demo + its server-side `/api/parse` proxy |
 | `caddy` | `caddy:2-alpine` | reverse proxy: `/v1/*` + health → worker, everything else → demo |
 
