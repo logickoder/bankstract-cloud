@@ -9,6 +9,7 @@ export type * from './types'
 export {
   AuthError,
   BankstractError,
+  ForbiddenError,
   PayloadTooLargeError,
   RateLimitError,
   ServerError,
