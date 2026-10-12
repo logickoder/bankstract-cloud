@@ -27,8 +27,11 @@ describe('redact', () => {
     expect(result.redactions).toBe(7)
     expect(result.formatVersion).toBe('1.2')
 
-    const body = fetchMock.mock.calls[0]![1]?.body as FormData
-    expect(body.get('redact')).toBe('true')
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(url).toBe('https://api.test/v1/redact')
+    const body = init?.body as FormData
+    expect(body.get('bank')).toBe('uba')
+    expect(body.get('redact')).toBeNull()
   })
 
   it('detects xlsx from the content-type', async () => {

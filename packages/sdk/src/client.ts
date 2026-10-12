@@ -63,8 +63,8 @@ export function bankstract(options: BankstractOptions): BankstractClient {
     },
 
     async redact(pdf, opts) {
-      const form = pdfForm(pdf, { bank: opts?.bank, filename: opts?.filename, redact: true })
-      const res = await postMultipart(cfg, '/v1/parse', form, opts?.signal)
+      const form = pdfForm(pdf, { bank: opts?.bank, filename: opts?.filename })
+      const res = await postMultipart(cfg, '/v1/redact', form, opts?.signal)
       return {
         data: new Uint8Array(await res.arrayBuffer()),
         format: formatFromResponse(res),

@@ -60,7 +60,8 @@ export interface ParseResponse {
 
 // Envelope for all non-2xx responses. error_class is one of: EncryptedSourceError,
 // EmptyStatementError (see marker_coverage), LayoutDriftError, ReconciliationError,
-// ResourceLimitError (the file passed the processing limits and was stopped), ParseError, or a
+// ResourceLimitError (the file passed the processing limits and was stopped), removed_parameter
+// (a field this API no longer takes, e.g. redact on /v1/parse), ParseError, or a
 // framework class (AuthError, PayloadTooLarge, RateLimitError, subscription_inactive on 402 when a
 // live key has no active subscription, …).
 export interface ErrorResponse {
@@ -136,7 +137,7 @@ export interface ReadyResponse {
   database: boolean
 }
 
-// /v1/parse?redact=true returns the redacted document bytes (not JSON) with these headers.
+// POST /v1/redact returns the redacted document bytes (not JSON) with these headers.
 export const REDACT_HEADERS = {
   redactions: 'X-Bankstract-Redactions',
   formatVersion: 'X-Bankstract-Format-Version',

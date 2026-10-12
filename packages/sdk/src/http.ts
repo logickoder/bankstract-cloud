@@ -36,12 +36,11 @@ function toBlob(pdf: PdfInput): Blob {
 
 export function pdfForm(
   pdf: PdfInput,
-  fields: { bank?: string; filename?: string; redact?: boolean },
+  fields: { bank?: string; filename?: string },
 ): FormData {
   const form = new FormData()
   form.append('pdf', toBlob(pdf), fields.filename ?? 'statement.pdf')
   if (fields.bank) form.append('bank', fields.bank)
-  if (fields.redact) form.append('redact', 'true')
   return form
 }
 
