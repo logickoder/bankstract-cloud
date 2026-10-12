@@ -33,7 +33,7 @@ export class BankstractError extends Error {
 export class AuthError extends BankstractError {}
 /** 402: the key's subscription is inactive. */
 export class SubscriptionInactiveError extends BankstractError {}
-/** 403: the key cannot call this endpoint (the anonymous demo key cannot call `inspect`). */
+/** 403: the key or token is not allowed on this route (admin routes). */
 export class ForbiddenError extends BankstractError {}
 /** 413: file exceeds the 50MB cap. */
 export class PayloadTooLargeError extends BankstractError {}

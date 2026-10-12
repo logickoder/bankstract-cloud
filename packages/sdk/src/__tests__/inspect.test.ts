@@ -57,9 +57,9 @@ describe('inspect', () => {
     expect(report.signals).toEqual([])
   })
 
-  it('maps the demo key refusal (403) to ForbiddenError', async () => {
+  it('maps a 403 to ForbiddenError', async () => {
     const { client } = mockClient(() =>
-      Promise.resolve(jsonResponse({ error: 'Inspect is not available on the demo.', error_class: 'PermissionError' }, 403)),
+      Promise.resolve(jsonResponse({ error: 'key management is disabled', error_class: 'PermissionError' }, 403)),
     )
     const err = await captureError<ForbiddenError>(client.inspect(new Uint8Array([1])))
     expect(err).toBeInstanceOf(ForbiddenError)

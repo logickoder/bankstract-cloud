@@ -4,8 +4,9 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, Form, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
@@ -14,6 +15,7 @@ from ..auth import AuthContext
 from ..engine import EngineError, UnsupportedStatementError, inspect_statement
 from ..models import ErrorResponse, IntegrityReportOut
 from ..state import AppState, get_state, require_auth
+from ..watermark import DEMO_TIER, watermark_json
 from .admission import admit_without_sample, audit_request, fail_response
 
 router = APIRouter(tags=["Inspect"])
@@ -45,7 +47,9 @@ _UNREADABLE_REPORT = EngineError(
         "never a verdict. A forger who regenerates the file with the bank's own library and "
         "recomputes every balance passes every check. `clean` means no signals; a `checks_skipped` "
         "warning means a check could not run on part of the file. HTTP 200 with error signals is a "
-        "normal outcome. Counts as one parse for your plan. The file is read in memory and never "
+        "normal outcome. Counts as one parse for your plan. The anonymous demo key can call it "
+        "with a Turnstile token: it shares the demo's per-IP budget, and its report carries the "
+        "same additive `_demo` envelope as a demo parse. The file is read in memory and never "
         "written to disk."
     ),
 )
@@ -54,20 +58,12 @@ async def inspect(
     pdf: UploadFile,
     ctx: AuthContext = Depends(require_auth),
     bank: str | None = Form(default=None),
+    turnstile_token: str | None = Form(default=None),
     state: AppState = Depends(get_state),
 ) -> IntegrityReportOut | JSONResponse:
-    if ctx.is_anonymous:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                "Inspect is not available on the demo. The demo key is anonymous and capped. "
-                "Use your own API key."
-            ),
-        )
-
     # No canned inspect result: a made-up "clean" report would read as a real pass, which is the one
     # thing inspect must never do. Over a free cap the caller is refused, like redact.
-    admitted = await admit_without_sample(request, pdf, ctx, state, None, _ENDPOINT)
+    admitted = await admit_without_sample(request, pdf, ctx, state, turnstile_token, _ENDPOINT)
     if isinstance(admitted, JSONResponse):
         return admitted
     data, byte_count = admitted
@@ -104,4 +100,11 @@ async def inspect(
         _UNREADABLE if unreadable else None,
         _ENDPOINT,
     )
+    if ctx.is_anonymous:
+        # Same additive envelope a demo parse gets, so the demo is not a free production path.
+        return JSONResponse(
+            content=watermark_json(
+                wire.model_dump(), tier=DEMO_TIER, generated_at=datetime.now(UTC).isoformat()
+            )
+        )
     return wire

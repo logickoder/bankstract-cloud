@@ -92,7 +92,7 @@ bankstract reads the file in memory and never writes it to disk. The audit log r
 
 - One inspect counts as one parse, against your tier cap and overage. See [Limits & billing](/limits-billing).
 - A file the parser could not read returns a normal `200` with an `unparseable` error signal, and is not counted. If the engine cannot read it, you do not pay.
-- The anonymous demo key cannot call it (`403`).
+- The anonymous demo key can call it, with a Turnstile token. It shares the demo's one per-IP budget with parse and redact, and the report carries the same additive `_demo` envelope as a demo parse.
 - Over a free cap, inspect returns `402` with `error_class: "free_limit_reached"`. It never returns a canned sample, because a made-up clean report would read as a real pass.
 - A file that takes too long or too much memory is stopped and returns `422` with `error_class: "ResourceLimitError"`. It is never a clean result.
 

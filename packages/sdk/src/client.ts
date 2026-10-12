@@ -39,7 +39,7 @@ export interface BankstractClient {
   parse(pdf: PdfInput, opts?: ParseOptions): Promise<ParseResponse>
   redact(pdf: PdfInput, opts?: RedactOptions): Promise<RedactResult>
   /** Evidence about whether a statement file was edited. Never a verdict. Counts as one parse. The
-   *  anonymous demo key cannot call it (403). `signal.detail` quotes the statement: never log it. */
+   *  anonymous demo key can call it (shared per-IP budget, `_demo` envelope). `signal.detail` quotes the statement: never log it. */
   inspect(pdf: PdfInput, opts?: InspectOptions): Promise<IntegrityReport>
   usage(): Promise<UsageResponse>
   banks(): Promise<BanksResponse>

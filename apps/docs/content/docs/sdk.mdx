@@ -43,7 +43,7 @@ const report = await client.inspect(pdf, { bank: 'fbn' })
 // signal.detail quotes the statement: never log it. Log code, severity, page and row.
 ```
 
-See [Inspect](/inspect) for the codes and what they miss. The anonymous demo key gets a `ForbiddenError` (403).
+See [Inspect](/inspect) for the codes and what they miss. The anonymous demo key works too, from a server that forwards a Turnstile token.
 
 ## Usage and banks
 
@@ -89,7 +89,7 @@ try {
 |--------|------|
 | `AuthError` | 401, missing or invalid key |
 | `SubscriptionInactiveError` | 402, subscription inactive (also `free_limit_reached` on `inspect`: check `errorClass`) |
-| `ForbiddenError` | 403, the key cannot call this route (the demo key and `inspect`) |
+| `ForbiddenError` | 403, the key or token is not allowed on this route |
 | `PayloadTooLargeError` | 413, file over 50MB |
 | `UnsupportedStatementError` | 422, no parser, layout drift, reconciliation, or a processing limit (see `errorClass`, `markerCoverage`) |
 | `RateLimitError` | 429, with `retryAfter`. The API no longer emits 429 (over-cap returns a 200 canned sample); kept as a defensive mapping. |

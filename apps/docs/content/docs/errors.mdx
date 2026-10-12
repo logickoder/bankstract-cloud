@@ -23,7 +23,7 @@ Branch on `error_class`, not the human `error` string. `marker_coverage` is popu
 | `200` | Success: `ParseResponse` JSON or CSV bytes, redacted bytes from `/v1/redact`, or an `IntegrityReport` from [`/v1/inspect`](/inspect) |
 | `401` | Missing, invalid, or revoked key (`AuthError`) |
 | `402` | Subscription inactive (`subscription_inactive`), or a free cap reached on a route with no sample (`free_limit_reached`) |
-| `403` | The key cannot call this route. The anonymous demo key cannot call `/v1/inspect` |
+| `403` | The key or token is not allowed on this route (admin routes only) |
 | `413` | File over 50 MB (`PayloadTooLarge`) |
 | `422` | Parse failure: see `error_class` below |
 | `500` | Internal engine error |

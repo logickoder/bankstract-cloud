@@ -37,7 +37,7 @@ body: pdf=<file>   optional: bank=<name>
 200 → IntegrityReport JSON ({ bank, format_version, signals[], clean })
 401 → invalid / missing key
 402 → subscription inactive, or a free cap reached (free_limit_reached)
-403 → the anonymous demo key (inspect has no demo surface)
+403 → (none from inspect itself; 403 stays for admin routes)
 413 → over 50 MB
 422 → encrypted, unsupported, or ResourceLimitError (a file stopped at the processing limits)
 500 → internal error
@@ -54,6 +54,8 @@ Over a free cap the response is a 200 canned synthetic sample (`sample.py`). The
 - Failed parses never count.
 
 The demo calls the same `/v1/parse` with a demo key plus a Turnstile token. One worker code path, two surfaces.
+
+The demo key can call every upload route (parse, redact, inspect) with a Turnstile token, and they all draw on the one per-IP budget (admission counts every admitted request, even one that later fails). Redact and inspect have no canned sample, so over the cap they return 402 `free_limit_reached`. Demo parse and inspect JSON carry the additive `_demo` envelope; a redacted document is binary and cannot be watermarked.
 
 ## API keys
 

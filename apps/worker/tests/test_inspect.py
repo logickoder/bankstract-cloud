@@ -112,13 +112,58 @@ def test_a_non_bank_file_is_an_error_signal_not_an_exception(harness: Harness) -
     assert body["signals"][0]["severity"] == "error"
 
 
-def test_the_demo_key_cannot_inspect(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
-    calls = _fake_inspect(monkeypatch)
+def test_the_demo_key_can_inspect_and_gets_the_demo_envelope(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _fake_inspect(monkeypatch, _ERROR)
     resp = _post(harness, harness.demo_key)
 
-    assert resp.status_code == 403
-    assert set(resp.json()) == {"error", "error_class", "format_version", "marker_coverage"}
-    assert calls == []
+    assert resp.status_code == 200
+    body = resp.json()
+    # Additive: the report keys stay at the top level, like a demo parse.
+    assert body["_demo"]["tier"] == "free_demo"
+    assert body["clean"] is False
+    assert body["signals"][0]["code"] == "reconciliation_failed"
+    row = audit_rows(harness)[-1]
+    assert (row["endpoint"], row["success"]) == ("inspect", 1)
+
+
+def test_demo_inspect_shares_the_one_per_ip_budget(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # DEMO_RATE_LIMIT_MAX is 5 in the harness, one number across every route. Two parses and three
+    # inspects spend it, so the next inspect is refused and the engine does not run for it.
+    monkeypatch.setattr("bankstract.parse", fake_parse())
+    calls = _fake_inspect(monkeypatch)
+    demo = auth_header(harness.demo_key)
+    for _ in range(2):
+        assert harness.client.post("/v1/parse", files=pdf_upload(), headers=demo).status_code == 200
+    for _ in range(3):
+        assert _post(harness, harness.demo_key).status_code == 200
+
+    over = _post(harness, harness.demo_key)
+    # There is no canned inspect result: a made-up clean report would read as a real pass.
+    assert over.status_code == 402
+    assert over.json()["error_class"] == "free_limit_reached"
+    assert len(calls) == 3
+
+
+def test_demo_inspect_requires_the_turnstile_token(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[str] = []
+
+    async def _verify(token: str, **_: object) -> bool:
+        seen.append(token)
+        return token == "good"
+
+    monkeypatch.setattr("bankstract_cloud.routes.admission.verify_turnstile", _verify)
+    calls = _fake_inspect(monkeypatch)
+
+    assert _post(harness, harness.demo_key).status_code == 401
+    assert _post(harness, harness.demo_key, turnstile_token="good").status_code == 200
+    assert seen == ["", "good"]
+    assert len(calls) == 1
 
 
 def test_missing_key_is_401(harness: Harness) -> None:
