@@ -2,7 +2,14 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { getJson, pdfForm, postMultipart, resolveConfig } from './http'
-import type { BanksResponse, ParseResponse, RedactFormat, RedactResult, UsageResponse } from './types'
+import type {
+  BanksResponse,
+  IntegrityReport,
+  ParseResponse,
+  RedactFormat,
+  RedactResult,
+  UsageResponse,
+} from './types'
 
 /** PDF bytes to parse. A `File` is a `Blob`, so it is accepted by the `Blob` member. */
 export type PdfInput = Uint8Array | ArrayBuffer | Blob
@@ -26,10 +33,14 @@ export interface ParseOptions {
 }
 
 export type RedactOptions = ParseOptions
+export type InspectOptions = ParseOptions
 
 export interface BankstractClient {
   parse(pdf: PdfInput, opts?: ParseOptions): Promise<ParseResponse>
   redact(pdf: PdfInput, opts?: RedactOptions): Promise<RedactResult>
+  /** Evidence about whether a statement file was edited. Never a verdict. Counts as one parse. The
+   *  anonymous demo key can call it (shared per-IP budget, `_demo` envelope). `signal.detail` quotes the statement: never log it. */
+  inspect(pdf: PdfInput, opts?: InspectOptions): Promise<IntegrityReport>
   usage(): Promise<UsageResponse>
   banks(): Promise<BanksResponse>
 }
@@ -52,14 +63,20 @@ export function bankstract(options: BankstractOptions): BankstractClient {
     },
 
     async redact(pdf, opts) {
-      const form = pdfForm(pdf, { bank: opts?.bank, filename: opts?.filename, redact: true })
-      const res = await postMultipart(cfg, '/v1/parse', form, opts?.signal)
+      const form = pdfForm(pdf, { bank: opts?.bank, filename: opts?.filename })
+      const res = await postMultipart(cfg, '/v1/redact', form, opts?.signal)
       return {
         data: new Uint8Array(await res.arrayBuffer()),
         format: formatFromResponse(res),
         formatVersion: res.headers.get('x-bankstract-format-version'),
         redactions: Number(res.headers.get('x-bankstract-redactions') ?? '0'),
       }
+    },
+
+    async inspect(pdf, opts) {
+      const form = pdfForm(pdf, { bank: opts?.bank, filename: opts?.filename })
+      const res = await postMultipart(cfg, '/v1/inspect', form, opts?.signal)
+      return (await res.json()) as IntegrityReport
     },
 
     usage() {

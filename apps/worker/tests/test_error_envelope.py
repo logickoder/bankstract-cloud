@@ -16,7 +16,13 @@ _ENVELOPE_KEYS = {"error", "error_class", "format_version", "marker_coverage"}
 
 
 def _raise_on_parse(monkeypatch: pytest.MonkeyPatch, exc: Exception) -> None:
-    def _raise(source: object, *, bank: str | None = None, progress_callback: object = None):  # type: ignore[no-untyped-def]
+    def _raise(
+        source: object,
+        *,
+        bank: str | None = None,
+        progress_callback: object = None,
+        **_isolation: object,
+    ):  # type: ignore[no-untyped-def]
         raise exc
 
     monkeypatch.setattr("bankstract.parse", _raise)

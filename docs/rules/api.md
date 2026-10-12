@@ -9,10 +9,9 @@ Authorization: Bearer bsk_live_xxx
 Content-Type: multipart/form-data
 body: pdf=<file>
 optional: bank=<name>   skip auto-detect
-          redact=true   return the redacted PDF/XLSX bytes
 query:    format=json (default) | csv
 
-200 → ParseResponse JSON (see worker rule), CSV, or redacted bytes
+200 → ParseResponse JSON (see worker rule) or CSV
 401 → invalid / missing key
 402 → subscription inactive (error_class: subscription_inactive)
 413 → over 50 MB
@@ -24,6 +23,28 @@ Non-2xx bodies use one envelope: `{ error, error_class, format_version, marker_c
 
 Async variant: `POST /v1/parse/jobs` → 202 `{ job_id, stream_url, poll_url }`, same gates. See [worker](worker.md).
 
+## POST /v1/redact
+
+Same body, auth, gates and error envelope as `/v1/parse`. 200 → the redacted PDF/XLSX bytes with `X-Bankstract-Redactions` and `X-Bankstract-Format-Version`. It counts as one parse. There is no canned sample for a redacted document, so over a free cap it returns 402 `free_limit_reached` (`free_cap_refusal`). Its own route since the alpha break: one route, one response shape, so OpenAPI is accurate. There is no async redact: a request holds one of the `parse_max_concurrent` engine slots for the length of the redaction, up to `isolate_timeout_seconds`, like sync parse and inspect. The old `redact=true` field on `/v1/parse` and `/v1/parse/jobs` fails closed: it returns 422 `removed_parameter` before admission and the engine run, because ignoring it would hand back the unmasked statement with a 200.
+
+## POST /v1/inspect
+
+```
+Authorization: Bearer bsk_live_xxx
+Content-Type: multipart/form-data
+body: pdf=<file>   optional: bank=<name>
+
+200 → IntegrityReport JSON ({ bank, format_version, signals[], clean })
+401 → invalid / missing key
+402 → subscription inactive, or a free cap reached (free_limit_reached)
+403 → (none from inspect itself; 403 stays for admin routes)
+413 → over 50 MB
+422 → encrypted, unsupported, or ResourceLimitError (a file stopped at the processing limits)
+500 → internal error
+```
+
+Evidence, never a verdict. HTTP 200 with error signals is a normal outcome. One inspect counts as one parse for caps and overage (every count query sums `success` rows with no endpoint filter; `audit_log.endpoint` only keeps the two distinguishable). A file the engine could not parse comes back as a 200 report with an `unparseable` error signal and is audited as a failure, so it never counts. Over a free cap it returns 402 and never a canned sample, because a made-up clean report would read as a real pass. `IntegritySignal.detail` quotes the statement: return it to the caller, never log or audit it. The audit row is metadata only, never signal codes.
+
 ## Free-tier cap: no 429
 
 Over a free cap the response is a 200 canned synthetic sample (`sample.py`). The engine does not run. It carries an additive `_sample` marker and an `X-Bankstract-Sample: true` header. 429 is unused product-wide.
@@ -33,6 +54,8 @@ Over a free cap the response is a 200 canned synthetic sample (`sample.py`). The
 - Failed parses never count.
 
 The demo calls the same `/v1/parse` with a demo key plus a Turnstile token. One worker code path, two surfaces.
+
+The demo key can call every upload route (parse, redact, inspect) with a Turnstile token, and they all draw on the one per-IP budget (admission counts every admitted request, even one that later fails). Redact and inspect have no canned sample, so over the cap they return 402 `free_limit_reached`. Demo parse and inspect JSON carry the additive `_demo` envelope; a redacted document is binary and cannot be watermarked.
 
 ## API keys
 

@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  codeForJobFailure,
   codeForResponse,
   codeForStatus,
   type DemoErrorCode,
@@ -37,6 +38,20 @@ describe('codeForResponse', () => {
     expect(codeForResponse(422, 'EmptyStatementError', 0.99)).toBe('empty')
     expect(codeForResponse(422, 'EmptyStatementError', 0.5)).toBe('drift')
     expect(codeForResponse(422, 'EmptyStatementError', null)).toBe('drift')
+  })
+
+  it('branches a failed async job the same way as the sync envelope', () => {
+    // The async path used to pass null, so a legitimately empty statement always read as drift.
+    expect(codeForJobFailure({ error_class: 'EmptyStatementError', marker_coverage: 0.97 })).toBe(
+      'empty',
+    )
+    expect(codeForJobFailure({ error_class: 'EmptyStatementError', marker_coverage: 0.5 })).toBe(
+      'drift',
+    )
+    expect(codeForJobFailure({ error_class: 'EmptyStatementError' })).toBe('drift')
+    expect(codeForJobFailure({ error_class: 'LayoutDriftError', marker_coverage: null })).toBe(
+      'drift',
+    )
   })
 
   it('falls back to status mapping for framework classes', () => {

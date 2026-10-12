@@ -60,14 +60,42 @@ export interface ParseResponse {
 
 // Envelope for all non-2xx responses. error_class is one of: EncryptedSourceError,
 // EmptyStatementError (see marker_coverage), LayoutDriftError, ReconciliationError,
-// ParseError, or a framework class (AuthError, PayloadTooLarge, RateLimitError,
-// subscription_inactive on 402 when a live key has no active subscription, …).
+// ResourceLimitError (the file passed the processing limits and was stopped), removed_parameter
+// (a field this API no longer takes, e.g. redact on /v1/parse), ParseError, or a
+// framework class (AuthError, PayloadTooLarge, RateLimitError, subscription_inactive on 402 when a
+// live key has no active subscription, …).
 export interface ErrorResponse {
   error: string
   error_class: string
   format_version: string | null
   /** Populated only for EmptyStatementError: high coverage + zero rows ≈ truly empty. */
   marker_coverage: number | null
+}
+
+export type IntegritySeverity = 'warn' | 'error'
+
+// One piece of evidence about a statement file (POST /v1/inspect). `code` is a plain string on
+// purpose: the engine can add codes in a minor release and a client must not break on an unseen one.
+// `detail` quotes the statement (amounts, balances, covered text): it is the caller's own data, so
+// show it to the statement's owner and never log it. Log `code`, `severity`, `page` and `row`.
+export interface IntegritySignal {
+  code: string
+  severity: IntegritySeverity
+  detail: string
+  /** 1-based. */
+  page: number | null
+  /** 0-based index into the statement's transactions. */
+  row: number | null
+}
+
+// Evidence about whether a statement file was edited. Never a verdict: a forger who regenerates the
+// file with the bank's own library and recomputes every balance passes every check. `clean` means
+// no signals. A `checks_skipped` warning means a check could not run on part of the file.
+export interface IntegrityReport {
+  bank: string | null
+  format_version: string | null
+  signals: IntegritySignal[]
+  clean: boolean
 }
 
 export interface BankInfo {
@@ -109,7 +137,7 @@ export interface ReadyResponse {
   database: boolean
 }
 
-// /v1/parse?redact=true returns the redacted document bytes (not JSON) with these headers.
+// POST /v1/redact returns the redacted document bytes (not JSON) with these headers.
 export const REDACT_HEADERS = {
   redactions: 'X-Bankstract-Redactions',
   formatVersion: 'X-Bankstract-Format-Version',

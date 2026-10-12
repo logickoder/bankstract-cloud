@@ -54,7 +54,7 @@ bankstract({
 })
 ```
 
-Per-call: `parse`/`redact` take `{ bank?, filename?, signal? }`.
+Per-call: `parse`/`redact`/`inspect` take `{ bank?, filename?, signal? }`.
 
 ## Errors
 

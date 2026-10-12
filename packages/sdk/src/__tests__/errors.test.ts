@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   AuthError,
+  ForbiddenError,
   PayloadTooLargeError,
   RateLimitError,
   ServerError,
@@ -17,6 +18,7 @@ import { captureError, jsonResponse, mockClient } from './helpers'
 const CASES = [
   { status: 401, errorClass: 'AuthError', type: AuthError },
   { status: 402, errorClass: 'subscription_inactive', type: SubscriptionInactiveError },
+  { status: 403, errorClass: 'PermissionError', type: ForbiddenError },
   { status: 413, errorClass: 'PayloadTooLarge', type: PayloadTooLargeError },
   { status: 422, errorClass: 'LayoutDriftError', type: UnsupportedStatementError },
   { status: 500, errorClass: 'WorkerError', type: ServerError },

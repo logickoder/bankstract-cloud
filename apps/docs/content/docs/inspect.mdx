@@ -1,0 +1,106 @@
+---
+title: Inspect
+description: Evidence about whether a statement file was edited.
+---
+
+`POST /v1/inspect` checks a statement for signs it was edited. It returns evidence, never a verdict.
+
+A clean report means no signals. It does not mean the statement is authentic. A forger who regenerates the file with the bank's own library and recomputes every balance passes every check. Only the bank can rule that out.
+
+## Request
+
+Same shape as `/v1/parse`: multipart `pdf`, optional `bank`. Same key, same 50 MB limit.
+
+```bash
+curl -X POST https://bankstract.logickoder.dev/v1/inspect \
+  -H "Authorization: Bearer bsk_live_..." \
+  -F "pdf=@statement.pdf"
+```
+
+## Response
+
+HTTP `200` with an `IntegrityReport`. Signals on the report are a normal result, not an error.
+
+```json
+{
+  "bank": "fbn",
+  "format_version": "fbn-2026-01",
+  "signals": [
+    {
+      "code": "reconciliation_failed",
+      "severity": "error",
+      "detail": "balance 1,111.00 does not follow FOO ACME TRANSFER",
+      "page": 2,
+      "row": 4
+    },
+    {
+      "code": "checks_skipped",
+      "severity": "warn",
+      "detail": "overlay check off on page 3",
+      "page": 3,
+      "row": null
+    }
+  ],
+  "clean": false
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `clean` | `true` when there are no signals. A `checks_skipped` warning means a check could not run on part of the file, so the report is not clean. |
+| `signals[].code` | What fired. A plain string: new codes can arrive in a minor release, so do not fail on one you have not seen. |
+| `signals[].severity` | `error` or `warn`. |
+| `signals[].page` | 1-based page, when the signal belongs to one. |
+| `signals[].row` | 0-based index into the statement's rows, when the signal belongs to one. |
+| `signals[].detail` | A sentence for a human. It quotes the statement. See [Privacy](#privacy). |
+
+## Signal codes
+
+| Code | Severity | What fired |
+|------|----------|------------|
+| `unparseable` | error | The parser rejected the file. A damaged or edited file can break it. |
+| `reconciliation_failed` | error | Row balances do not add up to the statement's own totals. |
+| `incremental_update` | error | The file has more than one revision. A bank export has one. Something appended changes after it was made. |
+| `overlay_over_text` | error | A filled box was drawn over text. The visible value may differ from the one in the file. |
+| `checks_skipped` | warn | A check could not run on part of the file. |
+| `modified_after_create` | warn | The file's modified time differs from its creation time. A bank export sets both once. |
+| `unexpected_producer` | warn | The file was produced by a tool other than the bank's export tool. |
+| `id_changed` | warn | The trailer `/ID` is missing or changed, which a re-save does. fbn and opay only. |
+| `unexpected_font` | warn | Text uses a font the bank's export does not. |
+| `font_size_outlier` | warn | A value is a different size from the rest of its column. |
+| `date_out_of_order` | warn | A row breaks the day order. |
+| `date_outside_period` | warn | Rows fall outside the statement period. |
+
+## What it misses
+
+- A forger who regenerates the file with the bank's own library and recomputes every balance.
+- A re-save that keeps the original producer. For fbn and opay a changed `/ID` still gives it away. For zenith and palmpay a re-save passes.
+- A retyped amount in the same font and size. Reconciliation catches it unless the balances were fixed too.
+- A scanned or image-only statement. It fails to parse and returns `unparseable`.
+
+A statement that embeds an uncompressed PDF reads as extra revisions and returns an `incremental_update` error. That false positive is deliberate. Skipping embedded sections would let a forger hide a revision inside a fake stream.
+
+Baselines come from raw bank statements. A bank that changes its PDF library can raise warnings on genuine files until the baseline is updated.
+
+## Privacy
+
+`detail` quotes the statement: amounts, balances, covered text. It is your customer's data. Show it to the statement's owner. Never log it. Log `code`, `severity`, `page` and `row`, which carry no statement text.
+
+bankstract reads the file in memory and never writes it to disk. The audit log records metadata only: filename, byte count, bank, success and error class. It never records signals.
+
+## Limits and billing
+
+- One inspect counts as one parse, against your tier cap and overage. See [Limits & billing](/limits-billing).
+- A file the parser could not read returns a normal `200` with an `unparseable` error signal, and is not counted. If the engine cannot read it, you do not pay.
+- The anonymous demo key can call it, with a Turnstile token. It shares the demo's one per-IP budget with parse and redact, and the report carries the same additive `_demo` envelope as a demo parse.
+- Over a free cap, inspect returns `402` with `error_class: "free_limit_reached"`. It never returns a canned sample, because a made-up clean report would read as a real pass.
+- A file that takes too long or too much memory is stopped and returns `422` with `error_class: "ResourceLimitError"`. It is never a clean result.
+
+## SDK
+
+```ts
+const report = await client.inspect(pdf, { bank: 'fbn' })
+if (!report.clean) {
+  // Log code, severity, page and row. Not detail.
+}
+```

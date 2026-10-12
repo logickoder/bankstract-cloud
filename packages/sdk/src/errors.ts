@@ -33,6 +33,8 @@ export class BankstractError extends Error {
 export class AuthError extends BankstractError {}
 /** 402: the key's subscription is inactive. */
 export class SubscriptionInactiveError extends BankstractError {}
+/** 403: the key or token is not allowed on this route (admin routes). */
+export class ForbiddenError extends BankstractError {}
 /** 413: file exceeds the 50MB cap. */
 export class PayloadTooLargeError extends BankstractError {}
 /** 422: no parser detected / layout drift / reconciliation failure (see `errorClass`). */
@@ -55,6 +57,7 @@ export class RateLimitError extends BankstractError {
 function defaultClass(status: number): string {
   if (status === 401) return 'AuthError'
   if (status === 402) return 'subscription_inactive'
+  if (status === 403) return 'PermissionError'
   if (status === 413) return 'PayloadTooLarge'
   if (status === 422) return 'ParseError'
   if (status === 429) return 'RateLimitError'
@@ -77,6 +80,8 @@ export async function errorFromResponse(res: Response): Promise<BankstractError>
       return new AuthError(message, fields)
     case 402:
       return new SubscriptionInactiveError(message, fields)
+    case 403:
+      return new ForbiddenError(message, fields)
     case 413:
       return new PayloadTooLargeError(message, fields)
     case 422:

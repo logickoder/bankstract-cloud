@@ -12,9 +12,9 @@ from typing import Any, Literal
 
 from fastapi import HTTPException
 
-JobState = Literal["queued", "running", "done", "failed"]
-ResultKind = Literal["json", "csv", "redact"]
+from .models import ResultFormat
 
+JobState = Literal["queued", "running", "done", "failed"]
 # Stage marker enqueued once a job reaches a terminal state, so a stream consumer knows to stop
 # draining and emit the final result event.
 TERMINAL_STAGE = "terminal"
@@ -36,10 +36,8 @@ class Job:
         default_factory=lambda: asyncio.Queue[dict[str, Any]]()
     )
     state: JobState = "queued"
-    result: Any = None  # ParseOutcome | RedactOutcome while alive; None once swept
-    result_kind: ResultKind = "json"
-    media_type: str | None = None  # redact only; json and csv content types are fixed
-    redactions: int | None = None  # redact only
+    result: Any = None  # ParseOutcome while alive; None once swept
+    result_kind: ResultFormat = "json"
     last_event: dict[str, Any] | None = None
     error_class: str | None = None
     error_message: str | None = None

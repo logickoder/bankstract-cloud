@@ -61,6 +61,10 @@ class TotalsOut(BaseModel):
 # the running balance). "failed" is not a status: a failed check is a 422 ReconciliationError.
 CheckStatus = Literal["passed", "not_available", "disabled"]
 
+# The formats /v1/parse can return. Its own type, not the engine's OutputFormat: if the engine ever
+# widens that, the wire must not change with it. tests/test_jobs.py checks it stays a subset.
+ResultFormat = Literal["json", "csv"]
+
 
 class ReconciliationOut(BaseModel):
     totals: CheckStatus
@@ -85,6 +89,7 @@ class ErrorResponse(BaseModel):
     - `EmptyStatementError`: parsed clean, zero rows (see `marker_coverage`)
     - `LayoutDriftError`: bank detected, structure broke
     - `ReconciliationError`: a totals or running-balance check failed, or none could run
+    - `ResourceLimitError`: the file passed the processing time or memory limit and was stopped
     - `ParseError`: last-resort parse failure
     - `AuthError` / `PayloadTooLarge` / `RateLimitError` / `ServiceUnavailable` /
       `WorkerError`: framework concerns
@@ -97,6 +102,37 @@ class ErrorResponse(BaseModel):
     error_class: str
     format_version: str | None = None
     marker_coverage: float | None = None
+
+
+class IntegritySignalOut(BaseModel):
+    """One piece of evidence about a statement file. `code` is a string, not an enum: the engine can
+    add codes in a minor release and a client must not break on one it has not seen. Known codes:
+    `unparseable`, `checks_skipped`, `reconciliation_failed`, `incremental_update`,
+    `modified_after_create`, `unexpected_producer`, `unexpected_font`, `id_changed`,
+    `font_size_outlier`, `overlay_over_text`, `date_out_of_order`, `date_outside_period`.
+
+    `detail` quotes the statement (amounts, balances, covered text). It is the caller's own data,
+    returned to them and never logged or audited.
+    """
+
+    code: str
+    severity: Literal["warn", "error"]
+    detail: str
+    page: int | None = None  # 1-based
+    row: int | None = None  # 0-based index into the statement's transactions
+
+
+class IntegrityReportOut(BaseModel):
+    """Evidence about whether a statement file was edited. Never a verdict: a forger who regenerates
+    the file with the bank's own library and recomputes every balance passes every check. `clean`
+    means no signals. A `checks_skipped` warning means a check could not run on part of the file,
+    so it is not a clean bill either.
+    """
+
+    bank: str | None = None
+    format_version: str | None = None
+    signals: list[IntegritySignalOut]
+    clean: bool
 
 
 class JobAccepted(BaseModel):
@@ -116,22 +152,23 @@ class ProgressSnapshot(BaseModel):
 
 class JobSnapshot(BaseModel):
     """Poll fallback for an async parse job. For a `json` job, `result` is the ParseResponse once
-    `done`. For `csv`/`redact`, the bytes are not inlined: fetch them from `result_url`. The error
+    `done`. For `csv`, the bytes are not inlined: fetch them from `result_url`. The error
     fields are populated once `failed`."""
 
     job_id: str
     state: Literal["queued", "running", "done", "failed"]
-    result_kind: Literal["json", "csv", "redact"] = "json"
+    result_kind: ResultFormat = "json"
     progress: ProgressSnapshot | None = None
     result: ParseResponse | None = None  # json only
-    result_url: str | None = None  # download URL for the bytes (csv/redact), present once done
-    format_version: str | None = None
-    redactions: int | None = None  # redact only
+    result_url: str | None = None  # download URL for the csv bytes, present once done
     # True when the job served the over-cap canned sample (engine never ran). Mirrors the sync
     # path's X-Bankstract-Sample header so poll consumers can gate without fetching the result.
     sample: bool = False
     error: str | None = None
     error_class: str | None = None
+    # Failure detail, the same fields as the sync error envelope. Null unless the job failed.
+    format_version: str | None = None
+    marker_coverage: float | None = None
 
 
 class BankInfo(BaseModel):

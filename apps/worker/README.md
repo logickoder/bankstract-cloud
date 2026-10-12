@@ -25,18 +25,18 @@ uv run pytest
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
-| POST | `/v1/parse` | Bearer | multipart `pdf`; optional `bank`. `?format=json` (default) returns ParseResponse JSON; `?format=csv` returns engine-serialized CSV (`text/csv` + `Content-Disposition`). `redact=true` returns the redacted document bytes (PDF or XLSX) with the matching `Content-Type`. |
-| POST | `/v1/parse/jobs` | Bearer | async job for long statements; same body + `format`/`redact` options as `/v1/parse`. `202` with `job_id` + `stream_url` + `poll_url`. |
-| GET | `/v1/parse/jobs/{id}/stream` | job_id (no header) | SSE: `{stage,current,total}` progress, then a `result` event (the ParseResponse for json) |
+| POST | `/v1/parse` | Bearer | multipart `pdf`; optional `bank`. `?format=json` (default) returns ParseResponse JSON; `?format=csv` returns engine-serialized CSV (`text/csv` + `Content-Disposition`). |
+| POST | `/v1/parse/jobs` | Bearer | async job for long statements; same body + `format` option as `/v1/parse`. `202` with `job_id` + `stream_url` + `poll_url`. |
+| GET | `/v1/parse/jobs/{id}/stream` | job_id (no header) | SSE: `{stage,current,total}` progress, then a `result` event (the ParseResponse for json). A failed job's event carries `error`, `error_class`, `format_version` and `marker_coverage`, like the sync error envelope |
 | GET | `/v1/parse/jobs/{id}` | Bearer | JSON snapshot (poll fallback) |
-| GET | `/v1/parse/jobs/{id}/result` | Bearer | the ParseResponse JSON, or the CSV / redacted bytes (csv/redact results are not inlined in the SSE event) |
+| GET | `/v1/parse/jobs/{id}/result` | Bearer | the ParseResponse JSON, or the CSV bytes (csv results are not inlined in the SSE event) |
 | GET | `/v1/banks` | Bearer | engine-reported supported parsers |
 | GET | `/v1/usage` | Bearer | current-month parses + projected invoice |
 | GET | `/v1/status` | none | worker + engine version |
 | GET | `/healthz` | none | liveness |
 | GET | `/readyz` | none | engine + DB readiness |
 
-### `redact=true`
+### `POST /v1/redact`
 
 `bankstract.redact()` returns bytes in-memory (engine guarantees no tempfile). The worker streams them straight to the response and sets:
 
@@ -46,7 +46,7 @@ uv run pytest
 
 ### `/v1/parse` status codes
 
-`200` ParseResponse JSON, or redacted bytes when `redact=true` · `401` bad/missing key or failed Turnstile · `402` subscription inactive (`subscription_inactive`) · `413` >50 MB · `422` unsupported bank / reconciliation failure · `500` engine error.
+`200` ParseResponse JSON or CSV bytes · `401` bad/missing key or failed Turnstile · `402` subscription inactive (`subscription_inactive`) · `413` >50 MB · `422` unsupported bank / reconciliation failure · `500` engine error.
 
 Over-cap requests are not rejected. A test key past 25 parses/owner/month, or a demo IP past 50/month, gets a `200` canned synthetic sample (`_sample` marker + `X-Bankstract-Sample: true`); the engine does not run. There is no `429`.
 

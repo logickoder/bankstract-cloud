@@ -17,7 +17,7 @@ Annual prepay is available at 15% off (billed yearly). The cap and overage rate 
 
 ## What's billed
 
-Parses count against your monthly tier cap. Parses past the cap meter as overage (`₦15` / `₦12` / `₦8` per parse by tier) and bill via Paystack Invoices at the end of the cycle. Only **successful** parses count. Failures (any 4xx/5xx) are never counted and never billed. If the engine can't read it, you don't pay. CSV and redact requests count the same as a JSON parse (one operation = one parse).
+Parses count against your monthly tier cap. Parses past the cap meter as overage (`₦15` / `₦12` / `₦8` per parse by tier) and bill via Paystack Invoices at the end of the cycle. Only **successful** parses count. Failures (any 4xx/5xx) are never counted and never billed. If the engine can't read it, you don't pay. CSV, redact and [inspect](/inspect) requests count the same as a JSON parse (one operation = one parse). An inspect of a file the parser could not read (an `unparseable` signal) is not counted.
 
 The cap resets on the **1st of each calendar month** (UTC), not on your signup or renewal date. Usage is metered per calendar month, so a key created mid-month still gets the full cap for that month.
 

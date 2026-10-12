@@ -35,6 +35,16 @@ const { data, format, redactions } = await client.redact(pdf, { bank: 'gtbank' }
 await writeFile(`redacted.${format}`, data)
 ```
 
+## Inspect
+
+```ts
+const report = await client.inspect(pdf, { bank: 'fbn' })
+// report.clean, report.signals: evidence about edits, never a verdict.
+// signal.detail quotes the statement: never log it. Log code, severity, page and row.
+```
+
+See [Inspect](/inspect) for the codes and what they miss. The anonymous demo key works too, from a server that forwards a Turnstile token.
+
 ## Usage and banks
 
 ```typescript
@@ -53,7 +63,7 @@ bankstract({
 })
 ```
 
-Per-call, `parse` and `redact` take `{ bank?, filename?, signal? }`.
+Per-call, `parse`, `redact` and `inspect` take `{ bank?, filename?, signal? }`.
 
 ## Errors
 
@@ -78,9 +88,10 @@ try {
 | Throws | When |
 |--------|------|
 | `AuthError` | 401, missing or invalid key |
-| `SubscriptionInactiveError` | 402, subscription inactive |
+| `SubscriptionInactiveError` | 402, subscription inactive (also `free_limit_reached` on `inspect`: check `errorClass`) |
+| `ForbiddenError` | 403, the key or token is not allowed on this route |
 | `PayloadTooLargeError` | 413, file over 50MB |
-| `UnsupportedStatementError` | 422, no parser, layout drift, or reconciliation (see `errorClass`, `markerCoverage`) |
+| `UnsupportedStatementError` | 422, no parser, layout drift, reconciliation, or a processing limit (see `errorClass`, `markerCoverage`) |
 | `RateLimitError` | 429, with `retryAfter`. The API no longer emits 429 (over-cap returns a 200 canned sample); kept as a defensive mapping. |
 | `ServerError` | 5xx |
 | `TimeoutError` | request aborted (timeout or your `signal`) |

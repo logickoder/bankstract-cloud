@@ -78,6 +78,15 @@ export function codeForStatus(status: number): DemoErrorCode {
   }
 }
 
+// A failed async job carries the same detail as the sync error envelope (error_class and, for
+// EmptyStatementError, marker_coverage), so both paths branch the same way.
+export function codeForJobFailure(final: {
+  error_class?: string
+  marker_coverage?: number | null
+}): DemoErrorCode {
+  return codeForResponse(422, final.error_class, final.marker_coverage ?? null)
+}
+
 // Refine by the worker's typed error_class where it adds signal. Framework classes
 // (AuthError, PayloadTooLarge, …) fall through to status mapping.
 export function codeForResponse(

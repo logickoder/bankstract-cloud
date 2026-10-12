@@ -8,12 +8,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
 from bankstract import ParseResult, ProgressCallback, ProgressEvent, Transaction
 from fastapi.testclient import TestClient
 
+from bankstract_cloud.engine import IsolationLimits
 from tests.fixtures import MINIMAL_PDF
 
 # The engine's own committed encrypted fixture, fetched at test time (never vendored,
@@ -42,6 +44,8 @@ PAYSTACK_SECRET = "sk_test_paystack_dummy"  # signs webhook fixtures; never a re
 PAYSTACK_PLAN_STARTER = "PLN_starter_test"
 PAYSTACK_PLAN_STARTER_ANNUAL = "PLN_starter_annual_test"
 MAX_BYTES = 2000
+# What the routes pass the engine from Settings. Direct engine.* calls in tests take it explicitly.
+LIMITS = IsolationLimits(timeout_seconds=60.0, memory_mb=1024)
 
 
 def empty_parse_result() -> ParseResult:
@@ -83,6 +87,7 @@ def fake_parse(
         *,
         bank: str | None = None,
         progress_callback: ProgressCallback | None = None,
+        **_isolation: object,
     ) -> ParseResult:
         if progress_callback is not None:
             for stage, current, total in events:
@@ -90,6 +95,17 @@ def fake_parse(
         return result if result is not None else empty_parse_result()
 
     return _impl
+
+
+def owner_test_key(harness: Harness, owner: str = "t") -> str:
+    """Mint a fresh test-tier key for `owner` (free-cap counts are per owner)."""
+    return harness.client.app.state.app_state.keystore.issue("t", "test", owner=owner).raw_key  # pyright: ignore[reportUnknownMemberType]
+
+
+def audit_rows(harness: Harness) -> list[Any]:
+    """Every audit_log row, oldest first."""
+    state = harness.client.app.state.app_state  # pyright: ignore[reportUnknownMemberType]
+    return list(state.conn.execute("SELECT * FROM audit_log ORDER BY timestamp").fetchall())
 
 
 def auth_header(key: str) -> dict[str, str]:

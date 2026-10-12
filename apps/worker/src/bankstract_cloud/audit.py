@@ -7,6 +7,7 @@ import sqlite3
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from typing import Literal
 
 from .clock import utcnow_iso
 
@@ -42,6 +43,10 @@ def previous_period_bounds(asof: datetime) -> tuple[str, str]:
     return prev_start.isoformat(), this_start.isoformat()
 
 
+# Which route made an audited call. One place, so a typo or a new route is a type error.
+Endpoint = Literal["parse", "inspect", "redact"]
+
+
 # Directive 1: metadata only. There is deliberately NO column for transactions,
 # account holders, balances, or any PDF-derived payload. Do not add one.
 
@@ -54,6 +59,8 @@ class AuditEntry:
     parser_detected: str | None
     success: bool
     error_class: str | None
+    # Which route made the call. Counts ignore it (see docs/rules/api.md); it keeps rows separable.
+    endpoint: Endpoint = "parse"
 
 
 class AuditLog:
@@ -63,8 +70,8 @@ class AuditLog:
     def record(self, entry: AuditEntry) -> None:
         self._conn.execute(
             "INSERT INTO audit_log (id, timestamp, api_key_id, filename, "
-            "byte_count, parser_detected, success, error_class) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "byte_count, parser_detected, success, error_class, endpoint) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 uuid.uuid4().hex,
                 utcnow_iso(),
@@ -74,6 +81,7 @@ class AuditLog:
                 entry.parser_detected,
                 int(entry.success),
                 entry.error_class,
+                entry.endpoint,
             ),
         )
         self._conn.commit()

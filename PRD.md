@@ -201,9 +201,8 @@ POST /v1/parse
   body: pdf=<file>
   optional:
     bank=<name>          skip auto-detect
-    redact=true          run redactor, returns redacted file bytes (PDF or XLSX) directly
 
-Response 200 (default, no redact):
+Response 200:
   ParseResponse JSON (the pinned engine's serialize() output, not ParseResult
   dataclass internals; documented in apps/worker/src/bankstract_cloud/models.py)
   {
@@ -213,7 +212,8 @@ Response 200 (default, no redact):
     "transactions": [ ... ]
   }
 
-Response 200 (redact=true):
+POST /v1/redact  (same body and auth; its own route, alpha break from the old `redact=true` flag)
+Response 200:
   Raw redacted file bytes (PDF or XLSX) with Content-Type matching source format.
   Headers carry the metadata ParseResponse exposes in JSON mode:
     Content-Type: application/pdf
@@ -241,10 +241,11 @@ For long statements, submit an async job and stream engine progress (engine 0.15
 ```
 POST /v1/parse/jobs              202 { job_id, stream_url, poll_url }   (same body + options as /v1/parse)
 GET  /v1/parse/jobs/{id}/stream  text/event-stream: progress {stage,current,total}, then a final
-                                 `result` event (the ParseResponse, for json). No auth header: the
-                                 unguessable job_id is the capability.
+                                 `result` event (the ParseResponse, for json; on failure the error,
+                                 error_class, format_version and marker_coverage, as in the sync
+                                 envelope). No auth header: the unguessable job_id is the capability.
 GET  /v1/parse/jobs/{id}         JSON snapshot (poll fallback)
-GET  /v1/parse/jobs/{id}/result  the ParseResponse JSON, or the CSV / redacted bytes (csv/redact
+GET  /v1/parse/jobs/{id}/result  the ParseResponse JSON, or the CSV bytes (csv
                                  results are not inlined in the SSE event)
 ```
 
