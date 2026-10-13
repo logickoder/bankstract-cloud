@@ -3,13 +3,16 @@
 
 import { buildMetadata } from '@bankstract/seo'
 import { RootProvider } from 'fumadocs-ui/provider/next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Fraunces, Instrument_Sans, JetBrains_Mono } from 'next/font/google'
 import type { ReactNode } from 'react'
 
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
-const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' })
+// Same three families as the main site (packages/ui/src/fonts.ts), declared here so docs stays free
+// of a @bankstract/ui dependency.
+const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', display: 'swap' })
+const instrument = Instrument_Sans({ subsets: ['latin'], variable: '--font-instrument', display: 'swap' })
+const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains', display: 'swap' })
 
 export const metadata = buildMetadata({
   title: 'bankstract API docs',
@@ -21,7 +24,7 @@ export const metadata = buildMetadata({
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${fraunces.variable} ${instrument.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col font-sans">
         {/* Static search: type 'static' makes the dialog download the prebuilt Orama index from
             `api` and search in-browser (no server). The url is fetched verbatim - a relative fetch

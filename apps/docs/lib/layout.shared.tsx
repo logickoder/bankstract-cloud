@@ -15,7 +15,9 @@ export function baseOptions(): BaseLayoutProps {
             <rect x="5" y="5.5" width="10" height="2.5" rx="1.25" fill="currentColor" />
             <rect x="5" y="9.5" width="10" height="2.5" rx="1.25" fill="currentColor" />
           </svg>
-          bankstract
+          <span style={{ fontFamily: 'var(--font-jetbrains), ui-monospace, monospace', fontSize: 14, fontWeight: 500 }}>
+            bankstract
+          </span>
         </span>
       ),
     },
