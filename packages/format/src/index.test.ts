@@ -3,7 +3,30 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { displayBytes, displayDate, displayMoney, displayNaira, signedNaira } from './index'
+import {
+  displayBytes,
+  displayDate,
+  displayMoney,
+  displayNaira,
+  isZeroAmount,
+  signedNaira,
+} from './index'
+
+describe('isZeroAmount', () => {
+  it('is true only for an amount that is exactly zero', () => {
+    expect(isZeroAmount('0')).toBe(true)
+    expect(isZeroAmount('0.00')).toBe(true)
+    expect(isZeroAmount('000.0')).toBe(true)
+  })
+
+  it('is false for non-zero, missing and empty values', () => {
+    expect(isZeroAmount('0.01')).toBe(false)
+    expect(isZeroAmount('10')).toBe(false)
+    expect(isZeroAmount('100.00')).toBe(false)
+    expect(isZeroAmount(null)).toBe(false)
+    expect(isZeroAmount('')).toBe(false)
+  })
+})
 
 describe('displayMoney', () => {
   it('groups thousands while keeping the fractional part exact', () => {

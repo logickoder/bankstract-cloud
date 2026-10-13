@@ -3,7 +3,7 @@
 
 'use client'
 
-import { displayDate, displayMoney, displayNaira, signedNaira } from '@bankstract/format'
+import { displayDate, displayMoney, displayNaira, isZeroAmount, signedNaira } from '@bankstract/format'
 import type { ParseResponse, Reconciliation, Transaction } from '@bankstract/types'
 import { Badge, linkClass } from '@bankstract/ui'
 import { useState } from 'react'
@@ -101,10 +101,10 @@ export function TransactionTable({ data }: { data: ParseResponse }) {
                 </td>
                 <td className="px-5 py-2 text-fg">{t.narration}</td>
                 <td className="px-5 py-2 text-right font-mono whitespace-nowrap text-fg">
-                  {displayMoney(t.debit)}
+                  <Amount value={t.debit} />
                 </td>
                 <td className="px-5 py-2 text-right font-mono whitespace-nowrap text-fg">
-                  {displayMoney(t.credit)}
+                  <Amount value={t.credit} />
                 </td>
                 <td className="px-5 py-2 text-right font-mono whitespace-nowrap text-fg-secondary">
                   {displayMoney(t.balance)}
@@ -155,5 +155,19 @@ function MobileRow({ t }: { t: Transaction }) {
         </span>
       ) : null}
     </li>
+  )
+}
+
+// A row is a debit or a credit, so one of the two cells is always zero. Printing "0" down a column
+// buries the real figures; a quiet dot keeps the grid and the zero stays for screen readers.
+function Amount({ value }: { value: string | null }) {
+  if (!isZeroAmount(value)) return <>{displayMoney(value)}</>
+  return (
+    <>
+      <span aria-hidden="true" className="text-fg-tertiary">
+        ·
+      </span>
+      <span className="sr-only">0</span>
+    </>
   )
 }

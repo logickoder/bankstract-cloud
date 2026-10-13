@@ -28,6 +28,12 @@ function groupThousands(intPart: string): string {
   return negative ? `-${grouped}` : grouped
 }
 
+// True for an amount that is exactly zero ("0", "0.00"). Null and "" are missing, not zero. Used to
+// quiet the unused debit or credit cell on a row, where "0" repeated down a column is noise.
+export function isZeroAmount(value: DecimalString | null): boolean {
+  return value !== null && /^0+(\.0+)?$/.test(value)
+}
+
 export function displayMoney(value: DecimalString | null): string {
   if (value === null || value === '') return '-'
   const dot = value.indexOf('.')
