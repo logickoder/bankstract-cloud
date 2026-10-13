@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { BrandMark, ButtonLink, cn, SmartLink } from '@bankstract/ui'
+import { Wordmark, ButtonLink, cn, SmartLink } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 
@@ -24,14 +24,13 @@ const linkClass =
 // primary action stays in the content. The three nav links drop below sm; the footer carries them.
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border">
+    <header className="sticky top-0 z-40 border-b border-border bg-bg">
       <div className={cn(PAGE_CONTAINER, 'flex h-16 items-center justify-between')}>
         <SmartLink
           href="/"
           className="flex h-11 items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline"
         >
-          <BrandMark className="h-3 text-fg" />
-          <span className="font-mono text-sm font-medium text-fg">bankstract</span>
+          <Wordmark className="text-2xl text-fg" />
         </SmartLink>
         <nav aria-label="Main" className="flex items-center gap-1">
           {NAV.map((item) => (

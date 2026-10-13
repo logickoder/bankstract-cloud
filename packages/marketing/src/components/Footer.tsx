@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Anchor, BrandMark, cn, SmartLink } from '@bankstract/ui'
+import { Anchor, Wordmark, cn, SmartLink } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 
@@ -58,8 +58,7 @@ export function Footer() {
       <div className={cn(PAGE_CONTAINER, 'grid gap-10 pt-12 pb-10 sm:grid-cols-[1fr_auto]')}>
         <div className="max-w-xs">
           <div className="flex items-center gap-2">
-            <BrandMark className="h-3 text-fg" />
-            <span className="font-mono text-sm font-medium text-fg">bankstract</span>
+            <Wordmark className="text-xl text-fg" />
           </div>
           <p className="mt-4 text-sm text-fg-secondary">
             Open source statement parsing API for Nigerian banks.
@@ -109,11 +108,9 @@ export function Footer() {
       </div>
       <div
         aria-hidden="true"
-        className="pointer-events-none mx-auto h-[0.6em] w-full max-w-5xl overflow-hidden px-6 text-[clamp(3rem,15.5vw,10.5rem)] select-none"
+        className="pointer-events-none mx-auto h-[0.6em] w-full max-w-5xl overflow-hidden px-6 text-[clamp(3rem,17vw,11.85rem)] select-none"
       >
-        <p className="font-mono leading-none font-semibold tracking-tight text-sheet-ink/[0.06]">
-          bankstract
-        </p>
+        <Wordmark className="flex text-sheet-ink opacity-[0.07]" />
       </div>
     </footer>
   )

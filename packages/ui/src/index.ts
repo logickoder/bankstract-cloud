@@ -4,7 +4,7 @@
 export { ACCENTS, INK, PAPER, resolveAccentTheme, type AccentTheme } from './accent'
 export { Anchor, linkClass } from './anchor'
 export { Badge, type BadgeProps } from './badge'
-export { BrandMark } from './brand'
+export { BrandMark, Wordmark } from './brand'
 export {
   Button,
   type ButtonProps,

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { sections } from '@bankstract/marketing'
-import { BrandMark } from '@bankstract/ui'
+import { Wordmark } from '@bankstract/ui'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
@@ -26,8 +26,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <div className="scan-line absolute inset-0" />
         </div>
         <Link href="/" className={`relative flex w-fit items-center gap-2 ${focusRing}`} aria-label="bankstract home">
-          <BrandMark className="h-3 w-auto text-fg" />
-          <span className="font-mono text-sm font-medium text-fg">bankstract</span>
+          <Wordmark className="text-2xl text-fg" />
         </Link>
         <div className="relative">
           {/* Decorative marketing copy, not the page heading (the form owns the <h1>). A <p>
@@ -52,8 +51,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
       <main className="relative flex flex-col items-center justify-center px-6 py-16">
         <Link href="/" className={`mb-10 flex items-center gap-2 lg:hidden ${focusRing}`} aria-label="bankstract home">
-          <BrandMark className="h-2.5 w-auto text-fg" />
-          <span className="font-mono text-sm font-medium text-fg">bankstract</span>
+          <Wordmark className="text-2xl text-fg" />
         </Link>
         {children}
       </main>

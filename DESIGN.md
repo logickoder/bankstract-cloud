@@ -554,19 +554,23 @@ Mintlify or Fumadocs default layout. NO custom design overhead in v1. Match acce
 ```yaml
 assets:
   logo:
-    primary: "/brand/logo-wordmark.svg"
-    icon: "/brand/logo-mark.svg"           # square for favicon, social
-    icon-mono: "/brand/logo-mark-mono.svg" # for footer / inverse contexts
+    idea: "The mark is the letter b, drawn as statement rows. Three short stem lines, one long shoulder line, two accent lines stepped in under it (the bowl, left open). It replaces the first letter, so the logo reads [mark]ankstract."
+    lockup: "<Wordmark/> in packages/ui (brand.tsx): mark + 'ankstract' in Fraunces bold, tracking -0.02em. Sized in em: set a text-size class. The mark is as tall as the ascender and its last line sits on the baseline (flex baseline alignment). Screen readers hear 'bankstract' (sr-only b)."
+    mark-colors: "Stem and shoulder follow the text colour. The two bowl lines use var(--color-accent-text), the shade that is safe on the surface (paper or ink)."
+    stroke: "3 units in a 28-unit box for in-page sizes (about 1.9px at 24px type). Row x ranges are loose on purpose, hand-drawn not ruled. Thinner than 2.2 turns to dots at header size."
+    sizes: "Header and auth text-2xl, footer and dashboard sidebar text-xl, demo header text-2xl."
+    copies: "packages/ui/src/brand.tsx (svg), packages/seo/src/mark.tsx (divs for next/og), apps/*/icon.svg (favicon). Same rows in all three. Change one, change the others."
+    not-done: "Emails keep the plain text 'bankstract' (clients strip svg). The OG card uses the system sans for 'ankstract', since next/og has no Fraunces loaded."
 
   favicon:
-    color: "{accent.primary}"
-    bg: "{bg.primary}"
-    shape: "monogram 'b' or stylized bracket-pair"
+    file: "apps/{web,marketing,demo,docs}/icon.svg, identical. Ink rounded tile, five heavy lines (two short, one long, two accent) so it holds at 16px. The full six-row mark is too fine there."
+    apple-icon: "packages/seo icon.tsx. Ink tile, the six-row mark in light ink, stroke 3."
+    never: "A light tile on a paper page: it disappears. Use the ink tile, or a tinted tile."
 
   og:
     dimensions: "1200x630"
-    format: "PNG static (v1) OR runtime-rendered via Next.js OG image route (v1.5)"
-    template: "dark bg + accent border + wordmark + tagline"
+    format: "Runtime-rendered via the Next.js OG route (packages/seo og.tsx)"
+    template: "paper bg + [mark]ankstract + two-line headline (second line accent) + four tint tiles"
     domain: "bankstract.logickoder.dev (subdomain on owned logickoder.dev; ₦0 hosting). Pivot to standalone TLD post-first-B2B-contract revenue."
 ```
 

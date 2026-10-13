@@ -64,9 +64,11 @@ export function ogImage({ line1, line2, subtitle }: OgInput): Response {
           color: FG,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <Mark width={64} stack={FG} />
-          <div style={{ display: 'flex', fontSize: 34, fontWeight: 700 }}>bankstract</div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18 }}>
+          <div style={{ display: 'flex', marginBottom: 11 }}>
+            <Mark height={42} ink={FG} accent={ACCENT} />
+          </div>
+          <div style={{ display: 'flex', fontSize: 56, fontWeight: 700, lineHeight: 1, marginLeft: -10 }}>ankstract</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>

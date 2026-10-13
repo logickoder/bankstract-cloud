@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { BrandMark } from '@bankstract/ui'
+import { Wordmark } from '@bankstract/ui'
 import { ArrowUpRight } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -33,8 +33,7 @@ export default async function DashboardLayout({
             className="flex min-h-11 items-center gap-2 rounded-sm text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline lg:px-3"
             aria-label="bankstract home"
           >
-            <BrandMark className="h-2.5 w-auto" />
-            <span className="font-mono text-sm font-medium">bankstract</span>
+            <Wordmark className="text-xl" />
           </Link>
           <span className="lg:hidden">
             <SignOutButton />

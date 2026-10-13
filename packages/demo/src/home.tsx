@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Anchor, BrandMark } from '@bankstract/ui'
+import { Anchor, Wordmark } from '@bankstract/ui'
 import type { ReactNode } from 'react'
 
 import { DemoClient } from './components/DemoClient'
@@ -52,8 +52,7 @@ export function DemoHome({ header, footer }: { header?: ReactNode; footer?: Reac
             className={`flex h-11 items-center gap-2 rounded-sm text-fg ${focusRing}`}
             aria-label="bankstract home"
           >
-            <BrandMark className="h-3 w-auto" />
-            <span className="font-mono text-sm font-medium">bankstract</span>
+            <Wordmark className="text-2xl" />
           </a>
           <nav aria-label="Main" className="flex items-center">
             <a href="/docs" className={`flex h-11 items-center px-3 text-sm font-medium text-fg-secondary hover:text-fg ${focusRing}`}>

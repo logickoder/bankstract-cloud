@@ -8,11 +8,12 @@ import { Mark } from './mark'
 export const APPLE_ICON_SIZE = { width: 180, height: 180 }
 export const APPLE_ICON_CONTENT_TYPE = 'image/png'
 
-const BG = '#0a0a0a'
-const STACK = '#52525B'
+const BG = '#14161f'
+const INK = '#fafaf9'
+const ACCENT = '#f08a3c'
 
-// iOS home-screen icon (180x180, opaque - iOS masks its own corners). The extract mark, dim stack,
-// centred in the dark square. Return the global Response (ImageResponse extends it) so consumers in
+// iOS home-screen icon (180x180, opaque - iOS masks its own corners). The b mark, light on the ink
+// square, with a heavier stroke than the in-page mark so it holds on a home screen. Return the global Response (ImageResponse extends it) so consumers in
 // other packages can name the type without reaching into this package's nested next/og (TS2742).
 export function appleIcon(): Response {
   return new ImageResponse(
@@ -27,7 +28,7 @@ export function appleIcon(): Response {
           background: BG,
         }}
       >
-        <Mark width={144} stack={STACK} />
+        <Mark height={112} ink={INK} accent={ACCENT} stroke={3} />
       </div>
     ),
     { ...APPLE_ICON_SIZE },
