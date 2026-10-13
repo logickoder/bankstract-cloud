@@ -14,7 +14,6 @@ export const buttonClass = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-accent text-accent-fg border-accent hover:bg-accent-hover hover:border-accent-hover',
         // Ink-filled: follows the surface (dark on paper, light on ink). The marketing primary.
         solid: 'bg-fg text-bg border-fg hover:opacity-85',
         secondary:

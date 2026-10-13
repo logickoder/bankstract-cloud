@@ -2,12 +2,11 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { buildMetadata } from '@bankstract/seo'
-import { Anchor, cn } from '@bankstract/ui'
+import { Anchor, cn, Tile } from '@bankstract/ui'
 import type { ReactNode } from 'react'
 
 import { Footer } from './components/Footer'
 import { PAGE_CONTAINER } from './components/Section'
-import { Tile } from './components/Tile'
 
 const CONTACT = 'jeffery@logickoder.dev'
 const TURNSTILE_ADDENDUM = 'https://www.cloudflare.com/turnstile-privacy-policy/'
@@ -112,7 +111,7 @@ const SUBPROCESSORS: readonly { name: string; purpose: string; data: string; reg
 
 export function PrivacyPage() {
   return (
-    <main className="surface-paper">
+    <main>
       <section className="wash-paper relative">
         <div className={cn(PAGE_CONTAINER, 'pt-10 pb-12 sm:pt-14 sm:pb-16')}>
           <p className="font-mono text-xs text-fg-tertiary">Privacy · effective 15 July 2026</p>

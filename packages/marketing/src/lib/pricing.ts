@@ -15,6 +15,9 @@ export const ANNUAL_DISCOUNT_PERCENT = 15
 
 export type TierId = 'starter' | 'growth' | 'scale'
 
+// A tier's pastel on the pricing page and in billing. A subset of the tile tints in @bankstract/ui.
+export type TierTint = 'green' | 'yellow' | 'lilac'
+
 // The numbers. Everything a screen shows is derived from these, so a price changes in one place.
 // `includedParses` and `overageNaira` must match apps/worker/src/bankstract_cloud/tiers.py (the
 // billing source of truth); data.test.ts reads that file and fails if they drift. The monthly naira
@@ -27,6 +30,7 @@ interface TierDef {
   overageNaira: number
   sla: string
   highlight: boolean
+  tint: TierTint
 }
 
 const TIER_DEFS: readonly TierDef[] = [
@@ -38,6 +42,7 @@ const TIER_DEFS: readonly TierDef[] = [
     overageNaira: 15,
     sla: 'Email support',
     highlight: false,
+    tint: 'green',
   },
   {
     id: 'growth',
@@ -47,6 +52,7 @@ const TIER_DEFS: readonly TierDef[] = [
     overageNaira: 12,
     sla: 'Priority email + Discord, 99% target',
     highlight: true,
+    tint: 'yellow',
   },
   {
     id: 'scale',
@@ -56,6 +62,7 @@ const TIER_DEFS: readonly TierDef[] = [
     overageNaira: 8,
     sla: 'Dedicated Slack, 99.5% SLA',
     highlight: false,
+    tint: 'lilac',
   },
 ]
 
@@ -79,6 +86,7 @@ export interface PaidTier {
   overage: string
   sla: string
   highlight: boolean
+  tint: TierTint
 }
 
 export const PAID_TIERS: readonly PaidTier[] = TIER_DEFS.map((t) => ({

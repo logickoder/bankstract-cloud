@@ -4,8 +4,8 @@
 'use client'
 
 import { displayDate } from '@bankstract/format'
-import { ANNUAL_DISCOUNT_PERCENT, naira, PAID_TIERS, type TierId } from '@bankstract/marketing/pricing'
-import { Button, cn, SegmentedRadio } from '@bankstract/ui'
+import { ANNUAL_DISCOUNT_PERCENT, naira, PAID_TIERS } from '@bankstract/marketing/pricing'
+import { Button, cn, SegmentedRadio, tintClass } from '@bankstract/ui'
 import { useState } from 'react'
 
 import type { SubscribeResponse, SubscriptionStatusResponse } from '@/lib/worker'
@@ -13,14 +13,6 @@ import type { SubscribeResponse, SubscriptionStatusResponse } from '@/lib/worker
 type Interval = 'monthly' | 'annual'
 
 const INTERVALS = ['monthly', 'annual'] as const
-
-// Tints match the pricing page (Starter green, Growth yellow, Scale lilac). Prices, caps and the
-// annual figure come from the one pricing module the marketing site also renders.
-const TINTS: Record<TierId, string> = {
-  starter: 'bg-tint-1',
-  growth: 'bg-tint-2',
-  scale: 'bg-tint-4',
-}
 
 function tabClass(active: boolean): string {
   return active
@@ -55,8 +47,8 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
     return (
       <section
         className={cn(
-          'surface-tint mt-8 max-w-md rounded-lg p-6 sm:p-8',
-          current ? TINTS[current.id] : 'bg-tint-2',
+          'mt-8 max-w-md rounded-lg p-6 sm:p-8',
+          tintClass[current?.tint ?? 'yellow'],
         )}
       >
         <div className="flex items-center justify-between gap-3">
@@ -100,7 +92,7 @@ export function BillingClient({ status }: { status: SubscriptionStatusResponse |
         {PAID_TIERS.map((t) => (
           <div
             key={t.id}
-            className={cn('surface-tint relative flex flex-col rounded-lg p-6', TINTS[t.id])}
+            className={cn('relative flex flex-col rounded-lg p-6', tintClass[t.tint])}
           >
             {t.highlight ? (
               <span className="absolute top-6 right-6 rounded-full bg-fg px-3 py-1 font-mono text-xs text-bg">

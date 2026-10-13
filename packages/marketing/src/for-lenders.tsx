@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { buildMetadata, JsonLd, SITE_URL } from '@bankstract/seo'
-import { Anchor, ButtonLink, cn } from '@bankstract/ui'
+import { Anchor, ButtonLink, cn, Tile } from '@bankstract/ui'
 
 import { CodeBlock } from './components/CodeBlock'
 import { FinalCtaSection } from './components/FinalCtaSection'
@@ -10,7 +10,6 @@ import { Footer } from './components/Footer'
 import { SampleStatementPanel } from './components/SampleStatementPanelLoader'
 import { PAGE_CONTAINER, Section, SectionHeading } from './components/Section'
 import { StatementFlow } from './components/StatementFlow'
-import { Tile } from './components/Tile'
 import { SHIPPED_BANKS } from './lib/banks'
 import { links } from './lib/links'
 
@@ -112,7 +111,7 @@ const STEPS: readonly { n: string; title: string; body: string }[] = [
 
 export function LendersPage() {
   return (
-    <main className="surface-paper">
+    <main>
       <JsonLd data={lendersJsonLd} />
 
       <section className="wash-paper relative">

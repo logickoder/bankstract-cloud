@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { EVENT, eventBootScript, isEventActive } from './event'
+import { activeAccentTheme, EVENT, eventBootScript, isEventActive } from './event'
 
 // Lagos is UTC+1 all year, so "until the 16th" means the end of the 16th there.
 describe('isEventActive', () => {
@@ -58,5 +58,15 @@ describe('eventBootScript', () => {
 
   it('sets nothing once the event has ended, so the page keeps its default theme', () => {
     expect(runBootScript(Date.parse('2026-10-17T00:00:01+01:00'))).toEqual({})
+  })
+})
+
+describe('activeAccentTheme', () => {
+  it('uses the event theme while active, whatever the build default is', () => {
+    expect(activeAccentTheme(Date.parse('2026-10-14T10:00:00+01:00'), 'orange')).toBe(EVENT.theme)
+  })
+
+  it('falls back to the build default once the event has ended', () => {
+    expect(activeAccentTheme(Date.parse('2026-10-17T00:00:01+01:00'), 'orange')).toBe('orange')
   })
 })

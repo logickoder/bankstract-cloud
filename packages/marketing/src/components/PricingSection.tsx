@@ -1,24 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { ButtonLink, cn } from '@bankstract/ui'
+import { ButtonLink, cn, Tile } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 import { ANNUAL_NOTE, ENTERPRISE, FREE_TIERS, type PaidTier, PAID_TIERS } from '../lib/pricing'
 
 import { Section } from './Section'
-import { Tile } from './Tile'
 
 // One dominant recommended tier carries the decision (DESIGN §ai-slop: never three equal cards).
-// Each paid tier gets its own pastel, in price order. Figures render from lib/pricing.ts.
-const TIER_TINT = ['green', 'yellow', 'lilac'] as const
+// Each paid tier gets its own pastel (`tint` in lib/pricing.ts). Figures render from there too.
 
 const featured = PAID_TIERS.find((t) => t.highlight)
 const rail = PAID_TIERS.filter((t) => !t.highlight)
-
-function tintFor(tier: PaidTier) {
-  return TIER_TINT[PAID_TIERS.indexOf(tier)] ?? 'plain'
-}
 
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
@@ -42,7 +36,7 @@ export function PricingSection() {
 
       <div className="mt-10 grid gap-3 lg:grid-cols-[1.35fr_1fr]">
         {featured ? (
-          <Tile tint={tintFor(featured)}>
+          <Tile tint={featured.tint}>
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">
                 {featured.name}
@@ -109,7 +103,7 @@ export function PricingSection() {
 
 function RailTier({ tier }: { tier: PaidTier }) {
   return (
-    <Tile tint={tintFor(tier)} className={cn('justify-between gap-5')}>
+    <Tile tint={tier.tint} className={cn('justify-between gap-5')}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-display text-xl font-semibold tracking-[-0.02em]">{tier.name}</h2>
         <p>
