@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
@@ -44,6 +45,8 @@ from .admission import (
     audit_request,
     fail_response,
 )
+
+logger = logging.getLogger("bankstract_cloud.parse")
 
 router = APIRouter(tags=["Parse"])
 
@@ -292,8 +295,6 @@ async def _run_job(
             )
             job.result = parsed
             job.result_kind = fmt
-        job.state = "done"
-        _record_success(state, ctx, job.filename, job.byte_count, parsed.parser_detected)
     except UnsupportedStatementError as exc:
         _fail_job(job, exc.error_class, str(exc), exc.format_version, exc.marker_coverage)
         audit_request(state, ctx, job.filename, job.byte_count, exc.bank, False, exc.error_class)
@@ -303,6 +304,14 @@ async def _run_job(
     except Exception as exc:  # never leave a job stuck "running"
         _fail_job(job, type(exc).__name__, str(exc), None, None)
         audit_request(state, ctx, job.filename, job.byte_count, None, False, type(exc).__name__)
+    else:
+        # Done first: the caller already has a result, and a failed audit write (locked SQLite,
+        # full disk) must not turn it into a failed job. The success goes uncounted, so say so.
+        job.state = "done"
+        try:
+            _record_success(state, ctx, job.filename, job.byte_count, parsed.parser_detected)
+        except Exception as exc:
+            logger.error("success audit failed for job %s: %s", job.id, type(exc).__name__)
     finally:
         del data  # drop PDF bytes promptly (Directive 1)
         job.terminal_at = time.monotonic()
