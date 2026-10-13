@@ -3,7 +3,7 @@
 
 'use client'
 
-import { Button, Input, linkClass } from '@bankstract/ui'
+import { Button, Input } from '@bankstract/ui'
 import { useId, useState } from 'react'
 import { z } from 'zod'
 
@@ -45,13 +45,42 @@ export function SignInForm({ title = 'Sign in' }: { title?: string }) {
 
   async function magicLink() {
     if (!emailSchema.safeParse(email).success) {
-      setStatus({ kind: 'error', message: 'Email format off.' })
+      setStatus({
+        kind: 'error',
+        message: 'That email is not valid. It needs a name, an @ and a domain. Check it and try again.',
+      })
       return
     }
     setStatus({ kind: 'sending' })
     const { error } = await authClient.signIn.magicLink({ email, callbackURL: '/dashboard' })
     setStatus(
       error ? { kind: 'error', message: 'Could not send the link. Try again.' } : { kind: 'sent' },
+    )
+  }
+
+  if (status.kind === 'sent') {
+    return (
+      <div className="w-full max-w-sm">
+        <p className="font-mono text-xs text-fg-tertiary">link sent</p>
+        <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-fg">
+          Check your inbox
+        </h1>
+        <div role="status" className="mt-2 text-fg-secondary">
+          <p>We sent a sign-in link to</p>
+          <p className="mt-1 font-mono text-sm break-all text-fg">{email}</p>
+        </div>
+        <div className="surface-tint mt-8 rounded-lg bg-tint-1 p-5">
+          <p className="font-medium">The link expires in 15 minutes.</p>
+          <p className="mt-1 text-sm text-fg-secondary">Not there? Check spam.</p>
+        </div>
+        <Button
+          variant="secondary"
+          className="mt-4 w-full"
+          onClick={() => setStatus({ kind: 'idle' })}
+        >
+          Use a different email
+        </Button>
+      </div>
     )
   }
 
@@ -85,54 +114,38 @@ export function SignInForm({ title = 'Sign in' }: { title?: string }) {
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        {status.kind === 'sent' ? (
-          <div className="flex flex-col gap-2">
-            <p
-              role="status"
-              className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm text-success"
-            >
-              Check your inbox. The link expires in 15 minutes.
+        {/* noValidate: the browser's own bubble would cover our message (and our copy). */}
+        <form
+          noValidate
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void magicLink()
+          }}
+        >
+          <label htmlFor={emailId} className="sr-only">
+            Email address
+          </label>
+          <Input
+            id={emailId}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={isError}
+            aria-describedby={isError ? errorId : undefined}
+          />
+          <Button type="submit" variant="solid" className="w-full" disabled={busy}>
+            {status.kind === 'sending' ? 'Sending...' : 'Email me a magic link'}
+          </Button>
+          {status.kind === 'error' ? (
+            <p id={errorId} role="alert" className="text-sm text-error">
+              {status.message}
             </p>
-            <button
-              type="button"
-              className={`self-start text-sm ${linkClass}`}
-              onClick={() => setStatus({ kind: 'idle' })}
-            >
-              Use a different email
-            </button>
-          </div>
-        ) : (
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={(e) => {
-              e.preventDefault()
-              void magicLink()
-            }}
-          >
-            <label htmlFor={emailId} className="sr-only">
-              Email address
-            </label>
-            <Input
-              id={emailId}
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={isError}
-              aria-describedby={isError ? errorId : undefined}
-            />
-            <Button type="submit" variant="primary" className="w-full" disabled={busy}>
-              {status.kind === 'sending' ? 'Sending...' : 'Email me a magic link'}
-            </Button>
-            {status.kind === 'error' ? (
-              <p id={errorId} role="alert" className="text-sm text-error">
-                {status.message}
-              </p>
-            ) : null}
-          </form>
-        )}
+          ) : null}
+        </form>
       </div>
     </div>
   )

@@ -247,6 +247,9 @@ importers:
       '@bankstract/demo':
         specifier: workspace:*
         version: link:../../packages/demo
+      '@bankstract/format':
+        specifier: workspace:*
+        version: link:../../packages/format
       '@bankstract/marketing':
         specifier: workspace:*
         version: link:../../packages/marketing

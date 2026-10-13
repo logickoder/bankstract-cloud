@@ -2,7 +2,9 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { BrandMark } from '@bankstract/ui'
+import { ArrowUpRight } from 'lucide-react'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 
@@ -23,14 +25,17 @@ export default async function DashboardLayout({
   const user = await getUser()
   if (!user) redirect('/sign-in')
   return (
-    <div className="flex min-h-screen w-full flex-col lg:flex-row">
-      <aside className="relative flex shrink-0 flex-col gap-6 overflow-hidden border-b border-border bg-bg-secondary px-6 py-6 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:gap-8 lg:border-r lg:border-b-0 lg:py-8">
-        <div className="grain-section" aria-hidden="true" />
+    <div className="surface-paper flex min-h-screen w-full flex-col lg:flex-row">
+      <aside className="relative flex shrink-0 flex-col gap-6 border-b border-border bg-bg-secondary px-6 py-6 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:gap-8 lg:border-r lg:border-b-0 lg:py-8">
         <div className="relative flex items-center justify-between">
-          <span className="flex items-center gap-2 font-display text-lg font-bold text-fg">
+          <Link
+            href="/"
+            className="flex min-h-11 items-center gap-2 rounded-sm text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline lg:px-3"
+            aria-label="bankstract home"
+          >
             <BrandMark className="h-2.5 w-auto" />
-            bankstract
-          </span>
+            <span className="font-mono text-sm font-medium">bankstract</span>
+          </Link>
           <span className="lg:hidden">
             <SignOutButton />
           </span>
@@ -38,16 +43,23 @@ export default async function DashboardLayout({
         <div className="relative">
           <SidebarNav />
         </div>
-        <div className="relative mt-auto hidden items-center justify-between gap-2 border-t border-border pt-4 lg:flex">
-          {user ? (
-            <span
-              className="min-w-0 flex-1 truncate text-xs text-fg-tertiary"
-              title={user.email}
-            >
-              {user.email}
-            </span>
-          ) : null}
-          <SignOutButton />
+        <div className="relative mt-auto hidden flex-col gap-1 lg:flex">
+          {/* /docs is a separate app, so this is a full navigation, not a client route. */}
+          <a
+            href="/docs"
+            className="flex min-h-11 items-center justify-between rounded-md px-3 text-sm text-fg-secondary transition-colors hover:bg-bg-tertiary hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          >
+            Docs
+            <ArrowUpRight aria-hidden="true" className="size-4 text-fg-tertiary" />
+          </a>
+          <div className="mt-2 border-t border-border pt-4">
+            {user ? (
+              <p className="px-3 text-xs break-all text-fg-tertiary">{user.email}</p>
+            ) : null}
+            <div className="mt-1">
+              <SignOutButton />
+            </div>
+          </div>
         </div>
       </aside>
       <main className="min-w-0 flex-1">

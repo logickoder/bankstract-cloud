@@ -3,6 +3,7 @@
 
 import { BillingClient } from '@/components/BillingClient'
 import { PageHeading } from '@/components/PageHeading'
+import { Unavailable } from '@/components/Unavailable'
 import { fetchBillingStatus } from '@/lib/dashboard-data'
 
 export default async function BillingPage() {
@@ -11,9 +12,13 @@ export default async function BillingPage() {
     <div>
       <PageHeading
         title="Billing"
-        subtitle="NGN subscriptions via Paystack. Pick a tier, pay, your live keys activate. Test keys stay free."
+        subtitle={
+          status === null || status.status === 'active'
+            ? 'Your plan and renewal. Billed in naira via Paystack.'
+            : 'NGN subscriptions via Paystack. Pick a tier, pay, your live keys activate. Test keys stay free.'
+        }
       />
-      <BillingClient status={status} />
+      {status === null ? <Unavailable what="Your plan is" /> : <BillingClient status={status} />}
     </div>
   )
 }
