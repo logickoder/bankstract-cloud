@@ -3,7 +3,7 @@
 
 'use client'
 
-import { Badge, cn } from '@bankstract/ui'
+import { Badge } from '@bankstract/ui'
 import { useState } from 'react'
 
 import { useSample } from '../lib/use-sample'
@@ -25,14 +25,16 @@ export function RedactTile() {
           <div key={f.label} className="flex items-center justify-between gap-3">
             <dt className="text-sheet-ink/70">{f.label}</dt>
             <dd>
-              <span
-                className={cn(
-                  'rounded-sm px-1 transition-colors duration-150',
-                  redacted ? 'bg-sheet-ink text-transparent select-none' : 'bg-transparent',
-                )}
-              >
-                {f.value}
-              </span>
+              {redacted ? (
+                <span className="rounded-sm bg-sheet-ink px-1 text-transparent select-none">
+                  {/* The original is not in the DOM while redacted: same-width filler for the bar,
+                      and a screen-reader label in its place. */}
+                  <span aria-hidden="true">{f.value.replace(/\S/g, '0')}</span>
+                  <span className="sr-only">Redacted</span>
+                </span>
+              ) : (
+                <span className="rounded-sm bg-transparent px-1">{f.value}</span>
+              )}
             </dd>
           </div>
         ))}
