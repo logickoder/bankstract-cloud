@@ -46,7 +46,7 @@ export function ResultActions({ data, file, turnstile, onReset }: ResultActionsP
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-3">
-        <Button variant="primary" onClick={handleJson}>
+        <Button variant="solid" onClick={handleJson}>
           Download JSON
         </Button>
         <Button variant="secondary" onClick={() => void handleCsv()} disabled={busy}>

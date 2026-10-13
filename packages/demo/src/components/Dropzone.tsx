@@ -45,10 +45,30 @@ export function Dropzone({ status, activeFile, onFile, onDragEnter, onDragLeave 
         onDragLeave()
       }}
       onDrop={handleDrop}
-      className={`flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-16 text-center transition-colors duration-150 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
-        isOver ? 'border-accent bg-accent-glow' : 'border-border bg-bg-secondary'
+      className={`flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-16 text-center transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none sm:py-20 ${
+        isOver
+          ? 'surface-tint border-fg bg-tint-1'
+          : 'border-border-control bg-bg hover:border-fg-secondary'
       }`}
     >
+      <span
+        aria-hidden="true"
+        className="mb-2 flex size-12 items-center justify-center rounded-full bg-fg text-bg"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className="size-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 16V4" />
+          <path d="m6 10 6-6 6 6" />
+          <path d="M5 20h14" />
+        </svg>
+      </span>
       {isParsing ? (
         <>
           <span className="text-fg-secondary">Parsing your statement.</span>
@@ -61,7 +81,7 @@ export function Dropzone({ status, activeFile, onFile, onDragEnter, onDragLeave 
         </>
       ) : (
         <>
-          <span className="text-fg">{isOver ? 'Release to parse' : 'Drag your statement here'}</span>
+          <span className="font-display text-2xl font-semibold tracking-[-0.02em] text-fg">{isOver ? 'Release to parse' : 'Drag your statement here'}</span>
           <span className="text-sm text-fg-secondary">or click to choose a file</span>
           <span className="text-xs text-fg-tertiary">
             PDF or XLSX · up to 50 MB · processed in memory

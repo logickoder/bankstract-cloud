@@ -72,14 +72,14 @@ export function IdleView({
           </div>
         </div>
       ) : null}
-      <div className="flex flex-col items-center gap-3">
-        <p className="text-xs text-fg-tertiary">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <p className="text-sm text-fg-tertiary">
           Don&apos;t have one handy?{' '}
           <button
             type="button"
             disabled={status === 'parsing'}
             onClick={onSample}
-            className={`${linkClass} disabled:opacity-50`}
+            className={`${linkClass} inline-flex min-h-11 items-center disabled:opacity-50`}
           >
             Try a sample
           </button>
