@@ -14,12 +14,12 @@ import './globals.css'
 // Paper UI: declare the theme-color so the browser chrome (mobile address bar) matches.
 export const viewport: Viewport = { themeColor: PAPER.bg }
 
-// Cloudflare Web Analytics: cookieless, no PII, no consent banner. Only loads when the token is
-// set (prod), so dev + e2e stay clean. Our box is Caddy-fronted (not CF-proxied); the JS beacon
-// works on any origin. Keeps the /privacy "no analytics cookies" claim true.
 // Swappable accent (orange | red). Inlined at build; unknown values fall back to orange.
 const ACCENT_THEME = resolveAccentTheme(process.env.NEXT_PUBLIC_ACCENT_THEME)
 
+// Cloudflare Web Analytics: cookieless, no PII, no consent banner. Only loads when the token is
+// set (prod), so dev + e2e stay clean. Our box is Caddy-fronted (not CF-proxied); the JS beacon
+// works on any origin. Keeps the /privacy "no analytics cookies" claim true.
 const CF_ANALYTICS_TOKEN = process.env.NEXT_PUBLIC_CF_ANALYTICS_TOKEN
 
 // Shared shell for every surface (marketing /, demo /demo, dashboard /app). Per-route-group

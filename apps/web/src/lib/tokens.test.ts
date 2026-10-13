@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { ACCENTS, INK, PAPER } from '@bankstract/ui'
+import { ACCENTS, INK, PAPER, resolveAccentTheme } from '@bankstract/ui'
 import { describe, expect, it } from 'vitest'
 
 import { EMAIL_FAINT, EMAIL_INK, EMAIL_MUTED } from './email/layout'
@@ -94,4 +94,17 @@ describe('copies that cannot read theme.css', () => {
     const tints = /const TINTS = \[([^\]]+)\]/.exec(og)?.[1]?.match(/#[0-9a-fA-F]{6}/g)
     expect(tints).toEqual([...ACCENTS.orange.tints])
   })
+})
+
+describe('resolveAccentTheme', () => {
+  it('accepts a known theme', () => {
+    expect(resolveAccentTheme('red')).toBe('red')
+  })
+
+  it.each([undefined, '', 'blue', 'constructor', 'toString', '__proto__'])(
+    'falls back to orange for %s',
+    (value) => {
+      expect(resolveAccentTheme(value)).toBe('orange')
+    },
+  )
 })

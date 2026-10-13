@@ -64,8 +64,6 @@ export function displayBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-// "2026-01-05T09:30:00" -> "05 Jan 2026". Parses the date part directly to avoid
-// timezone drift from new Date(iso).
 // "2026-10-07" -> "Oct 7". Chart axis labels, where the year and the zero pad are noise.
 export function displayDay(iso: string | null): string {
   if (!iso) return '-'
@@ -74,6 +72,8 @@ export function displayDay(iso: string | null): string {
   return `${MONTHS[Number(month) - 1] ?? month} ${Number(day)}`
 }
 
+// "2026-01-05T09:30:00" -> "05 Jan 2026". Parses the date part directly to avoid
+// timezone drift from new Date(iso).
 export function displayDate(iso: string | null): string {
   if (!iso) return '-'
   const datePart = iso.slice(0, 10)

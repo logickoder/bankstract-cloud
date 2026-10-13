@@ -50,5 +50,5 @@ export const INK = {
 export type AccentTheme = keyof typeof ACCENTS
 
 export function resolveAccentTheme(value: string | undefined): AccentTheme {
-  return value !== undefined && value in ACCENTS ? (value as AccentTheme) : 'orange'
+  return value !== undefined && Object.hasOwn(ACCENTS, value) ? (value as AccentTheme) : 'orange'
 }

@@ -83,7 +83,7 @@ export const DEFAULT_SAMPLE: SampleParse = build({
   narrations: ['Transfer FOO', 'POS ACME', 'Airtime'],
 })
 
-// Whole naira amounts in kobo, stepped to 50 kobo so the figures read like real statements.
+// Whole naira amounts, returned in kobo.
 function between(rng: () => number, minNaira: number, maxNaira: number): number {
   return (minNaira + Math.floor(rng() * (maxNaira - minNaira + 1))) * 100
 }
