@@ -8,10 +8,13 @@ import { Mark } from './mark'
 export const OG_SIZE = { width: 1200, height: 630 }
 export const OG_CONTENT_TYPE = 'image/png'
 
-const BG = '#0a0a0a'
-const FG = '#fafaf9'
-const MUTED = '#a1a1aa'
-const ACCENT = '#d2691e'
+// The site's paper surface (packages/ui/src/theme.css), so a shared link looks like the page it
+// points at. ACCENT is the AA-safe shade for text on paper. TINTS echo the landing's tile rows.
+const BG = '#fcfbf9'
+const FG = '#14161f'
+const MUTED = '#4f5360'
+const ACCENT = '#a8500f'
+const TINTS = ['#dfe98f', '#ffe27a', '#ffcfa8', '#e5dcff']
 
 interface OgInput {
   /** Headline first line (foreground). */
@@ -45,7 +48,7 @@ export function ogRoute(input: OgInput): { GET: () => Response } {
 }
 
 // The shared 1200x630 social card: brand mark + wordmark header, two-line headline (the second
-// line accented), and a muted subtitle. Each surface supplies only the copy.
+// line accented), a muted subtitle, and a row of the four tint tiles. Each surface supplies only the copy.
 export function ogImage({ line1, line2, subtitle }: OgInput): Response {
   return new ImageResponse(
     (
@@ -57,33 +60,42 @@ export function ogImage({ line1, line2, subtitle }: OgInput): Response {
           flexDirection: 'column',
           justifyContent: 'space-between',
           background: BG,
-          padding: 80,
+          padding: 72,
           color: FG,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <Mark width={64} stack={MUTED} />
+          <Mark width={64} stack={FG} />
           <div style={{ display: 'flex', fontSize: 34, fontWeight: 700 }}>bankstract</div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', fontSize: 66, fontWeight: 800, lineHeight: 1.1 }}>
+          <div style={{ display: 'flex', fontSize: 70, fontWeight: 800, lineHeight: 1.08 }}>
             {line1}
           </div>
           <div
             style={{
               display: 'flex',
-              fontSize: 66,
+              fontSize: 70,
               fontWeight: 800,
-              lineHeight: 1.1,
+              lineHeight: 1.08,
               color: ACCENT,
             }}
           >
             {line2}
           </div>
-          <div style={{ display: 'flex', marginTop: 28, fontSize: 30, color: MUTED }}>
+          <div style={{ display: 'flex', marginTop: 24, fontSize: 30, color: MUTED }}>
             {subtitle}
           </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 14 }}>
+          {TINTS.map((tint) => (
+            <div
+              key={tint}
+              style={{ display: 'flex', flex: 1, height: 56, borderRadius: 16, background: tint }}
+            />
+          ))}
         </div>
       </div>
     ),
