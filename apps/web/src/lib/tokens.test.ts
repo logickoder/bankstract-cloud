@@ -108,3 +108,21 @@ describe('resolveAccentTheme', () => {
     },
   )
 })
+
+// The b mark is drawn in three places that cannot import each other: the site (packages/ui), the
+// next/og card (packages/seo) and the docs header (apps/docs, which stays free of @bankstract/ui).
+// Their row tables must stay identical.
+describe('b mark rows', () => {
+  const rowsOf = (path: string): string[] =>
+    [...read(path).matchAll(/\[(-?[\d.]+), (-?[\d.]+), (true|false)\]/g)].map((m) => m[0])
+
+  const ui = rowsOf('packages/ui/src/brand.tsx')
+
+  it('has six rows', () => {
+    expect(ui).toHaveLength(6)
+  })
+
+  it.each(['packages/seo/src/mark.tsx', 'apps/docs/lib/layout.shared.tsx'])('%s matches', (path) => {
+    expect(rowsOf(path)).toEqual(ui)
+  })
+})
