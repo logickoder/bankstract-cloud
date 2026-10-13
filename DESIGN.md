@@ -13,8 +13,8 @@ Inspired by [google-labs-code/design.md](https://github.com/google-labs-code/des
 ```yaml
 name: bankstract-cloud
 status: draft
-version: 0.1.0
-last_updated: 2026-06-18
+version: 0.2.0
+last_updated: 2026-10-11
 parent_inspiration:
   - logickoder.dev (Phase 2 brand)
 visual_refs:
@@ -43,11 +43,39 @@ colors:
     tertiary: "#71717a"     # disabled state, watermark
     inverse: "#0a0a0a"      # text on inverse bg
 
+  # Accent is a THEME, not a constant. Source of truth: `[data-theme]` blocks in
+  # packages/ui/src/theme.css (mirrored in packages/ui/src/accent.ts). Chosen by
+  # NEXT_PUBLIC_ACCENT_THEME (orange | red). Components use token classes, never hex.
   accent:
-    primary: "#D2691E"      # burnt orange. Single load-bearing accent. Inherits portfolio Phase 2.
-    primary-hover: "#b85718"
-    primary-muted: "#D2691E40"  # 25% alpha, backgrounds, badges
-    primary-glow: "#D2691E20"   # 12% alpha, hero radial gradient, glow effects
+    primary: "var(--accent)"          # orange #d2691e | red #dc2626. Fills, rules, glows.
+    strong: "var(--accent-strong)"    # text-safe on paper: orange #a8500f (5.3:1) | red #b91c1c (6.3:1)
+    on-ink: "var(--accent-on-ink)"    # text-safe on ink: orange #d2691e (5.5:1) | red #f05252 (5.7:1). Plain red #dc2626 is 4.1:1 on ink and fails AA.
+    fg: "var(--accent-fg)"            # label on a filled accent: ink on orange (5.0:1) | white on red (4.8:1)
+    primary-hover: "color-mix(accent 82%, black)"
+    primary-muted: "color-mix(accent 25%, transparent)"
+    primary-glow: "color-mix(accent 12%, transparent)"
+
+  # Four data tints per theme (pastel, ink text 12:1+). Used in the parsed-data tile grid only.
+  tints:
+    orange: ["#dfe98f", "#ffe27a", "#ffcfa8", "#e5dcff"]
+    red:    ["#ffc9cf", "#ffe0dc", "#f3e3c3", "#e9d5f0"]
+
+  # Surfaces remap the neutrals by scope class (packages/ui/src/theme.css).
+  surfaces:
+    paper:   # .surface-paper, the landing page base
+      bg: "#fcfbf9"
+      bg-secondary: "#f4f2ee"
+      bg-tertiary: "#ebe8e2"
+      fg: "#14161f"            # ink, 17.4:1
+      fg-secondary: "#4f5360"  # 7.4:1
+      fg-tertiary: "#666a77"   # 4.8:1 on bg-secondary (the old #6b6f7c was 4.48:1 there)
+      border-control: "#8a867c" # 3.5:1 on paper. A control's edge (outline buttons, inputs, drop zone). `border` stays the hairline for tiles and rules.
+      border: "#e4e1da"
+    ink:     # .surface-ink. Solid neutral black, flat. CODE only: the bento code tile. Not used for sections or bands: black is a cold break from the paper and pastel page.
+    tile:    # `Tile` (marketing) or a `.surface-tint bg-tint-N` block: the page unit. Rounded-lg, p-6 sm:p-8, one pastel per tile. `.surface-tint` remaps fg tokens to ink at 70% or more, so children use normal `text-fg-secondary`. Used on pricing tiers, for-lenders trust grid, privacy at-a-glance, demo next-steps. `plain` is a hairline-bordered paper tile.
+    lilac:   # Full-bleed band on `--tint-4` (NDPR). Text is `sheet-ink` at 70% or more, never paper greys. Dots and rules in ink, not accent (orange on lilac is under 3:1).
+    peach:   # Full-bleed band on `--tint-3` (final CTA). Same text rules. Primary button is `solid` (ink), secondary is a `sheet-ink` outline. A saturated accent band was tried and read too loud.
+    wash:    # .wash-paper, a soft pastel radial wash behind the hero, built from the theme tints
 
   status:
     success: "#34d399"
@@ -58,7 +86,7 @@ colors:
   border:
     default: "#27272a"
     muted: "#1a1d23"
-    accent: "#D2691E"
+    accent: "var(--accent)"
 ```
 
 ### Typography
@@ -67,11 +95,11 @@ colors:
 typography:
   family:
     display: "Fraunces, ui-serif, Georgia, serif"
-    body: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    body: "Instrument Sans, ui-sans-serif, system-ui, -apple-system, sans-serif"   # v0.2.0: was Inter. Variable 400-700, no 300.
     mono: "JetBrains Mono, ui-monospace, 'SF Mono', Menlo, monospace"
 
   scale:
-    hero-h1: { size: "72px", line-height: "1.05", weight: 700, family: display, tracking: "-0.04em" }
+    hero-h1: { size: "72px", line-height: "1.05", weight: 400, family: body, tracking: "-0.03em" }   # v0.2.0: Instrument Sans 400, ONE word in Fraunces italic (the accent word)
     hero-h1-stacked: { size: "64px", line-height: "1.0", weight: 800, family: display, tracking: "-0.05em" }   # Inngest pattern
     h2: { size: "48px", line-height: "1.1", weight: 700, family: display, tracking: "-0.03em" }
     h3: { size: "32px", line-height: "1.2", weight: 600, family: display, tracking: "-0.02em" }
@@ -250,7 +278,7 @@ code-block:
     typography: code-sm
 ```
 
-Syntax highlighting via Shiki (server-side, zero JS). Theme: `vesper` or `vitesse-dark` (test against burnt-orange accent. Pick the one where keywords don't fight `#D2691E`).
+Syntax highlighting via Shiki (server-side, zero JS). Theme: `vesper` or `vitesse-dark` (test against both themes (orange and red). Pick the one where keywords don't fight `--accent`).
 
 ### input
 
@@ -322,32 +350,28 @@ tabs:
 
 Used for: hero code-language switcher (curl / Python / TS / Go), dashboard nav, settings sections.
 
-### bank-coverage-cell
+### bank-coverage-tile
 
-Custom. Used in "Reads Naija banks first" section.
+Custom. Used in "Reads Naija banks first". Renders from `lib/banks.ts` (engine `list_parsers()` plus
+the public roadmap), never a list in the component. v0.2.0 replaced the emoji cell.
 
 ```yaml
-bank-coverage-cell:
-  base:
-    backgroundColor: "{bg.secondary}"
-    borderColor: "{border.default}"
-    border-width: "1px"
-    radius: md
-    padding: 4
-    family: body
-
-  shipped:
-    indicator: "✅"
-    textColor: "{fg.primary}"
-  in-progress:
-    indicator: "🚧"
-    textColor: "{fg.secondary}"
-  wanted:
-    indicator: "📭"
-    textColor: "{fg.tertiary}"
+bank-coverage:
+  live:        # one tile per shipped bank
+    backgroundColor: "{tints.1..4}"   # cycles per theme
+    textColor: "{sheet.ink}"          # fixed ink, so it holds on any surface
+    content: "status chip (ink pill, text 'live') + lowercase mono bank id, 4xl"
+    radius: lg
+  roadmap:     # one quiet ruled row for next / planned
+    next:    "outlined chip, text 'next'"
+    planned: "dashed chip, text 'planned'"
+    container: "bg.secondary, border.default, radius lg"
+  sponsor:     # dashed CTA tile, links to the sponsor address
+    border: "1px dashed fg.tertiary"
 ```
 
-The ONLY component that uses emoji indicators. Justified because: coverage-matrix legibility > brand-purity. Per the voice rule (docs/rules/voice.md), no other emoji ships.
+Status is always a text chip, never color alone and never an emoji. The v0.1 rule that allowed emoji
+here is retired; docs/rules/voice.md still permits it, but nothing uses it.
 
 ---
 
@@ -389,7 +413,7 @@ landing-sections:
     signature: true
     elements:
       left-pane: "scan-line render of redacted PDF (FBN/PalmPay/Zenith rotating)"
-      stream: "burnt-orange particle stream (canvas or SVG)"
+      stream: "accent particle stream (canvas or SVG)"
       right-pane: "clean CSV table rows populating top-down"
       below: "JetBrains Mono curl snippet auto-types"
     motion: "{motion.cinematic} loop, pause on hover"
@@ -562,7 +586,7 @@ ai-slop-detection:
     - "Cyan-pink gradient on CTA (Stripe-derivative tell)"
     - "Slate-* anywhere in production tokens"
   typography-defaults:
-    - "Geist Sans + Inter combo (Vercel-default look, every Next.js app uses it). Fraunces locked precisely to avoid this."
+    - "Geist Sans + Inter combo (we dropped Inter for Instrument Sans in v0.2.0) (Vercel-default look, every Next.js app uses it). Fraunces locked precisely to avoid this."
     - "GT America / Söhne without license (you don't have the budget, and they're now the new generic)"
     - "Hero H1 that's auto-sized 'as big as possible' via Tailwind text-[clamp(...)]. Every AI-generated landing does this"
   icon-defaults:
@@ -599,7 +623,7 @@ anti-ai-required:
     - "Tracking on display headers: `-0.04em` minimum. Default `tracking-normal` reads template-y."
 
   color:
-    - "Burnt orange `#D2691E` is the SINGLE accent. No secondary accent. Do not introduce blue / purple / cyan even for `info` states."
+    - "ONE accent per theme (orange or red). No secondary accent. Do not introduce blue / purple / cyan even for `info` states. The four `tints` are pastel fills for the parsed-data tile grid only, never text, links or buttons."
     - "Status colors (`success / warning / error`) used ONLY in dashboard states. Never in marketing copy."
     - "Background uses true `#0a0a0a` or `#111418`, NOT shadcn `zinc-950` (`#09090b`). Slightly different shade matters for detection."
 
@@ -640,7 +664,7 @@ smell-test:
     - "Could a model trained on dev-tool landings have generated this? If yes, distinctness fails."
     - "Does the hero look like Resend / Trigger / Convex / Knock side-by-side? If three or more visual elements match, drift detected."
     - "Is every section the same height / same internal layout? Add asymmetry."
-    - "Does the page work without the burnt-orange accent? If yes, accent is decorative. Make it functional (CTAs, code highlights, badge backgrounds)."
+    - "Does the page work without the accent? If yes, accent is decorative. Make it functional (CTAs, code highlights, badge backgrounds)."
     - "Would removing the brand name leave a generic dev-tool landing? If yes, the brand isn't doing work."
 
   green-flags:
@@ -665,12 +689,17 @@ anti-patterns:
     - "Auto-playing video heroes. Bandwidth + autoplay-block fragility"
     - "3D rendered objects floating in hero (a la Resend spheres). Brand-equity-led, non-portable pre-launch"
     - "Pixel art / 8-bit decorative elements (a la Convex). Design budget too high for v1"
-    - "Light-theme primary (a la Knock). Wrong category for OSS dev tool brand"
+    - "Black bands. The page is paper and pastel. Sections are paper, a tint, or the accent. Black is for code only (one tile). No gradients, no accent-tinted dark washes, no glow."
+    - "The accent as a data fill. Charts and heatmaps use an ink ramp, and the accent marks one thing: the busiest day. Thirty orange bars were the loudest object on the page."
+    - "Controls under 44px. Every button, tab, link-as-control and input is at least 44px tall (`Button` size `sm` carries `min-h-11`). Pure text links inside a sentence are exempt."
+    - "A refusal on a success tint. Lime means passed. A refused statement uses peach."
+    - "A dashboard tile with a decorative tint. The signed-in dashboard is greyscale. A tile takes a tint only for state (yellow: close to the cap or no usable key; peach: over the cap, overage, or success rate under the floor), and it says why in words. Thresholds live in `apps/web/src/lib/tone.ts` (80% of cap, 95% success). Plan tiles on Billing keep the pricing-page tints because they identify the plan."
+    - "Two date formats. A date shown as data is `DD Mon YYYY` (`displayDate`, so `07 Oct 2026`) everywhere: tables, tiles, tooltips, key and renewal dates. ISO is for code and JSON only. Chart axis ticks may drop the year (`Oct 7`)."
 
   copy:
     - "Marketing words: seamless, powerful, robust, blazingly fast, AI-powered, enterprise-grade"
     - "Pronouns: 'we', 'our' in upsell tone. Allowed only when referring to the team."
-    - "Emojis in body copy, headers, button labels (only exception: bank-coverage-cell indicators)"
+    - "Emojis in body copy, headers, button labels, or status indicators (the coverage tiles use text chips)"
     - "We never see your data (LIE: we briefly do, ephemerally; use truthful framing)"
     - "Limited time offer, only X spots left. Manipulative, never ships"
 
@@ -711,7 +740,7 @@ refs:
         - "Small (<10) customer logo wall"
         - "How-it-works 3-step section"
       do-not-steal:
-        - "Lime green accent (use burnt orange)"
+        - "Lime green accent (the accent is a theme: orange or red)"
 
   single-section:
     resend.com:
