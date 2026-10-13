@@ -5,10 +5,11 @@ import { expect, test } from '@playwright/test'
 
 import { signInWithMagicLink } from './helpers'
 
-// The worker is unreachable in e2e (WORKER_URL points at a dead port), so the billing page renders
-// the inactive tier grid. We stub /api/billing/init at the browser boundary to return a same-origin
-// authorization_url, so the full client flow (render -> toggle -> click -> POST -> redirect) runs
-// without the real worker or Paystack.
+// The e2e worker is a stub (stub-worker.mjs) that reports no plan, so the billing page renders the
+// tier grid. A truly unreachable worker shows the unavailable state instead, on purpose: a
+// subscriber must not see "pick a plan" during an outage. We stub /api/billing/init at the browser
+// boundary to return a same-origin authorization_url, so the full client flow (render -> toggle ->
+// click -> POST -> redirect) runs without the real worker or Paystack.
 
 test('authed user sees the tier plans and starts checkout', async ({ page }) => {
   await signInWithMagicLink(page, 'billing-e2e@example.com')
