@@ -158,20 +158,35 @@ class AuditLog:
         ).fetchall()
         return total, ok, [(r["day"], int(r["n"])) for r in daily]
 
-    def owner_refusals(self, owner: str, *, since_iso: str) -> list[tuple[str, int]]:
-        """Failed parses for `owner` since `since_iso`, grouped by error_class, most frequent
-        first. Same join and window as owner_usage, all tiers (the dashboard shows all of an
-        owner's activity). Metadata only: a class name and a count, never a filename or any
+    def owner_cycle(
+        self, owner: str, *, since_iso: str
+    ) -> tuple[int, int, list[tuple[str, int]], list[tuple[str, int]]]:
+        """What the dashboard shows for `owner` since `since_iso`, in one pass over the same
+        join and window as owner_usage, all tiers. Returns (total_attempts, successes,
+        [(YYYY-MM-DD, success_count), ...], [(error_class, failures), ...]) with failures
+        most frequent first. Metadata only: a class name and a count, never a filename or any
         statement content. A failure with no recorded class is labelled "unknown" so it still
-        counts."""
+        counts. Billing keeps owner_usage (tier-bounded); this is display only."""
         rows = self._conn.execute(
-            "SELECT COALESCE(a.error_class, 'unknown') AS cls, COUNT(*) AS n "
+            "SELECT substr(a.timestamp, 1, 10) AS day, a.success AS ok, "
+            "COALESCE(a.error_class, 'unknown') AS cls, COUNT(*) AS n "
             "FROM audit_log a JOIN api_keys k ON a.api_key_id = k.id "
-            "WHERE k.owner = ? AND a.timestamp >= ? AND a.success = 0 "
-            "GROUP BY cls ORDER BY n DESC, cls",
+            "WHERE k.owner = ? AND a.timestamp >= ? "
+            "GROUP BY day, a.success, cls",
             (owner, since_iso),
         ).fetchall()
-        return [(str(r["cls"]), int(r["n"])) for r in rows]
+        total = sum(int(r["n"]) for r in rows)
+        per_day: dict[str, int] = {}
+        failures: dict[str, int] = {}
+        for r in rows:
+            n = int(r["n"])
+            if r["ok"]:
+                per_day[r["day"]] = per_day.get(r["day"], 0) + n
+            else:
+                failures[r["cls"]] = failures.get(r["cls"], 0) + n
+        ok = sum(per_day.values())
+        refusals = sorted(failures.items(), key=lambda kv: (-kv[1], kv[0]))
+        return total, ok, sorted(per_day.items()), refusals
 
 
 def pad_daily(raw: list[tuple[str, int]], *, since_iso: str) -> list[tuple[str, int]]:

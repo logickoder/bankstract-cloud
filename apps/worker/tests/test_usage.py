@@ -132,3 +132,31 @@ def test_admin_usage_refusals_empty_when_nothing_failed(harness: Harness) -> Non
         "/v1/admin/usage?owner=clean", headers=auth_header(harness.admin_token)
     ).json()
     assert body["refusals"] == []
+
+
+def test_owner_cycle_matches_usage_and_groups_failures(harness: Harness) -> None:
+    state = harness.client.app.state.app_state
+    key = state.keystore.issue("prod", "live", owner="cycle")
+    outcomes = [
+        (True, None),
+        (True, None),
+        (False, "ParseError"),
+        (False, "ParseError"),
+        (False, None),
+    ]
+    for success, cls in outcomes:
+        state.audit.record(
+            AuditEntry(
+                api_key_id=key.id,
+                filename="a.pdf",
+                byte_count=1,
+                parser_detected="fbn",
+                success=success,
+                error_class=cls,
+            )
+        )
+    since = current_period_start_iso()
+    total, ok, daily, refusals = state.audit.owner_cycle("cycle", since_iso=since)
+    assert (total, ok) == (5, 2)
+    assert daily == state.audit.owner_usage("cycle", since_iso=since)[2]
+    assert refusals == [("ParseError", 2), ("unknown", 1)]
