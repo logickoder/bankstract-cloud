@@ -25,7 +25,7 @@ export default async function DashboardLayout({
   const user = await getUser()
   if (!user) redirect('/sign-in')
   return (
-    <div className="surface-paper flex min-h-screen w-full flex-col lg:flex-row">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row">
       <aside className="relative flex shrink-0 flex-col gap-6 border-b border-border bg-bg-secondary px-6 py-6 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:gap-8 lg:border-r lg:border-b-0 lg:py-8">
         <div className="relative flex items-center justify-between">
           <Link

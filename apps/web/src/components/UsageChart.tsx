@@ -3,13 +3,10 @@
 
 'use client'
 
-import { displayDate } from '@bankstract/format'
+import { displayDate, displayDay } from '@bankstract/format'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
-interface DailyCount {
-  date: string
-  count: number
-}
+import { type DailyCount, summarize } from '@/lib/usage-stats'
 
 interface TooltipPayload {
   value: number
@@ -35,17 +32,9 @@ function ChartTooltip({
   )
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-// 'Oct 7' from '2026-10-07'.
-function shortDate(iso: string): string {
-  const month = MONTHS[Number(iso.slice(5, 7)) - 1] ?? ''
-  return `${month} ${Number(iso.slice(8, 10))}`
-}
-
 export function UsageChart({ daily }: { daily: DailyCount[] }) {
-  const total = daily.reduce((sum, d) => sum + d.count, 0)
-  const peak = daily.reduce((max, d) => Math.max(max, d.count), 0)
+  const { total, peak: busiest } = summarize(daily)
+  const peak = busiest?.count ?? 0
   return (
     <div>
       {/* The SVG carries no accessible content; a role=img label summarises it and the
@@ -70,7 +59,7 @@ export function UsageChart({ daily }: { daily: DailyCount[] }) {
               interval="preserveStartEnd"
               minTickGap={14}
               padding={{ left: 4, right: 20 }}
-              tickFormatter={shortDate}
+              tickFormatter={displayDay}
             />
             <YAxis
               allowDecimals={false}

@@ -39,3 +39,8 @@ export function keysTone(activeKeys: number): Tone {
 export function overageTone(overageParses: number): Tone {
   return overageParses > 0 ? 'alert' : 'neutral'
 }
+
+/** Whole percent of the included parses used, capped at 100. Null when there is no plan. */
+export function usagePercent(parses: number, cap: number | null): number | null {
+  return cap ? Math.min(100, Math.round((parses / cap) * 100)) : null
+}

@@ -4,10 +4,7 @@
 import { displayDate } from '@bankstract/format'
 import { cn } from '@bankstract/ui'
 
-interface DailyCount {
-  date: string
-  count: number
-}
+import type { DailyCount } from '@/lib/usage-stats'
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const
 
@@ -103,20 +100,4 @@ export function UsageCalendarSkeleton() {
       </div>
     </div>
   )
-}
-
-export function summarize(daily: DailyCount[]): {
-  total: number
-  peak: DailyCount | null
-  average: number
-  activeDays: number
-} {
-  const total = daily.reduce((sum, d) => sum + d.count, 0)
-  const peak = daily.reduce<DailyCount | null>((best, d) => (!best || d.count > best.count ? d : best), null)
-  return {
-    total,
-    peak: peak && peak.count > 0 ? peak : null,
-    average: daily.length ? Math.round(total / daily.length) : 0,
-    activeDays: daily.filter((d) => d.count > 0).length,
-  }
 }

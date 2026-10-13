@@ -15,7 +15,7 @@ const focusRing =
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="surface-paper grid min-h-screen lg:grid-cols-2">
+    <div className="grid min-h-screen lg:grid-cols-2">
       <aside className="wash-paper relative hidden flex-col justify-between overflow-hidden border-r border-border p-12 lg:flex">
         {/* A faint statement sheet, cropped by the panel edge: the product, drawn, behind the copy. */}
         <div

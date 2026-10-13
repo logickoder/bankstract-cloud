@@ -6,13 +6,15 @@ import { Button, Card, linkClass } from '@bankstract/ui'
 import Link from 'next/link'
 
 import { StatusBadge, TierBadge } from '@/components/KeyBadges'
+import { Meter } from '@/components/Meter'
 import { PageHeading } from '@/components/PageHeading'
 import { totalRefused } from '@/components/Refusals'
 import { StatusTile } from '@/components/StatusTile'
 import { Unavailable } from '@/components/Unavailable'
-import { summarize, UsageCalendar, UsageCalendarSkeleton } from '@/components/UsageCalendar'
+import { UsageCalendar, UsageCalendarSkeleton } from '@/components/UsageCalendar'
 import { fetchKeys, fetchUsage, hasUsageData } from '@/lib/dashboard-data'
-import { keysTone, SUCCESS_FLOOR, successTone, usageTone } from '@/lib/tone'
+import { keysTone, SUCCESS_FLOOR, successTone, usagePercent, usageTone } from '@/lib/tone'
+import { summarize } from '@/lib/usage-stats'
 
 const ENDPOINT = 'https://bankstract.logickoder.dev/v1/parse'
 
@@ -31,19 +33,19 @@ export default async function OverviewPage() {
   const hasUsage = hasUsageData(usage)
   const recent = keys.slice(0, 3)
 
-  const parses = usage?.period_parses ?? 0
-  const cap = usage?.monthly_cap ?? null
-  const usedPct = cap ? Math.min(100, Math.round((parses / cap) * 100)) : null
+  const parses = usage.period_parses
+  const cap = usage.monthly_cap
+  const usedPct = usagePercent(parses, cap)
   const daily = hasUsage ? usage.daily : []
   const stats = summarize(daily)
-  const refused = totalRefused(usage?.refusals ?? [])
+  const refused = totalRefused(usage.refusals)
   // A success rate needs something to be a rate of: with no attempts the worker reports 0%, which
   // would read as "everything failed".
   const attempts = parses + refused
   // Onboarding steps are for someone who has not yet gone live: no active live key, or nothing
   // parsed this cycle. Once they have, the tile is noise next to the real numbers.
   const onboarded = parses > 0 && keys.some((k) => k.tier === 'live' && !k.revoked_at)
-  const usageStatus = usageTone({ parses, cap, overage: usage?.overage_parses ?? 0 })
+  const usageStatus = usageTone({ parses, cap, overage: usage.overage_parses })
   const successStatus = hasUsage
     ? successTone({ rate: usage.success_rate, attempts })
     : 'neutral'
@@ -63,16 +65,7 @@ export default async function OverviewPage() {
           </p>
           {usedPct !== null ? (
             <div className="mt-6">
-              <div
-                role="progressbar"
-                aria-label="Included parses used this cycle"
-                aria-valuenow={usedPct}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                className="h-2 w-full overflow-hidden rounded-full bg-fg/15"
-              >
-                <div className="h-full rounded-full bg-fg" style={{ width: `${usedPct}%` }} />
-              </div>
+              <Meter percent={usedPct} label="Included parses used this cycle" className="h-2" />
               <p className="mt-2 text-sm text-fg-secondary">
                 {usedPct}% of included parses used.
                 {usageStatus === 'warn' ? ' Close to your cap.' : ''}
@@ -87,7 +80,7 @@ export default async function OverviewPage() {
               .
             </p>
           )}
-          {usage && usage.overage_parses > 0 ? (
+          {usage.overage_parses > 0 ? (
             <p className="mt-4 text-sm text-fg">
               {usage.overage_parses.toLocaleString()} over your cap. Projected overage{' '}
               <span className="font-mono">₦{displayMoney(usage.projected_overage_naira)}</span>.{' '}
@@ -182,7 +175,7 @@ export default async function OverviewPage() {
   -F "pdf=@statement.pdf"`}
           </pre>
           <Link href={keys.length ? '/dashboard/keys' : '/dashboard/keys?create=1'} className="mt-4">
-            <Button size="sm" className="bg-fg text-bg">
+            <Button size="sm">
               {keys.length ? 'Manage keys' : 'Create your first key'}
             </Button>
           </Link>

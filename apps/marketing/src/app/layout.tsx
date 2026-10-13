@@ -11,7 +11,7 @@ export { metadata }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${instrumentSans.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`surface-paper ${fraunces.variable} ${instrumentSans.variable} ${jetbrains.variable}`}>
       <body>
         <JsonLd />
         <Header />

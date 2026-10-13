@@ -3,7 +3,15 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { keysTone, overageTone, SUCCESS_FLOOR, successTone, usageTone, WARN_AT } from './tone'
+import {
+  keysTone,
+  overageTone,
+  SUCCESS_FLOOR,
+  successTone,
+  usagePercent,
+  usageTone,
+  WARN_AT,
+} from './tone'
 
 describe('usageTone', () => {
   it('is neutral with no plan (no cap to approach)', () => {
@@ -48,5 +56,19 @@ describe('keysTone / overageTone', () => {
   it('alerts on any overage, neutral on none', () => {
     expect(overageTone(0)).toBe('neutral')
     expect(overageTone(12)).toBe('alert')
+  })
+})
+
+describe('usagePercent', () => {
+  it('is null with no cap', () => {
+    expect(usagePercent(500, null)).toBeNull()
+  })
+
+  it('rounds to whole percent', () => {
+    expect(usagePercent(1, 3)).toBe(33)
+  })
+
+  it('stops at 100 when over the cap', () => {
+    expect(usagePercent(1_250, 1_000)).toBe(100)
   })
 })

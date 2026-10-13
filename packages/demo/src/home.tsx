@@ -43,7 +43,7 @@ const NEXT: readonly { tint: string; label: string; title: string; href: string;
 // the marketing one.
 export function DemoHome({ header, footer }: { header?: ReactNode; footer?: ReactNode }) {
   return (
-    <main className="surface-paper flex min-h-screen flex-col">
+    <main className="flex min-h-screen flex-col">
       {header ?? (
       <header className="border-b border-border">
         <div className={`${CONTAINER} flex h-16 items-center justify-between`}>

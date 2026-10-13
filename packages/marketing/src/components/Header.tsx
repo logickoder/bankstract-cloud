@@ -24,7 +24,7 @@ const linkClass =
 // primary action stays in the content. The three nav links drop below sm; the footer carries them.
 export function Header() {
   return (
-    <header className="surface-paper sticky top-0 z-40 border-b border-border">
+    <header className="sticky top-0 z-40 border-b border-border">
       <div className={cn(PAGE_CONTAINER, 'flex h-16 items-center justify-between')}>
         <SmartLink
           href="/"

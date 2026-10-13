@@ -12,7 +12,7 @@ import { OssPrideSection } from './components/OssPrideSection'
 
 export function MarketingHome() {
   return (
-    <main className="surface-paper">
+    <main>
       <HeroSection />
       <Bento />
       <FailLoud />

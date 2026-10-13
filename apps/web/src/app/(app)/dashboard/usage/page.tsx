@@ -4,14 +4,15 @@
 import { displayDate, displayMoney } from '@bankstract/format'
 import { Card } from '@bankstract/ui'
 
+import { Meter } from '@/components/Meter'
 import { PageHeading } from '@/components/PageHeading'
 import { Refusals, totalRefused } from '@/components/Refusals'
 import { StatusTile } from '@/components/StatusTile'
 import { Unavailable } from '@/components/Unavailable'
-import { summarize } from '@/components/UsageCalendar'
 import { UsageChart, UsageChartSkeleton } from '@/components/UsageChart'
 import { fetchUsage, hasUsageData } from '@/lib/dashboard-data'
-import { overageTone, SUCCESS_FLOOR, successTone, usageTone } from '@/lib/tone'
+import { overageTone, SUCCESS_FLOOR, successTone, usagePercent, usageTone } from '@/lib/tone'
+import { summarize } from '@/lib/usage-stats'
 
 export default async function UsagePage() {
   const usage = await fetchUsage()
@@ -24,12 +25,12 @@ export default async function UsagePage() {
     )
   }
   const hasData = hasUsageData(usage)
-  const parses = usage?.period_parses ?? 0
-  const cap = usage?.monthly_cap ?? null
-  const usedPct = cap ? Math.min(100, Math.round((parses / cap) * 100)) : null
+  const parses = usage.period_parses
+  const cap = usage.monthly_cap
+  const usedPct = usagePercent(parses, cap)
   const stats = summarize(hasData ? usage.daily : [])
-  const attempts = hasData ? parses + totalRefused(usage.refusals ?? []) : 0
-  const usageStatus = usageTone({ parses, cap, overage: usage?.overage_parses ?? 0 })
+  const attempts = hasData ? parses + totalRefused(usage.refusals) : 0
+  const usageStatus = usageTone({ parses, cap, overage: usage.overage_parses })
   const successStatus = hasData
     ? successTone({
         rate: usage.success_rate,
@@ -51,16 +52,7 @@ export default async function UsagePage() {
             ) : null}
           </p>
           {usedPct !== null ? (
-            <div
-              role="progressbar"
-              aria-label="Included parses used this cycle"
-              aria-valuenow={usedPct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-fg/15"
-            >
-              <div className="h-full rounded-full bg-fg" style={{ width: `${usedPct}%` }} />
-            </div>
+            <Meter percent={usedPct} label="Included parses used this cycle" className="mt-4 h-1.5" />
           ) : null}
           {cap !== null ? (
             <p className="mt-2 text-xs text-fg-secondary">
@@ -79,9 +71,9 @@ export default async function UsagePage() {
             </p>
           ) : null}
         </StatusTile>
-        <StatusTile tone={overageTone(usage?.overage_parses ?? 0)}>
+        <StatusTile tone={overageTone(usage.overage_parses)}>
           <p className="font-mono text-xs text-fg-tertiary">projected overage</p>
-          {cap !== null && usage ? (
+          {cap !== null ? (
             <>
               <p className="mt-2 font-mono text-4xl tracking-[-0.04em]">
                 ₦{displayMoney(usage.projected_overage_naira)}
@@ -118,7 +110,7 @@ export default async function UsagePage() {
         ) : null}
       </Card>
 
-      <Refusals refusals={usage?.refusals ?? []} />
+      <Refusals refusals={usage.refusals} />
     </div>
   )
 }

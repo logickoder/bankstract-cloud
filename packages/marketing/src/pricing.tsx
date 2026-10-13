@@ -37,7 +37,7 @@ const pricingJsonLd = {
 
 export function PricingPage() {
   return (
-    <main className="surface-paper">
+    <main>
       <JsonLd data={pricingJsonLd} />
       <PricingSection />
       <FinalCtaSection />

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { buildMetadata } from '@bankstract/seo'
-import { GrainFilter, resolveAccentTheme } from '@bankstract/ui'
+import { GrainFilter, PAPER, resolveAccentTheme } from '@bankstract/ui'
 import { fraunces, instrumentSans, jetbrains } from '@bankstract/ui/fonts'
 import type { Viewport } from 'next'
 import Script from 'next/script'
@@ -11,8 +11,8 @@ import { eventBootScript } from '@/lib/event'
 
 import './globals.css'
 
-// Dark UI: declare the theme-color so the browser chrome (mobile address bar) matches.
-export const viewport: Viewport = { themeColor: '#0a0a0a' }
+// Paper UI: declare the theme-color so the browser chrome (mobile address bar) matches.
+export const viewport: Viewport = { themeColor: PAPER.bg }
 
 // Cloudflare Web Analytics: cookieless, no PII, no consent banner. Only loads when the token is
 // set (prod), so dev + e2e stay clean. Our box is Caddy-fronted (not CF-proxied); the JS beacon
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       data-theme={ACCENT_THEME}
-      className={`${fraunces.variable} ${instrumentSans.variable} ${jetbrains.variable}`}
+      className={`surface-paper ${fraunces.variable} ${instrumentSans.variable} ${jetbrains.variable}`}
       suppressHydrationWarning
     >
       <head>

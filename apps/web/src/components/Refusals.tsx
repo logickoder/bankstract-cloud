@@ -3,6 +3,7 @@
 
 import { Card } from '@bankstract/ui'
 
+import { Meter } from '@/components/Meter'
 import type { RefusalCount } from '@/lib/worker'
 
 // The error_class values the worker records (engine errors, reconciliation, processing limits).
@@ -61,15 +62,12 @@ export function Refusals({ refusals }: { refusals: RefusalCount[] }) {
                   </span>
                   <span className="font-mono text-sm text-fg">{r.count.toLocaleString()}</span>
                 </div>
-                <div
-                  aria-hidden="true"
-                  className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-bg-tertiary"
-                >
-                  <div
-                    className="h-full rounded-full bg-fg/60"
-                    style={{ width: `${peak > 0 ? Math.max(4, Math.round((r.count / peak) * 100)) : 0}%` }}
-                  />
-                </div>
+                <Meter
+                  percent={peak > 0 ? Math.max(4, Math.round((r.count / peak) * 100)) : 0}
+                  className="mt-1.5 h-1.5"
+                  trackClassName="bg-bg-tertiary"
+                  fillClassName="bg-fg/60"
+                />
                 {reason?.hint ? (
                   <p className="mt-1.5 text-xs text-fg-tertiary">{reason.hint}</p>
                 ) : null}
