@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+export { ACCENTS, resolveAccentTheme, type AccentTheme } from './accent'
 export { Anchor, linkClass } from './anchor'
 export { Badge, type BadgeProps } from './badge'
 export { BrandMark } from './brand'

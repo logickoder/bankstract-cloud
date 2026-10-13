@@ -10,3 +10,12 @@
 @import "@bankstract/marketing/styles.css";
 @import "@bankstract/demo/styles.css";
 @import "@bankstract/statement-table/styles.css";
+
+/* The event strip is always rendered and shown only while <html data-event> is set by the boot
+   script in the root layout (lib/event.ts). Unlayered, so it beats the layered utilities. */
+.event-strip {
+  display: none;
+}
+:root[data-event] .event-strip {
+  display: flex;
+}

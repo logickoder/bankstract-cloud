@@ -14,17 +14,19 @@ export const buttonClass = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-accent text-bg border-accent hover:bg-accent-hover hover:border-accent-hover',
+        primary: 'bg-accent text-accent-fg border-accent hover:bg-accent-hover hover:border-accent-hover',
+        // Ink-filled: follows the surface (dark on paper, light on ink). The marketing primary.
+        solid: 'bg-fg text-bg border-fg hover:opacity-85',
         secondary:
-          'bg-transparent text-fg border-border hover:bg-bg-secondary hover:border-fg-secondary',
+          'bg-transparent text-fg border-border-control hover:bg-bg-secondary hover:border-fg-secondary',
         ghost: 'bg-transparent text-fg-secondary border-transparent hover:bg-bg-secondary hover:text-fg',
       },
       size: {
         default: 'px-5 py-3 text-sm',
-        sm: 'px-3 py-2 text-xs',
+        sm: 'min-h-11 px-3 py-2 text-xs',
       },
     },
-    defaultVariants: { variant: 'primary', size: 'default' },
+    defaultVariants: { variant: 'solid', size: 'default' },
   },
 )
 

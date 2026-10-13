@@ -10,7 +10,9 @@ import { cn } from './lib/cn'
 
 export const Dialog = DialogPrimitive.Root
 
-// Radix gives focus-trap, ESC, and ARIA for free; we style to the DESIGN tokens.
+// Radix gives focus-trap, ESC, and ARIA for free; we style to the DESIGN tokens. The portal mounts
+// at <body>, outside any page's surface scope, so the content carries its own (paper): without it
+// a dialog falls back to the dark default tokens.
 export function DialogContent({
   className,
   children,
@@ -21,7 +23,7 @@ export function DialogContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-bg-secondary p-6 shadow-[var(--shadow-card-hover)] focus:outline-none',
+          'surface-paper fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-bg-secondary p-6 shadow-[var(--shadow-card-hover)] focus:outline-none',
           className,
         )}
         {...props}

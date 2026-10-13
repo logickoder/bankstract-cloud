@@ -7,6 +7,95 @@
    --font-* expect the app to inject the matching CSS vars via next/font. */
 @source './**/*.tsx';
 
+/* Themes. Pick one with <html data-theme="orange|red"> (the root layout sets it from
+   NEXT_PUBLIC_ACCENT_THEME). A theme owns: the accent, a text-safe accent for light surfaces,
+   the label color that passes AA on a filled accent button, and its own four data tints.
+   Add a theme: one block below, plus the mirror in packages/ui/src/accent.ts.
+   Contrast (WCAG): orange text on paper needs --accent-strong; ink on orange 5.0:1, white on red 4.8:1.
+   Red text on ink is 4.1:1 at #dc2626, so --accent-on-ink is a lighter red (5.7:1). */
+:root,
+:root[data-theme='orange'] {
+  --accent: #d2691e;
+  --accent-strong: #a8500f;
+  --accent-on-ink: #d2691e;
+  --accent-fg: #14161f;
+  --tint-1: #dfe98f;
+  --tint-2: #ffe27a;
+  --tint-3: #ffcfa8;
+  --tint-4: #e5dcff;
+}
+
+:root[data-theme='red'] {
+  --accent: #dc2626;
+  --accent-strong: #b91c1c;
+  --accent-on-ink: #f05252;
+  --accent-fg: #ffffff;
+  --tint-1: #ffc9cf;
+  --tint-2: #ffe0dc;
+  --tint-3: #f3e3c3;
+  --tint-4: #e9d5f0;
+}
+
+/* Surfaces. The default (dark) tokens live in @theme below. A scope remaps the neutrals, so
+   `bg-bg` / `text-fg` follow the nearest scope. `.surface-paper` is the light page; `.surface-ink`
+   is a dark card inside it. Tints are ink-on-pastel safe (12:1 or better against #14161f). */
+.surface-paper {
+  --color-bg: #fcfbf9;
+  --color-bg-secondary: #f4f2ee;
+  --color-bg-tertiary: #ebe8e2;
+  --color-fg: #14161f;
+  --color-fg-secondary: #4f5360;
+  /* 4.82:1 on bg-secondary (#6b6f7c was 4.48), so small labels on cards pass 4.5. */
+  --color-fg-tertiary: #666a77;
+  --color-border: #e4e1da;
+  /* A control's edge (outline buttons, inputs, the drop zone) needs 3:1 against the surface, which
+     the hairline above does not give. 3.51:1 on paper. */
+  --color-border-control: #8a867c;
+  --color-accent-text: var(--accent-strong);
+  /* The default status colors are light (made for ink). On paper they fail contrast, so darken. */
+  --color-success: #15803d;
+  --color-warning: #92400e;
+  --color-error: #b91c1c;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
+.surface-ink {
+  --color-bg: #0a0a0a;
+  --color-bg-secondary: #111418;
+  --color-bg-tertiary: #1a1d23;
+  --color-fg: #fafaf9;
+  --color-fg-secondary: #a1a1aa;
+  --color-fg-tertiary: #71717a;
+  --color-border: #27272a;
+  --color-border-control: #71717a;
+  --color-accent-text: var(--accent-on-ink);
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
+/* A pastel tile or band (bg-tint-N). Remaps the text tokens so normal `text-fg-secondary` etc. stay
+   readable on any tint: ink at 70% or more, never a paper grey. Accent text becomes ink, because
+   orange on lilac is under 3:1. Put it next to a `bg-tint-*` class. */
+.surface-tint {
+  --color-fg: #14161f;
+  --color-fg-secondary: rgb(20 22 31 / 0.78);
+  --color-fg-tertiary: rgb(20 22 31 / 0.7);
+  --color-border: rgb(20 22 31 / 0.22);
+  --color-border-control: rgb(20 22 31 / 0.6);
+  --color-bg-secondary: rgb(255 255 255 / 0.45);
+  --color-accent-text: #14161f;
+  color: var(--color-fg);
+}
+
+/* Soft pastel wash for the hero (the "gradient" feel, kept light). Built from the theme tints,
+   so a theme swap re-colors it. Put `wash-paper` on a relative element on a paper surface. */
+.wash-paper {
+  background:
+    radial-gradient(55% 32% at 6% 70%, color-mix(in srgb, var(--tint-1) 55%, transparent), transparent 70%),
+    radial-gradient(50% 36% at 96% 62%, color-mix(in srgb, var(--tint-4) 65%, transparent), transparent 70%);
+}
+
 @theme {
   --color-bg: #0a0a0a;
   --color-bg-secondary: #111418;
@@ -18,10 +107,12 @@
   --color-fg-tertiary: #71717a;
   --color-fg-inverse: #0a0a0a;
 
-  --color-accent: #d2691e;
-  --color-accent-hover: #b85718;
-  --color-accent-muted: #d2691e40;
-  --color-accent-glow: #d2691e20;
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-on-ink);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-hover: color-mix(in oklab, var(--accent) 82%, black);
+  --color-accent-muted: color-mix(in srgb, var(--accent) 25%, transparent);
+  --color-accent-glow: color-mix(in srgb, var(--accent) 12%, transparent);
 
   --color-success: #34d399;
   --color-warning: #fbbf24;
@@ -29,16 +120,26 @@
   --color-info: #60a5fa;
 
   --color-border: #27272a;
+  --color-border-control: #71717a;
+
+  /* Fixed paper + ink for drawn graphics (a statement sheet stays a white sheet on any surface). */
+  --color-sheet: #fcfbf9;
+  --color-sheet-ink: #14161f;
+
+  --color-tint-1: var(--tint-1);
+  --color-tint-2: var(--tint-2);
+  --color-tint-3: var(--tint-3);
+  --color-tint-4: var(--tint-4);
 
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, 'SF Mono', Menlo, monospace;
 
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  --shadow-glow-accent: 0 0 80px -20px #d2691e20;
+  --shadow-glow-accent: 0 0 80px -20px var(--color-accent-glow);
   --shadow-card-hover: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
 }
 
