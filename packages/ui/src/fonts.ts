@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google'
+import { Fraunces, Instrument_Sans, JetBrains_Mono } from 'next/font/google'
 
 // Shared across every Next app. next/font subsets, no CSS @import (DESIGN perf rule).
 // Exposed as CSS variables consumed by the @theme font tokens in @bankstract/ui/theme.css.
@@ -12,9 +12,9 @@ export const fraunces = Fraunces({
   display: 'swap',
 })
 
-export const inter = Inter({
+export const instrumentSans = Instrument_Sans({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-instrument',
   display: 'swap',
 })
 

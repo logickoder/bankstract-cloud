@@ -3,7 +3,6 @@
 
 import { buildMetadata, JsonLd, SITE_URL } from '@bankstract/seo'
 
-import { BackToHome } from './components/BackToHome'
 import { FinalCtaSection } from './components/FinalCtaSection'
 import { Footer } from './components/Footer'
 import { PricingSection } from './components/PricingSection'
@@ -38,9 +37,8 @@ const pricingJsonLd = {
 
 export function PricingPage() {
   return (
-    <main>
+    <main className="surface-paper">
       <JsonLd data={pricingJsonLd} />
-      <BackToHome />
       <PricingSection />
       <FinalCtaSection />
       <Footer />

@@ -5,22 +5,24 @@ import { expect, test } from '@playwright/test'
 
 test('hero renders headline + both CTAs', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Statement parsing API')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Bank PDFs in.')
   await expect(page.getByRole('link', { name: 'Try the demo' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Read the docs' })).toBeVisible()
 })
 
-test('home shows the pricing teaser linking to the full page', async ({ page }) => {
+test('header gives a way in: sign in and get started', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('₦9,500')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'See full pricing' })).toBeVisible()
+  const nav = page.getByRole('navigation', { name: 'Main' })
+  await expect(nav.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/sign-in')
+  await expect(nav.getByRole('link', { name: 'Get started' })).toHaveAttribute('href', '/sign-up')
 })
 
 test('pricing page renders all NGN tiers with subscribe CTAs', async ({ page }) => {
   await page.goto('/pricing')
-  await expect(page.getByText('₦9,500')).toBeVisible()
-  await expect(page.getByText('₦35,000')).toBeVisible()
-  await expect(page.getByText('₦150,000')).toBeVisible()
+  const tiers = page.locator('#pricing')
+  await expect(tiers.getByText('₦9,500')).toBeVisible()
+  await expect(tiers.getByText('₦35,000')).toBeVisible()
+  await expect(tiers.getByText('₦150,000')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Subscribe' }).first()).toBeVisible()
   await expect(page.getByRole('link', { name: 'Talk to sales' }).first()).toBeVisible()
 })
@@ -37,7 +39,7 @@ test('bank grid lists shipped NG banks and excludes wise', async ({ page }) => {
 test('renamed headings + footer voice anchor', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'NDPR by default' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Fails noisy' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Fails loud' })).toBeVisible()
   await expect(page.getByText('Built in Lagos.')).toBeVisible()
 })
 
@@ -67,13 +69,9 @@ test('no horizontal overflow on small screens', async ({ page }) => {
   }
 })
 
-test('transformation demo is fully static under reduced-motion', async ({ page }) => {
+test('hero sample renders under reduced-motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
-  // No animation: the last CSV row + the full curl render immediately. The transform block is
-  // aria-hidden (decorative), so match by text, not role.
-  await expect(page.getByText('Airtime').first()).toBeVisible()
-  await expect(
-    page.getByText('curl -X POST /v1/parse -F "pdf=@statement.pdf"'),
-  ).toBeVisible()
+  // The sample reconciles on first paint, with no animation to wait for.
+  await expect(page.getByText('Totals match').first()).toBeVisible()
 })

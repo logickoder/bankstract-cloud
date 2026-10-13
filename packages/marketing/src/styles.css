@@ -5,115 +5,44 @@
    Any shell that renders @bankstract/marketing imports this after `@import "tailwindcss"`. */
 @source './**/*.tsx';
 
-/* Signature transform animation (TransformationDemo). A scan-line reads the PDF, each
-   transaction flies across the gap, and the matching CSV row materializes on arrival
-   (DESIGN hero-transformation). Static by default; motion only when welcome.
-
-   Split by layout dependence: the table-side motion (row materialize + caret) is vertical and
-   layout-agnostic, so it runs at all widths. The scan-line + flyer position by % of the 3-col grid,
-   which only exists at lg (lg:grid-cols-[1fr_auto_1fr]); below that the panes stack and the %
-   positions misfire, so those two are gated to >=1024px. */
-.sweep-bar,
-.flyer,
-.sweep-caret {
+/* The one signature motion (DESIGN): a scan-line reads the statement sheet top to bottom.
+   An HTML overlay moved with transform only, so it runs on the compositor and never repaints the
+   page while scrolling. Static by default; motion only when welcome. */
+.scan-line {
   display: none;
 }
 
-/* Table-side: row materialize + caret. Layout-agnostic, all widths. */
+.scan-line::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  background: var(--color-accent);
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .sweep-row {
-    opacity: 0;
-    animation: bs-row 4s ease-in-out infinite;
-  }
-  .sweep-caret {
-    display: inline-block;
-    animation: bs-blink 1s step-end infinite;
+  .scan-line {
+    display: block;
+    will-change: transform;
+    animation: bs-scan-y 4s ease-in-out infinite;
   }
 }
 
-/* Scan-line + flyer: positioned by % of the 3-col grid, so lg only. */
-@media (prefers-reduced-motion: no-preference) and (min-width: 1024px) {
-  .sweep-bar {
-    display: block;
-    left: 4%;
-    background: linear-gradient(to bottom, transparent, var(--color-accent), transparent);
-    box-shadow: 0 0 24px 2px var(--color-accent-glow);
-    animation: bs-scan 4s ease-in-out infinite;
-  }
-  .flyer {
-    display: block;
-    opacity: 0;
-    animation: bs-fly 4s ease-in-out infinite;
-  }
-}
-
-/* Scan-line stays over the PDF pane (the left column of the 3-col grid). */
-@keyframes bs-scan {
+@keyframes bs-scan-y {
   0% {
-    left: 4%;
+    transform: translateY(0);
     opacity: 0;
   }
-  6% {
+  8% {
     opacity: 1;
   }
-  24% {
-    left: 30%;
-    opacity: 1;
-  }
-  32%,
-  100% {
-    left: 30%;
-    opacity: 0;
-  }
-}
-
-/* A transaction flies from the PDF pane edge across to the table. */
-@keyframes bs-fly {
-  0%,
-  10% {
-    left: 30%;
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  60% {
-    left: 62%;
-    opacity: 1;
-  }
-  70%,
-  100% {
-    left: 62%;
-    opacity: 0;
-  }
-}
-
-/* The row lands as its flyer arrives, then holds, then resets for the next loop. */
-@keyframes bs-row {
-  0%,
-  56% {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  64% {
-    opacity: 1;
-    transform: none;
-  }
-  92% {
+  80% {
+    transform: translateY(94%);
     opacity: 1;
   }
   100% {
-    opacity: 0;
-  }
-}
-
-@keyframes bs-blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  51%,
-  100% {
+    transform: translateY(94%);
     opacity: 0;
   }
 }

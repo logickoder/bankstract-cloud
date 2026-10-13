@@ -69,7 +69,7 @@ export function Tabs({ items }: { items: TabItem[] }) {
             tabIndex={i === active ? 0 : -1}
             onClick={() => setActive(i)}
             className={cn(
-              'shrink-0 rounded-sm px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none',
+              'min-h-11 shrink-0 rounded-sm px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none',
               i === active ? 'bg-bg-secondary text-fg' : 'text-fg-secondary hover:text-fg',
             )}
           >

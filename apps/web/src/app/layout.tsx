@@ -2,10 +2,12 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { buildMetadata } from '@bankstract/seo'
-import { GrainFilter } from '@bankstract/ui'
-import { fraunces, inter, jetbrains } from '@bankstract/ui/fonts'
+import { GrainFilter, resolveAccentTheme } from '@bankstract/ui'
+import { fraunces, instrumentSans, jetbrains } from '@bankstract/ui/fonts'
 import type { Viewport } from 'next'
 import Script from 'next/script'
+
+import { eventBootScript } from '@/lib/event'
 
 import './globals.css'
 
@@ -15,6 +17,9 @@ export const viewport: Viewport = { themeColor: '#0a0a0a' }
 // Cloudflare Web Analytics: cookieless, no PII, no consent banner. Only loads when the token is
 // set (prod), so dev + e2e stay clean. Our box is Caddy-fronted (not CF-proxied); the JS beacon
 // works on any origin. Keeps the /privacy "no analytics cookies" claim true.
+// Swappable accent (orange | red). Inlined at build; unknown values fall back to orange.
+const ACCENT_THEME = resolveAccentTheme(process.env.NEXT_PUBLIC_ACCENT_THEME)
+
 const CF_ANALYTICS_TOKEN = process.env.NEXT_PUBLIC_CF_ANALYTICS_TOKEN
 
 // Shared shell for every surface (marketing /, demo /demo, dashboard /app). Per-route-group
@@ -27,7 +32,17 @@ export const metadata = buildMetadata({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}>
+    // suppressHydrationWarning: the boot script sets data-theme and data-event on <html> before React
+    // hydrates, which would otherwise read as a mismatch.
+    <html
+      lang="en"
+      data-theme={ACCENT_THEME}
+      className={`${fraunces.variable} ${instrumentSans.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: eventBootScript() }} />
+      </head>
       <body>
         <GrainFilter />
         {children}

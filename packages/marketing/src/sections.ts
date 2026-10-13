@@ -3,14 +3,13 @@
 
 // The page sections, exported for reuse (a shell can compose its own layout from these).
 export { BankCoverage } from './components/BankCoverage'
-export { CodeFeatureSection } from './components/CodeFeatureSection'
-export { CodeTabsSection } from './components/CodeTabsSection'
+export { Bento } from './components/Bento'
 export { ComplianceSection } from './components/ComplianceSection'
-export { FeatureGrid } from './components/FeatureGrid'
+export { FailLoud } from './components/FailLoud'
 export { FinalCtaSection } from './components/FinalCtaSection'
 export { Footer } from './components/Footer'
 export { HeroSection } from './components/HeroSection'
 export { OssPrideSection } from './components/OssPrideSection'
 export { PricingSection } from './components/PricingSection'
-export { PricingTeaser } from './components/PricingTeaser'
-export { TransformationDemo } from './components/TransformationDemo'
+export { StatementFlow } from './components/StatementFlow'
+export { StatementSheet } from './components/graphics'

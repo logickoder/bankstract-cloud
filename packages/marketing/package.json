@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./pricing": "./src/lib/pricing.ts",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {

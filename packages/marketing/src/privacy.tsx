@@ -5,9 +5,9 @@ import { buildMetadata } from '@bankstract/seo'
 import { Anchor, cn } from '@bankstract/ui'
 import type { ReactNode } from 'react'
 
-import { BackToHome } from './components/BackToHome'
 import { Footer } from './components/Footer'
 import { PAGE_CONTAINER } from './components/Section'
+import { Tile } from './components/Tile'
 
 const CONTACT = 'jeffery@logickoder.dev'
 const TURNSTILE_ADDENDUM = 'https://www.cloudflare.com/turnstile-privacy-policy/'
@@ -21,14 +21,49 @@ export const privacyMetadata = buildMetadata({
   keywords: ['bankstract privacy', 'NDPR', 'data protection', 'statement parsing privacy'],
 })
 
-function Policy({ title, children }: { title: string; children: ReactNode }) {
+// Sections render numbered and anchored so the contents list can link to them.
+const SECTIONS = [
+  'Who this covers',
+  'What happens to a statement',
+  'What we collect',
+  'What we never collect',
+  'Subprocessors',
+  'Where your data lives',
+  'How long we keep it',
+  'Your rights',
+  'Cookies',
+  'Bot protection',
+  'Children',
+  'Changes',
+  'Contact',
+] as const
+
+type SectionTitle = (typeof SECTIONS)[number]
+
+function slug(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+}
+
+function Policy({ title, children }: { title: SectionTitle; children: ReactNode }) {
+  const n = String(SECTIONS.indexOf(title) + 1).padStart(2, '0')
   return (
-    <section className="flex flex-col gap-3">
+    <section id={slug(title)} className="flex scroll-mt-24 flex-col gap-3 border-t border-border pt-8">
+      <p className="font-mono text-xs text-fg-tertiary">{n}</p>
       <h2 className="font-display text-2xl font-semibold tracking-[-0.02em] text-fg">{title}</h2>
-      <div className="flex flex-col gap-3 leading-relaxed text-fg-secondary">{children}</div>
+      <div className="flex flex-col gap-3 leading-relaxed text-fg-secondary [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:marker:text-fg-tertiary">
+        {children}
+      </div>
     </section>
   )
 }
+
+// The three facts a reader checks first, each backed by a section below (statement path, background
+// job results, parse metadata retention).
+const GLANCE: readonly { tint: 'green' | 'lilac' | 'yellow'; figure: string; label: string }[] = [
+  { tint: 'green', figure: '0 B', label: 'of your statement written to disk' },
+  { tint: 'lilac', figure: '5 min', label: 'longest a background job result sits in memory' },
+  { tint: 'yellow', figure: '90 days', label: 'parse metadata kept, then deleted' },
+]
 
 const SUBPROCESSORS: readonly { name: string; purpose: string; data: string; region: string }[] = [
   {
@@ -77,24 +112,54 @@ const SUBPROCESSORS: readonly { name: string; purpose: string; data: string; reg
 
 export function PrivacyPage() {
   return (
-    <main>
-      <BackToHome />
-
-      <div className={cn(PAGE_CONTAINER, 'py-12 sm:py-16')}>
-        <header className="flex flex-col gap-4">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">Privacy</p>
-          <h1 className="font-display text-4xl font-bold leading-[1.05] tracking-[-0.03em] text-fg sm:text-5xl">
-            Privacy policy
+    <main className="surface-paper">
+      <section className="wash-paper relative">
+        <div className={cn(PAGE_CONTAINER, 'pt-10 pb-12 sm:pt-14 sm:pb-16')}>
+          <p className="font-mono text-xs text-fg-tertiary">Privacy · effective 15 July 2026</p>
+          <h1 className="mt-3 text-5xl leading-[1.04] font-normal tracking-[-0.03em] text-fg sm:text-6xl">
+            Your statements stay{' '}
+            <em className="font-display font-normal italic tracking-[-0.03em] text-accent-text">
+              in memory
+            </em>
           </h1>
-          <p className="text-sm text-fg-tertiary">Effective 15 July 2026.</p>
-          <p className="max-w-2xl text-lg leading-relaxed text-fg-secondary">
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-fg-secondary">
             Privacy is the product. Your bank statements never have to leave your control. PDF bytes
             are processed in memory and never written to disk. Statement contents are never logged or
             stored.
           </p>
-        </header>
+          <ul className="mt-10 grid gap-3 sm:grid-cols-3">
+            {GLANCE.map((g) => (
+              <li key={g.figure}>
+                <Tile tint={g.tint} className="h-full gap-3">
+                  <p className="font-mono text-4xl tracking-[-0.04em] sm:text-5xl">{g.figure}</p>
+                  <p className="text-sm text-fg-secondary">{g.label}</p>
+                </Tile>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
-        <div className="mt-12 flex max-w-2xl flex-col gap-10">
+      <div className={cn(PAGE_CONTAINER, 'grid gap-10 py-12 sm:py-16 lg:grid-cols-[14rem_1fr] lg:gap-16')}>
+        <nav aria-label="Contents" className="hidden lg:block">
+          <ol className="sticky top-24 flex flex-col gap-2 text-sm">
+            {SECTIONS.map((title, i) => (
+              <li key={title}>
+                <a
+                  href={`#${slug(title)}`}
+                  className="flex gap-3 rounded-sm text-fg-secondary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline"
+                >
+                  <span className="font-mono text-xs leading-5 text-fg-tertiary">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  {title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        <div className="flex max-w-2xl min-w-0 flex-col gap-10">
           <Policy title="Who this covers">
             <p>
               This policy covers the hosted service at bankstract.logickoder.dev: the API, the
@@ -179,23 +244,23 @@ export function PrivacyPage() {
 
           <Policy title="Subprocessors">
             <p>We share the minimum data needed with these services. Nothing else.</p>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-lg border border-border bg-bg">
               <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
                 <thead>
-                  <tr className="border-b border-border text-fg-tertiary">
-                    <th className="py-2 pr-4 font-normal">Service</th>
-                    <th className="py-2 pr-4 font-normal">Purpose</th>
-                    <th className="py-2 pr-4 font-normal">What it receives</th>
-                    <th className="py-2 font-normal">Region</th>
+                  <tr className="border-b border-border bg-bg-secondary font-mono text-xs text-fg-tertiary">
+                    <th className="px-4 py-3 font-normal">Service</th>
+                    <th className="px-4 py-3 font-normal">Purpose</th>
+                    <th className="px-4 py-3 font-normal">What it receives</th>
+                    <th className="px-4 py-3 font-normal">Region</th>
                   </tr>
                 </thead>
                 <tbody>
                   {SUBPROCESSORS.map((s) => (
-                    <tr key={s.name} className="border-b border-border/60 align-top">
-                      <td className="py-3 pr-4 text-fg">{s.name}</td>
-                      <td className="py-3 pr-4 text-fg-secondary">{s.purpose}</td>
-                      <td className="py-3 pr-4 text-fg-secondary">{s.data}</td>
-                      <td className="py-3 text-fg-secondary">{s.region}</td>
+                    <tr key={s.name} className="border-b border-border last:border-b-0 align-top">
+                      <td className="px-4 py-3 text-fg">{s.name}</td>
+                      <td className="px-4 py-3 text-fg-secondary">{s.purpose}</td>
+                      <td className="px-4 py-3 text-fg-secondary">{s.data}</td>
+                      <td className="px-4 py-3 text-fg-secondary">{s.region}</td>
                     </tr>
                   ))}
                 </tbody>
