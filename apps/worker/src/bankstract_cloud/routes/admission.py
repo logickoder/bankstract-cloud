@@ -13,14 +13,12 @@ from __future__ import annotations
 from fastapi import HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
-from ..audit import AuditEntry, Endpoint, current_period_start_iso
+from ..audit import FREE_LIMIT_CLASS, AuditEntry, Endpoint, current_period_start_iso
 from ..auth import AuthContext
 from ..engine import EngineError, UnsupportedStatementError
 from ..responses import error_response
 from ..state import AppState, client_ip, demo_bucket, first_party_bucket
 from ..turnstile import verify_turnstile
-
-FREE_LIMIT_CLASS = "free_limit_reached"
 
 
 class ServeSample:

@@ -160,3 +160,27 @@ def test_owner_cycle_matches_usage_and_groups_failures(harness: Harness) -> None
     assert (total, ok) == (5, 2)
     assert daily == state.audit.owner_usage("cycle", since_iso=since)[2]
     assert refusals == [("ParseError", 2), ("unknown", 1)]
+
+
+def test_free_cap_rows_are_not_refusals_or_attempts(harness: Harness) -> None:
+    # An over-cap request is audited success=False with error_class free_limit_reached. It is a
+    # cap notice, not a failed parse: it must not read as a refusal or drag the success rate.
+    state = harness.client.app.state.app_state
+    key = state.keystore.issue("t", "test", owner="capped")
+    outcomes = [(True, None), (False, "free_limit_reached"), (False, "free_limit_reached")]
+    for success, cls in outcomes:
+        state.audit.record(
+            AuditEntry(
+                api_key_id=key.id,
+                filename="a.pdf",
+                byte_count=1,
+                parser_detected="fbn",
+                success=success,
+                error_class=cls,
+            )
+        )
+    total, ok, _daily, refusals = state.audit.owner_cycle(
+        "capped", since_iso=current_period_start_iso()
+    )
+    assert (total, ok) == (1, 1)
+    assert refusals == []

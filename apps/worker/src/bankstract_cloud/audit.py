@@ -11,6 +11,10 @@ from typing import Literal
 
 from .clock import utcnow_iso
 
+# error_class of a request sampled or refused over a free cap (routes/admission.py audits it with
+# success=False). Display queries skip it: it is not a failed parse.
+FREE_LIMIT_CLASS = "free_limit_reached"
+
 
 # DELIBERATE: the overage metering window is the CALENDAR MONTH (UTC, 1st 00:00 to 1st
 # 00:00), NOT the Paystack subscription cycle anchored to each owner's subscribe date.
@@ -166,14 +170,15 @@ class AuditLog:
         [(YYYY-MM-DD, success_count), ...], [(error_class, failures), ...]) with failures
         most frequent first. Metadata only: a class name and a count, never a filename or any
         statement content. A failure with no recorded class is labelled "unknown" so it still
-        counts. Billing keeps owner_usage (tier-bounded); this is display only."""
+        counts. Over-cap rows (FREE_LIMIT_CLASS) are cap notices, not parse attempts, so they are
+        left out of every figure. Billing keeps owner_usage (tier-bounded); this is display only."""
         rows = self._conn.execute(
             "SELECT substr(a.timestamp, 1, 10) AS day, a.success AS ok, "
             "COALESCE(a.error_class, 'unknown') AS cls, COUNT(*) AS n "
             "FROM audit_log a JOIN api_keys k ON a.api_key_id = k.id "
-            "WHERE k.owner = ? AND a.timestamp >= ? "
+            "WHERE k.owner = ? AND a.timestamp >= ? AND COALESCE(a.error_class, '') != ? "
             "GROUP BY day, a.success, cls",
-            (owner, since_iso),
+            (owner, since_iso, FREE_LIMIT_CLASS),
         ).fetchall()
         total = sum(int(r["n"]) for r in rows)
         per_day: dict[str, int] = {}
