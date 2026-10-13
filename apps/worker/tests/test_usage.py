@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 
-from bankstract_cloud.audit import AuditEntry, current_period_start_iso
+from bankstract_cloud.audit import AuditEntry, AuditLog, current_period_start_iso
 from tests.conftest import Harness, auth_header
 
 
@@ -79,3 +79,56 @@ def test_admin_usage_excludes_other_owners(harness: Harness) -> None:
     assert body["period_parses"] == 0
     # pad_daily fills the full cycle with zeros; no owner = all zeros.
     assert all(d["count"] == 0 for d in body["daily"])
+
+
+def _record(
+    audit: AuditLog, key_id: str, *, success: bool, error_class: str | None, filename: str
+) -> None:
+    audit.record(
+        AuditEntry(
+            api_key_id=key_id,
+            filename=filename,
+            byte_count=10,
+            parser_detected=None,
+            success=success,
+            error_class=error_class,
+        )
+    )
+
+
+def test_admin_usage_groups_refusals_by_error_class(harness: Harness) -> None:
+    state = harness.client.app.state.app_state
+    mine = state.keystore.issue("prod", "live", owner="refuser")
+    other = state.keystore.issue("other", "live", owner="someone-else")
+    audit = state.audit
+    _record(audit, mine.id, success=True, error_class=None, filename="ok.pdf")
+    _record(audit, mine.id, success=False, error_class="ReconciliationError", filename="a.pdf")
+    _record(audit, mine.id, success=False, error_class="ReconciliationError", filename="b.pdf")
+    _record(audit, mine.id, success=False, error_class="LayoutDriftError", filename="c.pdf")
+    # A failure with no recorded class still counts, under a stable label.
+    _record(audit, mine.id, success=False, error_class=None, filename="d.pdf")
+    # Another owner's failures never leak in.
+    _record(audit, other.id, success=False, error_class="EncryptedSourceError", filename="x.pdf")
+
+    res = harness.client.get(
+        "/v1/admin/usage?owner=refuser", headers=auth_header(harness.admin_token)
+    )
+    body = res.json()
+    assert body["refusals"] == [
+        {"error_class": "ReconciliationError", "count": 2},
+        {"error_class": "LayoutDriftError", "count": 1},
+        {"error_class": "unknown", "count": 1},
+    ]
+    # Metadata only: counts per class. No filename ever rides along (docs/rules/privacy.md).
+    for name in ("a.pdf", "b.pdf", "c.pdf", "d.pdf", "x.pdf"):
+        assert name not in res.text
+
+
+def test_admin_usage_refusals_empty_when_nothing_failed(harness: Harness) -> None:
+    state = harness.client.app.state.app_state
+    key = state.keystore.issue("prod", "live", owner="clean")
+    _record(state.audit, key.id, success=True, error_class=None, filename="ok.pdf")
+    body = harness.client.get(
+        "/v1/admin/usage?owner=clean", headers=auth_header(harness.admin_token)
+    ).json()
+    assert body["refusals"] == []

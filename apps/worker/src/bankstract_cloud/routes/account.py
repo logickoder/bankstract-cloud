@@ -16,6 +16,7 @@ from ..models import (
     DailyCount,
     FunnelResponse,
     OwnerUsageResponse,
+    RefusalCount,
     StatusResponse,
     UsageResponse,
 )
@@ -115,6 +116,10 @@ async def admin_usage(
         overage_parses=report.overage_parses,
         projected_overage_naira=kobo_to_naira_str(report.overage_amount_kobo),
         daily=[DailyCount(date=d, count=c) for d, c in pad_daily(daily, since_iso=since_iso)],
+        refusals=[
+            RefusalCount(error_class=cls, count=n)
+            for cls, n in state.audit.owner_refusals(owner, since_iso=since_iso)
+        ],
     )
 
 

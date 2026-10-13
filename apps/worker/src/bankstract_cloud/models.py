@@ -196,6 +196,13 @@ class DailyCount(BaseModel):
     count: int
 
 
+class RefusalCount(BaseModel):
+    """Failed parses this cycle for one error_class. A count only: never a filename or content."""
+
+    error_class: str
+    count: int
+
+
 class OwnerUsageResponse(BaseModel):
     owner: str
     tier: str | None
@@ -206,6 +213,8 @@ class OwnerUsageResponse(BaseModel):
     # Projected overage in NGN, exact 2dp string (e.g. "1530.00"). "0.00" within cap.
     projected_overage_naira: str
     daily: list[DailyCount]
+    # Failed parses this cycle grouped by error_class, most frequent first. Empty when none failed.
+    refusals: list[RefusalCount]
 
 
 class FunnelResponse(BaseModel):

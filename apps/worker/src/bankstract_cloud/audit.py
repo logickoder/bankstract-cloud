@@ -158,6 +158,21 @@ class AuditLog:
         ).fetchall()
         return total, ok, [(r["day"], int(r["n"])) for r in daily]
 
+    def owner_refusals(self, owner: str, *, since_iso: str) -> list[tuple[str, int]]:
+        """Failed parses for `owner` since `since_iso`, grouped by error_class, most frequent
+        first. Same join and window as owner_usage, all tiers (the dashboard shows all of an
+        owner's activity). Metadata only: a class name and a count, never a filename or any
+        statement content. A failure with no recorded class is labelled "unknown" so it still
+        counts."""
+        rows = self._conn.execute(
+            "SELECT COALESCE(a.error_class, 'unknown') AS cls, COUNT(*) AS n "
+            "FROM audit_log a JOIN api_keys k ON a.api_key_id = k.id "
+            "WHERE k.owner = ? AND a.timestamp >= ? AND a.success = 0 "
+            "GROUP BY cls ORDER BY n DESC, cls",
+            (owner, since_iso),
+        ).fetchall()
+        return [(str(r["cls"]), int(r["n"])) for r in rows]
+
 
 def pad_daily(raw: list[tuple[str, int]], *, since_iso: str) -> list[tuple[str, int]]:
     """Fill zero-count gaps between since_iso and today so charts show the full billing cycle."""

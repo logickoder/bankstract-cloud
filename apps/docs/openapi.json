@@ -2380,6 +2380,13 @@
             },
             "type": "array",
             "title": "Daily"
+          },
+          "refusals": {
+            "items": {
+              "$ref": "#/components/schemas/RefusalCount"
+            },
+            "type": "array",
+            "title": "Refusals"
           }
         },
         "type": "object",
@@ -2391,7 +2398,8 @@
           "monthly_cap",
           "overage_parses",
           "projected_overage_naira",
-          "daily"
+          "daily",
+          "refusals"
         ],
         "title": "OwnerUsageResponse"
       },
@@ -2531,6 +2539,25 @@
           "row_wise_reason"
         ],
         "title": "ReconciliationOut"
+      },
+      "RefusalCount": {
+        "properties": {
+          "error_class": {
+            "type": "string",
+            "title": "Error Class"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error_class",
+          "count"
+        ],
+        "title": "RefusalCount",
+        "description": "Failed parses this cycle for one error_class. A count only: never a filename or content."
       },
       "StatementMetadataOut": {
         "properties": {
