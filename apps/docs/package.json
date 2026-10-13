@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "predev": "tsx scripts/generate-docs.ts",
-    "dev": "next dev",
+    "dev": "next dev -p 3200",
     "prebuild": "tsx scripts/generate-docs.ts",
     "build": "next build",
     "start": "next start",

@@ -3,7 +3,7 @@
 
 import { JsonLd, metadata as demoMetadata } from '@bankstract/demo'
 import { GrainFilter } from '@bankstract/ui'
-import { fraunces, inter, jetbrains } from '@bankstract/ui/fonts'
+import { fraunces, instrumentSans, jetbrains } from '@bankstract/ui/fonts'
 
 import './globals.css'
 
@@ -18,7 +18,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`surface-paper ${fraunces.variable} ${instrumentSans.variable} ${jetbrains.variable}`}>
       <body>
         <JsonLd />
         <GrainFilter />

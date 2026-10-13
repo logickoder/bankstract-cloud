@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 import { describe, expect, it } from 'vitest'
 
 import { ALL_BANKS, ROADMAP_BANKS, SHIPPED_BANKS } from './banks'
 import { CODE_SAMPLES } from './code-samples'
-import { ENTERPRISE, FREE_TIERS, PAID_TIERS } from './pricing'
+import { ANNUAL_NOTE, ENTERPRISE, FREE_TIERS, naira, PAID_TIERS } from './pricing'
 
 describe('banks', () => {
   it('ships the engine parsers, lowercase', () => {
@@ -34,6 +37,44 @@ describe('pricing', () => {
     for (const t of PAID_TIERS) expect(t.price.startsWith('₦')).toBe(true)
     expect(FREE_TIERS.length).toBe(2)
     expect(ENTERPRISE.band).toContain('₦')
+  })
+
+  it('derives every display string from the numbers', () => {
+    for (const t of PAID_TIERS) {
+      expect(t.price).toBe(`₦${naira(t.monthly)}`)
+      expect(t.cap).toBe(`${naira(t.includedParses)} parses/mo`)
+      expect(t.overage).toBe(`₦${t.overageNaira}/parse`)
+    }
+  })
+
+  it('prices annual prepay at 15% off twelve months, in whole naira', () => {
+    expect(ANNUAL_NOTE).toContain('15%')
+    expect(PAID_TIERS.map((t) => t.annual)).toEqual([96_900, 357_000, 1_530_000])
+    for (const t of PAID_TIERS) expect(Number.isInteger(t.annual)).toBe(true)
+  })
+
+  // The worker bills from tiers.py; the site and dashboard quote this module. If the two diverge a
+  // customer is quoted one cap and billed another, so a mismatch fails CI instead.
+  it('matches the worker billing tiers (caps and overage)', () => {
+    const path = fileURLToPath(
+      new URL('../../../../apps/worker/src/bankstract_cloud/tiers.py', import.meta.url),
+    )
+    const source = readFileSync(path, 'utf8')
+    const worker = [
+      ...source.matchAll(/"(\w+)": Tier\(name="\w+", monthly_cap=([\d_]+), overage_kobo=([\d_]+)\)/g),
+    ].map(([, id, cap, kobo]) => ({
+      id,
+      includedParses: Number(cap!.replaceAll('_', '')),
+      overageNaira: Number(kobo!.replaceAll('_', '')) / 100,
+    }))
+    expect(worker).toHaveLength(3)
+    expect(
+      PAID_TIERS.map((t) => ({
+        id: t.id,
+        includedParses: t.includedParses,
+        overageNaira: t.overageNaira,
+      })),
+    ).toEqual(worker)
   })
 })
 

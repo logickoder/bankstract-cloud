@@ -156,6 +156,12 @@ export interface DailyCount {
   count: number
 }
 
+/** Failed parses this cycle for one error_class. A count only: never a filename or content. */
+export interface RefusalCount {
+  error_class: string
+  count: number
+}
+
 export interface OwnerUsageResponse {
   owner: string
   /** Subscription tier, or null when the owner has no active paid tier. */
@@ -169,6 +175,8 @@ export interface OwnerUsageResponse {
   /** Projected overage in NGN, exact 2dp string (e.g. "1530.00"). "0.00" within cap. */
   projected_overage_naira: string
   daily: DailyCount[]
+  /** Failed parses this cycle grouped by error_class, most frequent first. Empty when none failed. */
+  refusals: RefusalCount[]
 }
 
 // API-key management (admin-only endpoints under /v1/keys).

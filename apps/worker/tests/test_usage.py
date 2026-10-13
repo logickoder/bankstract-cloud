@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright (C) 2026 Jeffery Orazulike
 
-from bankstract_cloud.audit import AuditEntry, current_period_start_iso
+from bankstract_cloud.audit import AuditEntry, AuditLog, current_period_start_iso
 from tests.conftest import Harness, auth_header
 
 
@@ -79,3 +79,108 @@ def test_admin_usage_excludes_other_owners(harness: Harness) -> None:
     assert body["period_parses"] == 0
     # pad_daily fills the full cycle with zeros; no owner = all zeros.
     assert all(d["count"] == 0 for d in body["daily"])
+
+
+def _record(
+    audit: AuditLog, key_id: str, *, success: bool, error_class: str | None, filename: str
+) -> None:
+    audit.record(
+        AuditEntry(
+            api_key_id=key_id,
+            filename=filename,
+            byte_count=10,
+            parser_detected=None,
+            success=success,
+            error_class=error_class,
+        )
+    )
+
+
+def test_admin_usage_groups_refusals_by_error_class(harness: Harness) -> None:
+    state = harness.client.app.state.app_state
+    mine = state.keystore.issue("prod", "live", owner="refuser")
+    other = state.keystore.issue("other", "live", owner="someone-else")
+    audit = state.audit
+    _record(audit, mine.id, success=True, error_class=None, filename="ok.pdf")
+    _record(audit, mine.id, success=False, error_class="ReconciliationError", filename="a.pdf")
+    _record(audit, mine.id, success=False, error_class="ReconciliationError", filename="b.pdf")
+    _record(audit, mine.id, success=False, error_class="LayoutDriftError", filename="c.pdf")
+    # A failure with no recorded class still counts, under a stable label.
+    _record(audit, mine.id, success=False, error_class=None, filename="d.pdf")
+    # Another owner's failures never leak in.
+    _record(audit, other.id, success=False, error_class="EncryptedSourceError", filename="x.pdf")
+
+    res = harness.client.get(
+        "/v1/admin/usage?owner=refuser", headers=auth_header(harness.admin_token)
+    )
+    body = res.json()
+    assert body["refusals"] == [
+        {"error_class": "ReconciliationError", "count": 2},
+        {"error_class": "LayoutDriftError", "count": 1},
+        {"error_class": "unknown", "count": 1},
+    ]
+    # Metadata only: counts per class. No filename ever rides along (docs/rules/privacy.md).
+    for name in ("a.pdf", "b.pdf", "c.pdf", "d.pdf", "x.pdf"):
+        assert name not in res.text
+
+
+def test_admin_usage_refusals_empty_when_nothing_failed(harness: Harness) -> None:
+    state = harness.client.app.state.app_state
+    key = state.keystore.issue("prod", "live", owner="clean")
+    _record(state.audit, key.id, success=True, error_class=None, filename="ok.pdf")
+    body = harness.client.get(
+        "/v1/admin/usage?owner=clean", headers=auth_header(harness.admin_token)
+    ).json()
+    assert body["refusals"] == []
+
+
+def test_owner_cycle_matches_usage_and_groups_failures(harness: Harness) -> None:
+    state = harness.client.app.state.app_state
+    key = state.keystore.issue("prod", "live", owner="cycle")
+    outcomes = [
+        (True, None),
+        (True, None),
+        (False, "ParseError"),
+        (False, "ParseError"),
+        (False, None),
+    ]
+    for success, cls in outcomes:
+        state.audit.record(
+            AuditEntry(
+                api_key_id=key.id,
+                filename="a.pdf",
+                byte_count=1,
+                parser_detected="fbn",
+                success=success,
+                error_class=cls,
+            )
+        )
+    since = current_period_start_iso()
+    total, ok, daily, refusals = state.audit.owner_cycle("cycle", since_iso=since)
+    assert (total, ok) == (5, 2)
+    assert daily == state.audit.owner_usage("cycle", since_iso=since)[2]
+    assert refusals == [("ParseError", 2), ("unknown", 1)]
+
+
+def test_free_cap_rows_are_not_refusals_or_attempts(harness: Harness) -> None:
+    # An over-cap request is audited success=False with error_class free_limit_reached. It is a
+    # cap notice, not a failed parse: it must not read as a refusal or drag the success rate.
+    state = harness.client.app.state.app_state
+    key = state.keystore.issue("t", "test", owner="capped")
+    outcomes = [(True, None), (False, "free_limit_reached"), (False, "free_limit_reached")]
+    for success, cls in outcomes:
+        state.audit.record(
+            AuditEntry(
+                api_key_id=key.id,
+                filename="a.pdf",
+                byte_count=1,
+                parser_detected="fbn",
+                success=success,
+                error_class=cls,
+            )
+        )
+    total, ok, _daily, refusals = state.audit.owner_cycle(
+        "capped", since_iso=current_period_start_iso()
+    )
+    assert (total, ok) == (1, 1)
+    assert refusals == []

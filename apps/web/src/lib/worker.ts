@@ -40,6 +40,7 @@ export type {
   KeyCreatedResponse,
   KeyInfo,
   OwnerUsageResponse as OwnerUsage,
+  RefusalCount,
   SubscribeResponse,
   SubscriptionStatusResponse,
 } from '@bankstract/types'

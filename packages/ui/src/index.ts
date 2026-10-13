@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+export { ACCENTS, INK, PAPER, resolveAccentTheme, type AccentTheme } from './accent'
 export { Anchor, linkClass } from './anchor'
 export { Badge, type BadgeProps } from './badge'
-export { BrandMark } from './brand'
+export { BrandMark, Wordmark } from './brand'
 export {
   Button,
   type ButtonProps,
@@ -25,4 +26,5 @@ export { Input } from './input'
 export { SegmentedRadio } from './segmented-radio'
 export { SmartLink } from './smart-link'
 export { cn } from './lib/cn'
+export { Tile, tintClass, type Tint } from './tile'
 export { useClipboard } from './use-clipboard'

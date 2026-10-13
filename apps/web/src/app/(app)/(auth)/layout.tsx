@@ -1,34 +1,48 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { BrandMark } from '@bankstract/ui'
+import { sections } from '@bankstract/marketing'
+import { Wordmark } from '@bankstract/ui'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 // Auth pages carry no public content: keep them out of search indexes.
 export const metadata: Metadata = { robots: { index: false, follow: false } }
 
+const focusRing =
+  'rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent focus-visible:outline'
+
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <aside className="hero-glow relative hidden flex-col justify-between overflow-hidden border-r border-border bg-bg-secondary p-12 lg:flex">
-        <div className="grain-section" aria-hidden="true" />
-        <span className="relative flex items-center gap-2 font-display text-xl font-bold text-fg">
-          <BrandMark className="h-3 w-auto" />
-          bankstract
-        </span>
+      <aside className="wash-paper relative hidden flex-col justify-between overflow-hidden border-r border-border p-12 lg:flex">
+        {/* A faint statement sheet, cropped by the panel edge: the product, drawn, behind the copy. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-12 -bottom-20 w-80 rotate-[-6deg] overflow-hidden rounded-[10px] border border-border opacity-60 shadow-sm select-none"
+        >
+          <sections.StatementSheet />
+          <div className="scan-line absolute inset-0" />
+        </div>
+        <Link href="/" className={`relative flex w-fit items-center gap-2 ${focusRing}`} aria-label="bankstract home">
+          <Wordmark className="text-2xl text-fg" />
+        </Link>
         <div className="relative">
           {/* Decorative marketing copy, not the page heading (the form owns the <h1>). A <p>
               keeps the visual weight without breaking the document outline. */}
-          <p className="font-display text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-fg">
-            Statement parsing API
-            <span className="block font-light text-fg-secondary">for Nigerian banks</span>
+          <p className="font-mono text-xs text-fg-tertiary">POST /v1/parse</p>
+          <p className="mt-3 text-5xl leading-[1.04] font-normal tracking-[-0.03em] text-fg">
+            Statement parsing
+            <em className="block font-display font-normal italic tracking-[-0.03em] text-accent-text">
+              for Nigerian banks
+            </em>
           </p>
-          <p className="mt-4 max-w-sm text-fg-secondary">
+          <p className="mt-5 max-w-sm text-lg text-fg-secondary">
             Issue a key, call one endpoint, get clean transactions. NDPR-compliant redaction
             built in.
           </p>
-          <div className="mt-6 inline-block rounded-md border border-bg-tertiary bg-bg-tertiary px-3 py-2 font-mono text-xs text-fg-secondary">
+          <div className="surface-ink mt-8 inline-block rounded-lg px-4 py-3 font-mono text-xs">
             curl -X POST /v1/parse -F &quot;pdf=@statement.pdf&quot;
           </div>
         </div>
@@ -36,10 +50,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="relative flex flex-col items-center justify-center px-6 py-16">
-        <span className="mb-10 flex items-center gap-2 font-display text-lg font-bold text-fg lg:hidden">
-          <BrandMark className="h-2.5 w-auto" />
-          bankstract
-        </span>
+        <Link href="/" className={`mb-10 flex items-center gap-2 lg:hidden ${focusRing}`} aria-label="bankstract home">
+          <Wordmark className="text-2xl text-fg" />
+        </Link>
         {children}
       </main>
     </div>

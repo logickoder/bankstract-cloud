@@ -2,29 +2,23 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { BankCoverage } from './components/BankCoverage'
-import { CodeFeatureSection } from './components/CodeFeatureSection'
-import { CodeTabsSection } from './components/CodeTabsSection'
+import { Bento } from './components/Bento'
 import { ComplianceSection } from './components/ComplianceSection'
-import { FeatureGrid } from './components/FeatureGrid'
+import { FailLoud } from './components/FailLoud'
 import { FinalCtaSection } from './components/FinalCtaSection'
 import { Footer } from './components/Footer'
 import { HeroSection } from './components/HeroSection'
 import { OssPrideSection } from './components/OssPrideSection'
-import { PricingTeaser } from './components/PricingTeaser'
-import { TransformationDemo } from './components/TransformationDemo'
 
 export function MarketingHome() {
   return (
     <main>
       <HeroSection />
-      <CodeTabsSection />
-      <TransformationDemo />
-      <FeatureGrid />
-      <CodeFeatureSection />
+      <Bento />
+      <FailLoud />
       <BankCoverage />
       <ComplianceSection />
       <OssPrideSection />
-      <PricingTeaser />
       <FinalCtaSection />
       <Footer />
     </main>

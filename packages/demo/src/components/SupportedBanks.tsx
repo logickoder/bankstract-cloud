@@ -1,19 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Badge } from '@bankstract/ui'
-
 import { SUPPORTED_BANKS } from '../lib/banks'
 
 export function SupportedBanks() {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-fg-tertiary">
-      <span>Supports</span>
-      {SUPPORTED_BANKS.map((bank) => (
-        <Badge key={bank} tone="accent">
-          {bank}
-        </Badge>
-      ))}
-    </div>
+    <p className="font-mono text-sm text-fg-tertiary">Live: {SUPPORTED_BANKS.join(', ')}</p>
   )
 }

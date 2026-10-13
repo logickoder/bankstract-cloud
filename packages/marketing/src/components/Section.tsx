@@ -9,7 +9,7 @@ import type { ReactNode } from 'react'
 // and the footer share the same horizontal frame.
 export const PAGE_CONTAINER = 'mx-auto w-full max-w-5xl px-6'
 
-type Surface = 'base' | 'raised' | 'inverted'
+type Surface = 'base' | 'raised' | 'inverted' | 'lilac' | 'peach'
 
 // Section gap is 128px (DESIGN spacing-32): py-16 per side between adjacent sections.
 // `raised` is a full-bleed bg-secondary band with hairline borders so the eye reads
@@ -19,6 +19,10 @@ const SURFACE: Record<Surface, string> = {
   base: '',
   raised: 'border-y border-border bg-bg-secondary',
   inverted: 'bg-bg-inverse text-fg-inverse',
+  // Full-bleed flat tint bands (DESIGN surfaces). Children use sheet-ink, not the paper text
+  // tokens: grey on a colour fails contrast.
+  lilac: 'bg-tint-4 text-sheet-ink',
+  peach: 'bg-tint-3 text-sheet-ink',
 }
 
 export function Section({

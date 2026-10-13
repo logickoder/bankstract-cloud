@@ -98,7 +98,7 @@ export function DeleteAccountCard({ email }: { email: string }) {
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant="solid"
                 size="sm"
                 disabled={!matches || busy}
                 onClick={() => void remove()}

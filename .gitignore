@@ -51,6 +51,7 @@ __pycache__/
 
 # local MCP server config (machine-specific)
 .mcp.json
+.playwright-mcp
 
 # apps/web Better Auth local DB (sessions live here in dev/e2e; never commit)
 apps/web/data/

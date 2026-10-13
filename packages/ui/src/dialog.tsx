@@ -10,7 +10,9 @@ import { cn } from './lib/cn'
 
 export const Dialog = DialogPrimitive.Root
 
-// Radix gives focus-trap, ESC, and ARIA for free; we style to the DESIGN tokens.
+// Radix gives focus-trap, ESC, and ARIA for free; we style to the DESIGN tokens. The portal mounts
+// at <body>, outside any page's surface scope, so the content carries its own (paper): without it
+// a dialog falls back to the dark default tokens.
 export function DialogContent({
   className,
   children,

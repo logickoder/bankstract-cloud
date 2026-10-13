@@ -9,9 +9,11 @@ import {
   workerFetch,
 } from './worker'
 
-// `null` means "no data" (no signed-in owner, or the worker call failed). The dashboard degrades
-// gracefully to empty state rather than 500ing the whole page when the worker is transiently
-// unreachable. error.tsx still catches genuine render crashes; loading.tsx streams a skeleton.
+// `null` means "could not ask" (no signed-in owner, or the worker call failed), and it is NOT the
+// same as "none": a customer with keys and a paid plan must never be told they have neither because
+// the worker blinked. Pages render an explicit unavailable state for null, not an empty one, so
+// nobody regenerates a key or subscribes twice during an outage. error.tsx still catches genuine
+// render crashes; loading.tsx streams a skeleton.
 async function ownerFetch<T>(path: (owner: string) => string): Promise<T | null> {
   const owner = await getUserId()
   if (!owner) return null
@@ -24,11 +26,11 @@ async function ownerFetch<T>(path: (owner: string) => string): Promise<T | null>
   }
 }
 
-export async function fetchKeys(): Promise<KeyInfo[]> {
+export async function fetchKeys(): Promise<KeyInfo[] | null> {
   const data = await ownerFetch<{ keys: KeyInfo[] }>(
     (o) => `/v1/keys?owner=${encodeURIComponent(o)}`,
   )
-  return data?.keys ?? []
+  return data ? data.keys : null
 }
 
 export async function fetchUsage(): Promise<OwnerUsage | null> {

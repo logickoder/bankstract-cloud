@@ -9,7 +9,8 @@ import { cn } from './lib/cn'
 const badge = cva('inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium', {
   variants: {
     tone: {
-      accent: 'bg-accent-muted text-accent',
+      // Ink, not accent text: accent on its own tint measured 3.73:1.
+      accent: 'bg-accent-muted text-fg',
       muted: 'bg-bg-tertiary text-fg-secondary border border-border',
       success: 'bg-success/15 text-success',
       warning: 'bg-warning/15 text-warning',

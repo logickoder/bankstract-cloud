@@ -1,56 +1,59 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-import { Anchor, Badge, ButtonLink, linkClass } from '@bankstract/ui'
+import { ButtonLink, linkClass } from '@bankstract/ui'
 
 import { links } from '../lib/links'
 
-import { CodeBlock } from './CodeBlock'
 import { Section, SectionHeading } from './Section'
+import { StackGraphic } from './graphics'
 
-// Left-heavy (DESIGN ref: trigger.dev's OSS section is not centered) so the late page reads
-// asymmetric instead of a run of centered CTA bands. The terminal block is the concrete proof.
-const SELF_HOST = `git clone https://github.com/logickoder/bankstract-cloud
-cd bankstract-cloud/infra
-docker compose up --build`
-
+// Left-heavy and tiled like the rest of the page. The licence is the display type, and the line
+// B2B buyers look for (calling the API does not make their code AGPL) sits in the tile, per
+// docs/rules/license.md. Live star and contributor counts are deferred: a new repo showing a low
+// count is a weak signal, so a star link carries it.
 export function OssPrideSection() {
   return (
     <Section>
-      <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
-        <div>
-          <SectionHeading>We&apos;re open source. AGPL-3.0.</SectionHeading>
-          <p className="mt-4 max-w-md text-fg-secondary">
-            The cloud layer and the engine are both public. Run the whole stack yourself with
-            docker-compose. No license fee, no lock-in.
+      <SectionHeading>We&apos;re open source.</SectionHeading>
+      <div className="mt-8 grid gap-3 lg:grid-cols-[1.25fr_1fr]">
+        <div className="flex min-w-0 flex-col rounded-lg bg-tint-2 p-6 text-sheet-ink sm:p-8">
+          <p className="font-mono text-xs text-sheet-ink/70">license</p>
+          <p className="mt-3 font-display text-6xl font-bold tracking-[-0.04em] sm:text-7xl">
+            AGPL-3.0
           </p>
-          {/* DESIGN oss-pride stats. Live star/contributor counts are deferred: a new repo
-              showing a low count is a weak signal. License badge + a star CTA carry the trust. */}
-          <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
-            <Badge tone="accent">AGPL-3.0</Badge>
-            <a href={links.stars} className={linkClass}>
-              Star on GitHub
-            </a>
-          </div>
+          <p className="mt-5 max-w-md text-sheet-ink/80">
+            The cloud layer and the engine are both public. Run the whole stack yourself. No license
+            fee, no lock-in.
+          </p>
+          <p className="mt-3 max-w-md text-sm text-sheet-ink/70">
+            Call the API over HTTP and your code does not inherit AGPL. A hosted fork must open its
+            changes.
+          </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href={links.selfHost} variant="primary">
+            <ButtonLink href={links.selfHost} variant="solid">
               Self-host with docker-compose
             </ButtonLink>
-            <ButtonLink href={links.cloud} variant="ghost">
+            <ButtonLink
+              href={links.cloud}
+              variant="secondary"
+              className="border-sheet-ink/40 hover:border-sheet-ink hover:bg-sheet-ink/10"
+            >
               View source
             </ButtonLink>
           </div>
-          <p className="mt-6 text-sm text-fg-tertiary">
-            Need a bank added?{' '}
-            <Anchor href={links.sponsoredBank}>Sponsor the implementation.</Anchor>
-          </p>
-          <p className="mt-2 text-sm text-fg-tertiary">
-            Built by <Anchor href={links.owner}>logickoder</Anchor>.
-          </p>
         </div>
 
-        <div className="min-w-0">
-          <CodeBlock code={SELF_HOST} lang="bash" />
+        <div className="flex min-w-0 flex-col justify-between gap-6 rounded-lg border border-border bg-bg-secondary p-6 sm:p-8">
+          <StackGraphic />
+          <p className="text-sm text-fg-tertiary">
+            The self-host bundle in <span className="font-mono">infra/</span>: the worker and a thin
+            demo, on the engine.{' '}
+            <a href={links.stars} className={linkClass}>
+              Star on GitHub
+            </a>
+            .
+          </p>
         </div>
       </div>
     </Section>

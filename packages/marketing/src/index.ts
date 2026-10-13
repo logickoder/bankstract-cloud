@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
+export { Header } from './components/Header'
 export { MarketingHome } from './home'
 export { metadata, JsonLd } from './metadata'
 export { PricingPage, pricingMetadata } from './pricing'

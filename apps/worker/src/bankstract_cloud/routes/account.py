@@ -16,6 +16,7 @@ from ..models import (
     DailyCount,
     FunnelResponse,
     OwnerUsageResponse,
+    RefusalCount,
     StatusResponse,
     UsageResponse,
 )
@@ -96,7 +97,7 @@ async def admin_usage(
     state: AppState = Depends(get_state),
 ) -> OwnerUsageResponse:
     since_iso = current_period_start_iso()
-    total, ok, daily = state.audit.owner_usage(owner, since_iso=since_iso)
+    total, ok, daily, refusals = state.audit.owner_cycle(owner, since_iso=since_iso)
     # The graph shows ALL of the owner's activity (a pre-subscription owner's test parses must
     # stay visible), but the overage math counts live parses only: test/first_party are free by
     # contract, so letting them in would project (and eventually invoice, via the same
@@ -115,6 +116,7 @@ async def admin_usage(
         overage_parses=report.overage_parses,
         projected_overage_naira=kobo_to_naira_str(report.overage_amount_kobo),
         daily=[DailyCount(date=d, count=c) for d, c in pad_daily(daily, since_iso=since_iso)],
+        refusals=[RefusalCount(error_class=cls, count=n) for cls, n in refusals],
     )
 
 

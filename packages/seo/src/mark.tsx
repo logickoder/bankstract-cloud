@@ -1,37 +1,49 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2026 Jeffery Orazulike
 
-// The "extract" brand mark for next/og (ImageResponse). Satori has no SVG path support, so the mark
-// is positioned divs rather than the <svg> used in the DOM (packages/ui BrandMark). One lifted accent
-// row pulled from a two-row stack sharing the left edge, on the bare 24x12 grid scaled to `width`.
-// Stack colour varies by surface (dim on the favicon plate, muted on the large OG card), so callers
-// pass it; the accent is brand-locked.
-const ACCENT = '#D2691E'
-
-// Bare 24x12 grid: [x, y, width]; height is fixed at 2.5. First row is the lifted accent.
-const BARS: [number, number, number][] = [
-  [5, 0, 14],
-  [5, 5.5, 10],
-  [5, 9.5, 10],
+// The "b" mark for next/og (ImageResponse): three short stem lines, one long shoulder line and two
+// accent bowl lines, as in packages/ui BrandMark. Satori has no SVG path support here, so each row
+// is a positioned div. Keep ROWS in step with that component. Accent is brand-locked per surface:
+// callers pass the shade that is safe on their background.
+// [x1, x2, accent?] per row, in a box 17 wide (x from -1) and 28 tall.
+const ROWS: readonly (readonly [number, number, boolean])[] = [
+  [0.4, 6.4, false],
+  [0, 5.8, false],
+  [0.5, 7, false],
+  [-0.7, 15.2, false],
+  [5, 14, true],
+  [6.8, 11, true],
 ]
-const BAR_H = 2.5
+const BOX_W = 17
+const BOX_H = 28
 
-export function Mark({ width, stack }: { width: number; stack: string }) {
-  const u = width / 24
+export function Mark({
+  height,
+  ink,
+  accent,
+  stroke = 3,
+}: {
+  height: number
+  ink: string
+  accent: string
+  stroke?: number
+}) {
+  const u = height / BOX_H
+  const pitch = (BOX_H - stroke) / (ROWS.length - 1)
   return (
-    <div style={{ position: 'relative', display: 'flex', width, height: 12 * u }}>
-      {BARS.map(([x, y, w], i) => (
+    <div style={{ position: 'relative', display: 'flex', width: BOX_W * u, height }}>
+      {ROWS.map(([x1, x2, isAccent], i) => (
         <div
           key={i}
           style={{
             position: 'absolute',
             display: 'flex',
-            left: x * u,
-            top: y * u,
-            width: w * u,
-            height: BAR_H * u,
-            borderRadius: (BAR_H / 2) * u,
-            background: i === 0 ? ACCENT : stack,
+            left: (x1 + 1) * u,
+            top: i * pitch * u,
+            width: (x2 - x1) * u,
+            height: stroke * u,
+            borderRadius: (stroke / 2) * u,
+            background: isAccent ? accent : ink,
           }}
         />
       ))}

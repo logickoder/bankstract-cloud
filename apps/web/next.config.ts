@@ -24,6 +24,13 @@ const config: NextConfig = {
   // libSQL client ships prebuilt native bits; keep it external so it isn't bundled.
   serverExternalPackages: ['@libsql/client', 'libsql'],
   turbopack: {},
+  // Local dev only: /docs is a separate app (Cloudflare Pages behind the proxy in prod), so proxy it
+  // from the docs dev server (`pnpm --filter docs dev`, port 3200) to keep one origin, like prod.
+  rewrites() {
+    if (process.env.NODE_ENV === 'production') return Promise.resolve([])
+    const docs = process.env.DOCS_DEV_ORIGIN ?? 'http://localhost:3200'
+    return Promise.resolve([{ source: '/docs/:path*', destination: `${docs}/docs/:path*` }])
+  },
 }
 
 export default config

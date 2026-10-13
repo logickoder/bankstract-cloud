@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@bankstract/demo": "workspace:*",
+    "@bankstract/format": "workspace:*",
     "@bankstract/marketing": "workspace:*",
     "@bankstract/seo": "workspace:*",
     "@bankstract/statement-table": "workspace:*",

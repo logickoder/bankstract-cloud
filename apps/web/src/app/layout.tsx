@@ -2,15 +2,20 @@
 // Copyright (C) 2026 Jeffery Orazulike
 
 import { buildMetadata } from '@bankstract/seo'
-import { GrainFilter } from '@bankstract/ui'
-import { fraunces, inter, jetbrains } from '@bankstract/ui/fonts'
+import { GrainFilter, PAPER, resolveAccentTheme } from '@bankstract/ui'
+import { fraunces, instrumentSans, jetbrains } from '@bankstract/ui/fonts'
 import type { Viewport } from 'next'
 import Script from 'next/script'
 
+import { eventBootScript } from '@/lib/event'
+
 import './globals.css'
 
-// Dark UI: declare the theme-color so the browser chrome (mobile address bar) matches.
-export const viewport: Viewport = { themeColor: '#0a0a0a' }
+// Paper UI: declare the theme-color so the browser chrome (mobile address bar) matches.
+export const viewport: Viewport = { themeColor: PAPER.bg }
+
+// Swappable accent (orange | red). Inlined at build; unknown values fall back to orange.
+const ACCENT_THEME = resolveAccentTheme(process.env.NEXT_PUBLIC_ACCENT_THEME)
 
 // Cloudflare Web Analytics: cookieless, no PII, no consent banner. Only loads when the token is
 // set (prod), so dev + e2e stay clean. Our box is Caddy-fronted (not CF-proxied); the JS beacon
@@ -27,7 +32,17 @@ export const metadata = buildMetadata({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}>
+    // suppressHydrationWarning: the boot script sets data-theme and data-event on <html> before React
+    // hydrates, which would otherwise read as a mismatch.
+    <html
+      lang="en"
+      data-theme={ACCENT_THEME}
+      className={`surface-paper ${fraunces.variable} ${instrumentSans.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: eventBootScript() }} />
+      </head>
       <body>
         <GrainFilter />
         {children}

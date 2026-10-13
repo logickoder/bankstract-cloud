@@ -3,6 +3,7 @@
 
 'use client'
 
+import { displayDate } from '@bankstract/format'
 import {
   Button,
   Card,
@@ -19,10 +20,6 @@ import { useEffect, useId, useState } from 'react'
 import { StatusBadge, TierBadge } from '@/components/KeyBadges'
 import { PageHeading } from '@/components/PageHeading'
 import type { KeyCreatedResponse, KeyInfo } from '@/lib/worker'
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toISOString().slice(0, 10)
-}
 
 export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
   const router = useRouter()
@@ -123,7 +120,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
             <div className="min-w-0">
               <div className="font-mono text-sm text-fg">{testKey.prefix}</div>
               <div className="mt-1 font-mono text-xs text-fg-tertiary">
-                Created {fmtDate(testKey.created_at)}
+                Created {displayDate(testKey.created_at)}
               </div>
             </div>
           ) : (
@@ -154,7 +151,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
             </p>
           </div>
           <Button
-            variant="primary"
+            variant="solid"
             size="sm"
             className="shrink-0 self-start whitespace-nowrap sm:self-auto"
             onClick={() => setCreateOpen(true)}
@@ -187,7 +184,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
                       <td className="px-4 py-3">{k.name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-fg-secondary">{k.prefix}</td>
                       <td className="px-4 py-3 font-mono text-xs text-fg-secondary">
-                        {fmtDate(k.created_at)}
+                        {displayDate(k.created_at)}
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-2">
@@ -225,7 +222,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-fg-tertiary">
                     <StatusBadge revoked={Boolean(k.revoked_at)} />
                     {k.tier !== 'live' && <TierBadge tier={k.tier} />}
-                    <span className="font-mono">Created {fmtDate(k.created_at)}</span>
+                    <span className="font-mono">Created {displayDate(k.created_at)}</span>
                   </div>
                 </Card>
               ))}
@@ -279,22 +276,18 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
       <Dialog open={created !== null} onOpenChange={(o) => !o && setCreated(null)}>
         <DialogContent>
           <DialogTitle>Copy your key now</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="font-medium text-fg">
             This is the only time we show it. Store it somewhere safe.
           </DialogDescription>
-          <div className="mt-4 rounded-md border border-border bg-bg-tertiary p-3 font-mono text-xs break-all text-fg">
+          <div className="surface-ink mt-4 rounded-md p-4 font-mono text-sm break-all">
             {created?.key}
           </div>
           <div className="mt-4 flex justify-end gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => created && void copy(created.key)}
-            >
-              {copied ? 'Copied' : 'Copy'}
-            </Button>
-            <Button size="sm" onClick={() => setCreated(null)}>
+            <Button variant="ghost" size="sm" onClick={() => setCreated(null)}>
               Done
+            </Button>
+            <Button size="sm" onClick={() => created && void copy(created.key)}>
+              {copied ? 'Copied' : 'Copy key'}
             </Button>
           </div>
         </DialogContent>
@@ -310,7 +303,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
             <Button variant="ghost" size="sm" onClick={() => setConfirmRoll(false)}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" disabled={testBusy} onClick={() => void rollTestKey()}>
+            <Button variant="solid" size="sm" disabled={testBusy} onClick={() => void rollTestKey()}>
               {testBusy ? 'Working...' : 'Regenerate'}
             </Button>
           </div>
@@ -345,7 +338,7 @@ export function KeysClient({ initialKeys }: { initialKeys: KeyInfo[] }) {
             <Button variant="ghost" size="sm" onClick={() => setConfirmRevoke(null)}>
               Cancel
             </Button>
-            <Button variant="primary" size="sm" disabled={revokeBusy} onClick={() => void doRevoke()}>
+            <Button variant="solid" size="sm" disabled={revokeBusy} onClick={() => void doRevoke()}>
               {revokeBusy ? 'Revoking...' : 'Revoke key'}
             </Button>
           </div>

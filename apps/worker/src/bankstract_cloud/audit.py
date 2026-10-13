@@ -11,6 +11,10 @@ from typing import Literal
 
 from .clock import utcnow_iso
 
+# error_class of a request sampled or refused over a free cap (routes/admission.py audits it with
+# success=False). Display queries skip it: it is not a failed parse.
+FREE_LIMIT_CLASS = "free_limit_reached"
+
 
 # DELIBERATE: the overage metering window is the CALENDAR MONTH (UTC, 1st 00:00 to 1st
 # 00:00), NOT the Paystack subscription cycle anchored to each owner's subscribe date.
@@ -157,6 +161,37 @@ class AuditLog:
             (owner, since_iso, *extra),
         ).fetchall()
         return total, ok, [(r["day"], int(r["n"])) for r in daily]
+
+    def owner_cycle(
+        self, owner: str, *, since_iso: str
+    ) -> tuple[int, int, list[tuple[str, int]], list[tuple[str, int]]]:
+        """What the dashboard shows for `owner` since `since_iso`, in one pass over the same
+        join and window as owner_usage, all tiers. Returns (total_attempts, successes,
+        [(YYYY-MM-DD, success_count), ...], [(error_class, failures), ...]) with failures
+        most frequent first. Metadata only: a class name and a count, never a filename or any
+        statement content. A failure with no recorded class is labelled "unknown" so it still
+        counts. Over-cap rows (FREE_LIMIT_CLASS) are cap notices, not parse attempts, so they are
+        left out of every figure. Billing keeps owner_usage (tier-bounded); this is display only."""
+        rows = self._conn.execute(
+            "SELECT substr(a.timestamp, 1, 10) AS day, a.success AS ok, "
+            "COALESCE(a.error_class, 'unknown') AS cls, COUNT(*) AS n "
+            "FROM audit_log a JOIN api_keys k ON a.api_key_id = k.id "
+            "WHERE k.owner = ? AND a.timestamp >= ? AND COALESCE(a.error_class, '') != ? "
+            "GROUP BY day, a.success, cls",
+            (owner, since_iso, FREE_LIMIT_CLASS),
+        ).fetchall()
+        total = sum(int(r["n"]) for r in rows)
+        per_day: dict[str, int] = {}
+        failures: dict[str, int] = {}
+        for r in rows:
+            n = int(r["n"])
+            if r["ok"]:
+                per_day[r["day"]] = per_day.get(r["day"], 0) + n
+            else:
+                failures[r["cls"]] = failures.get(r["cls"], 0) + n
+        ok = sum(per_day.values())
+        refusals = sorted(failures.items(), key=lambda kv: (-kv[1], kv[0]))
+        return total, ok, sorted(per_day.items()), refusals
 
 
 def pad_daily(raw: list[tuple[str, int]], *, since_iso: str) -> list[tuple[str, int]]:

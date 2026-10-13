@@ -113,6 +113,28 @@ def test_poll_snapshot_reaches_done(harness: Harness, monkeypatch: pytest.Monkey
     assert body["result"]["transactions"] == []
 
 
+def test_an_audit_write_failure_does_not_fail_a_finished_job(
+    harness: Harness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The parse succeeded and the result is stored. A broken audit write (SQLite locked, disk
+    # full) must not tell the caller their statement failed.
+    monkeypatch.setattr("bankstract.parse", fake_parse(("walk_page", 1, 1)))
+
+    def broken_audit(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr("bankstract_cloud.routes.parse._record_success", broken_audit)
+    sub = harness.client.post(
+        "/v1/parse/jobs", files=pdf_upload(), headers=auth_header(harness.test_key)
+    )
+    with harness.client.stream("GET", sub.json()["stream_url"]) as resp:
+        text = "".join(resp.iter_text())
+
+    result = _result_event(text)
+    assert result["state"] == "done"
+    assert result.get("error_class") is None
+
+
 def test_failed_job_surfaces_error(harness: Harness) -> None:
     # Real engine on the minimal stub finds no parser -> failed job + error envelope (no mock).
     sub = harness.client.post(

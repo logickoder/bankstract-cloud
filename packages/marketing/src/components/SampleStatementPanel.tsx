@@ -23,10 +23,11 @@ export function SampleStatementPanel() {
   const [threshold, setThreshold] = useState(DEFAULT_THRESHOLD)
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <p className="font-mono text-xs text-fg-tertiary">synthetic · generated in your browser</p>
         <Button variant="secondary" size="sm" onClick={() => setData(generateSampleStatement())}>
-          Shuffle
+          New sample
         </Button>
       </div>
       <TransactionTable data={data} />

@@ -3,12 +3,10 @@
 
 'use client'
 
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { displayDate, displayDay } from '@bankstract/format'
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
-interface DailyCount {
-  date: string
-  count: number
-}
+import { type DailyCount, summarize } from '@/lib/usage-stats'
 
 interface TooltipPayload {
   value: number
@@ -26,7 +24,7 @@ function ChartTooltip({
   const { date, count } = payload[0]!.payload
   return (
     <div className="rounded-md border border-border bg-bg px-3 py-2 text-xs shadow-md">
-      <p className="font-mono text-fg-tertiary">{date}</p>
+      <p className="font-mono text-fg-tertiary">{displayDate(date)}</p>
       <p className="mt-0.5 font-mono text-fg">
         {count.toLocaleString()} {count === 1 ? 'parse' : 'parses'}
       </p>
@@ -35,8 +33,8 @@ function ChartTooltip({
 }
 
 export function UsageChart({ daily }: { daily: DailyCount[] }) {
-  const total = daily.reduce((sum, d) => sum + d.count, 0)
-  const peak = daily.reduce((max, d) => Math.max(max, d.count), 0)
+  const { total, peak: busiest } = summarize(daily)
+  const peak = busiest?.count ?? 0
   return (
     <div>
       {/* The SVG carries no accessible content; a role=img label summarises it and the
@@ -45,8 +43,9 @@ export function UsageChart({ daily }: { daily: DailyCount[] }) {
         role="img"
         aria-label={`Daily parses this cycle. ${total} total, peak ${peak} in one day.`}
       >
-        <ResponsiveContainer width="100%" height={160}>
-          <BarChart data={daily} barSize={12} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={daily} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+            <CartesianGrid vertical={false} stroke="var(--color-border)" />
             <XAxis
               dataKey="date"
               tick={{
@@ -56,15 +55,39 @@ export function UsageChart({ daily }: { daily: DailyCount[] }) {
               }}
               tickLine={false}
               axisLine={false}
-              // show first + last label only to avoid crowding
-              tickFormatter={(v: string, i: number) => (i === 0 || i === daily.length - 1 ? v : '')}
+              // Always label the first and last day, and as many in between as fit without touching.
+              interval="preserveStartEnd"
+              minTickGap={14}
+              padding={{ left: 4, right: 20 }}
+              tickFormatter={displayDay}
             />
-            <YAxis hide allowDecimals={false} />
+            <YAxis
+              allowDecimals={false}
+              width={40}
+              tickCount={4}
+              tickLine={false}
+              axisLine={false}
+              tick={{
+                fontSize: 11,
+                fill: 'var(--color-fg-tertiary)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            />
             <Tooltip
               content={<ChartTooltip />}
               cursor={{ fill: 'var(--color-bg-tertiary)', radius: 2 }}
             />
-            <Bar dataKey="count" fill="var(--color-accent)" radius={[2, 2, 0, 0]} />
+            {/* Ink, not the accent: the accent is for links and small marks, and thirty orange bars
+                were the loudest thing on the page. Only the busiest day keeps it. */}
+            <Bar dataKey="count" radius={[3, 3, 0, 0]} maxBarSize={22}>
+              {daily.map((d) => (
+                <Cell
+                  key={d.date}
+                  fill={peak > 0 && d.count === peak ? 'var(--color-accent)' : 'var(--color-fg)'}
+                  fillOpacity={peak > 0 && d.count === peak ? 1 : 0.62}
+                />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -79,7 +102,7 @@ export function UsageChart({ daily }: { daily: DailyCount[] }) {
         <tbody>
           {daily.map((d) => (
             <tr key={d.date}>
-              <td>{d.date}</td>
+              <td>{displayDate(d.date)}</td>
               <td>{d.count}</td>
             </tr>
           ))}

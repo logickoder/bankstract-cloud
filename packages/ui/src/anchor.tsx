@@ -6,10 +6,10 @@ import type { ComponentProps } from 'react'
 import { cn } from './lib/cn'
 import { SmartLink } from './smart-link'
 
-// Burnt-orange functional link (DESIGN: single accent, links only). Exported as both a
+// Accent functional link, AA-safe on paper via accent-text (DESIGN: links only). Exported as both a
 // component and the bare class string, for callers that style a <button> or next/link.
 export const linkClass =
-  'text-accent underline-offset-4 hover:underline rounded-sm focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+  'text-accent-text underline-offset-4 hover:underline rounded-sm focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
 // SmartLink owns client-nav vs full-load (in-app route -> next/link, external / cross-app -> <a>).
 // Pass `reload` to force a full navigation for a relative path that leaves this Next app (/docs).
