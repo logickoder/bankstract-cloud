@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   displayBytes,
   displayDate,
+  displayDay,
   displayMoney,
   displayNaira,
   isZeroAmount,
@@ -56,6 +57,16 @@ describe('displayNaira', () => {
   })
 })
 
+describe('displayDay', () => {
+  it('drops the year and the zero pad', () => {
+    expect(displayDay('2026-10-07')).toBe('Oct 7')
+  })
+
+  it('falls back to a dash for null', () => {
+    expect(displayDay(null)).toBe('-')
+  })
+})
+
 describe('signedNaira', () => {
   it('shows credit as a positive signed value', () => {
     expect(signedNaira('0', '4000.00')).toEqual({ text: '+ ₦4,000.00', isCredit: true })
@@ -63,6 +74,10 @@ describe('signedNaira', () => {
 
   it('shows debit as a negative signed value', () => {
     expect(signedNaira('500.00', '0')).toEqual({ text: '− ₦500.00', isCredit: false })
+  })
+
+  it('treats a 0.00 credit as no credit', () => {
+    expect(signedNaira('500.00', '0.00')).toEqual({ text: '− ₦500.00', isCredit: false })
   })
 })
 
