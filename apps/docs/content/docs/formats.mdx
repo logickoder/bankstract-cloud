@@ -9,10 +9,10 @@ description: JSON, CSV, and redacted output.
 
 `?format=json` (or omit it) returns the `ParseResponse` object: metadata, totals, the transaction array, and `reconciliation` (which checks ran and passed; see [Quickstart](/quickstart)). Money fields are decimal strings; dates are ISO 8601.
 
-Row money rules, in JSON and CSV:
+Money rules, in JSON and CSV:
 
 - `debit` and `credit` are never negative. A statement row with a negative amount fails the parse with a `422` (`error_class: "LayoutDriftError"`). It never comes back as a clean result.
-- A zero `debit`, `credit` or `balance` is always unsigned. You never get `-0.00`.
+- A zero `debit`, `credit` or `balance` is always unsigned. You never get `-0.00`. The same holds for `totals` and the metadata opening and closing balances.
 - `debit` and `credit` can both be nonzero on one row when the statement prints both. They are never netted. Sum each column on its own.
 
 ## CSV

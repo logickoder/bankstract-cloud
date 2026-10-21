@@ -99,7 +99,7 @@ wheels = [
 
 [[package]]
 name = "bankstract"
-version = "0.18.1"
+version = "0.18.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -108,9 +108,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pymupdf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/67/86/b4a9f6ca78912f72bbb54d6b691bed1a15c520ff4ff40ed84151391c4c91/bankstract-0.18.1.tar.gz", hash = "sha256:17321288f0c54f7473c8d7a74971bf77c7242fb4f76e760f7f6499ba6d792fea", size = 151780, upload-time = "2026-10-21T19:24:47.269Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/5f/1e48dece671a6c8016827ca50e6cbfff8ae4f5a6e052572bc5115b7f89cf/bankstract-0.18.2.tar.gz", hash = "sha256:163a994101c7d9e5c0392633e89f09052a37fd4eecab9cd11894bccdd543bc0a", size = 151880, upload-time = "2026-10-21T20:33:51.657Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/25/09/4b3ada76f21110af97b28440cb34269d932f132ebcd5a2e7dbfff765a55d/bankstract-0.18.1-py3-none-any.whl", hash = "sha256:4e2b24193b913b05d544d2763ec204c9af4536227a95b0e73e623de42d80c78f", size = 82328, upload-time = "2026-10-21T19:24:45.531Z" },
+    { url = "https://files.pythonhosted.org/packages/7b/07/4ca687ceb55869819397804b16313db572694c10032dd89c8e27e04484d2/bankstract-0.18.2-py3-none-any.whl", hash = "sha256:97ec417bb8c3387c3413c88c8a02e55e09bb73b93db8b55f254b247e78c8c1f7", size = 82438, upload-time = "2026-10-21T20:33:50Z" },
 ]
 
 [[package]]
@@ -142,7 +142,7 @@ dev = [
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.4" },
     { name = "argon2-cffi", specifier = ">=23.1.0" },
-    { name = "bankstract", specifier = ">=0.18.1" },
+    { name = "bankstract", specifier = ">=0.18.2" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
