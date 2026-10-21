@@ -1,6 +1,6 @@
 # Worker
 
-`apps/worker`: FastAPI over the `bankstract` engine. Python 3.11+, `uv`, current engine pin `bankstract>=0.18.0` (`pyproject.toml`).
+`apps/worker`: FastAPI over the `bankstract` engine. Python 3.11+, `uv`, current engine pin `bankstract>=0.18.1` (`pyproject.toml`).
 
 ## Import the engine, never shell out
 
